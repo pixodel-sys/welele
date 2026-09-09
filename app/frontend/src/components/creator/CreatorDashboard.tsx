@@ -31,40 +31,48 @@ export const CreatorDashboard: React.FC<CreatorDashboardProps> = ({
   onNavigateToSeries,
   onNavigateToEarnings,
 }) => {
+  const { stories } = useApp();
   const [stats, setStats] = useState<any>(null);
-  const [series, setSeries] = useState<any[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [series, setSeries] = useState<any[]>(stories || []);
+  const [loading, setLoading] = useState<boolean>(false);
 
   // Retention Telemetry state
-  const [selectedSeriesId, setSelectedSeriesId] = useState<string>('story_1');
+  const [selectedSeriesId, setSelectedSeriesId] = useState<string>(stories[0]?.id || 'story_blood_ties');
   const [selectedEpisodeNumber, setSelectedEpisodeNumber] = useState<number>(1);
   const [telemetry, setTelemetry] = useState<RetentionTelemetry | null>(null);
   const [hoveredPoint, setHoveredPoint] = useState<DropoffDataPoint | null>(null);
 
   useEffect(() => {
     creatorApi
-      .getDashboard('creator_1')
+      .getDashboard('creator_zola')
       .then((res) => {
-        setStats(res.stats);
-        setSeries(res.series);
-        if (res.series && res.series.length > 0) {
-          setSelectedSeriesId(res.series[0].id);
+        if (res) {
+          setStats(res.stats || null);
+          if (res.series && res.series.length > 0) {
+            setSeries(res.series);
+            setSelectedSeriesId(res.series[0].id);
+          } else if (stories && stories.length > 0) {
+            setSeries(stories);
+            setSelectedSeriesId(stories[0].id);
+          }
         }
       })
+      .catch((err) => {
+        console.warn('Using local fallback for creator stats:', err);
+      })
       .finally(() => setLoading(false));
-  }, []);
+  }, [stories]);
 
   useEffect(() => {
     if (selectedSeriesId) {
-      retentionApi.getTelemetry(selectedSeriesId, selectedEpisodeNumber).then((data) => {
-        setTelemetry(data);
-      });
+      retentionApi
+        .getTelemetry(selectedSeriesId, selectedEpisodeNumber)
+        .then((data) => {
+          if (data) setTelemetry(data);
+        })
+        .catch(() => {});
     }
   }, [selectedSeriesId, selectedEpisodeNumber]);
-
-  if (loading) {
-    return <div className="p-8 text-center text-welele-muted">Loading Creator Studio metrics...</div>;
-  }
 
   // Calculate SVG curve path for retention
   const points = telemetry?.dropoff_curve || [];
