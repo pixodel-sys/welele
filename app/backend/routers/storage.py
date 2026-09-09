@@ -76,3 +76,36 @@ def get_hls_renditions(storage_key: str):
     Returns the HLS multi-bitrate adaptive streaming manifest and rendition URLs.
     """
     return storage_service.get_hls_renditions(storage_key)
+
+class DispatchJobRequest(BaseModel):
+    media_asset_id: str
+    provider: Optional[str] = "CloudflareStream"
+    idempotency_key: Optional[str] = None
+
+@router.post("/jobs/transcode")
+def dispatch_media_job(req: DispatchJobRequest):
+    """Dispatches an asynchronous media transcoding job outside the request thread."""
+    from services.transcoding_service import transcoding_service
+    job = transcoding_service.dispatch_transcoding_job(
+        media_asset_id=req.media_asset_id,
+        provider=req.provider or "CloudflareStream",
+        idempotency_key=req.idempotency_key
+    )
+    return {"status": "accepted", "job": job}
+
+@router.get("/jobs/{job_id}")
+def get_job_status(job_id: str):
+    """Returns the operational execution status of a media job."""
+    from services.transcoding_service import transcoding_service
+    job = transcoding_service.get_job_status(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Media job not found")
+    return {"job": job}
+
+@router.get("/assets/{asset_id}/renditions")
+def get_asset_renditions(asset_id: str):
+    """Returns all generated HLS renditions for a media asset."""
+    from services.transcoding_service import transcoding_service
+    renditions = transcoding_service.get_asset_renditions(asset_id)
+    return {"asset_id": asset_id, "renditions": renditions}
+

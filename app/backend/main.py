@@ -1,6 +1,6 @@
 """
 Welele Media™ — Backend Application Entry Point & Router Registration
-Architecture: FastAPI Asynchronous Micro-Service Hub with 8 Frozen Pillars
+Architecture: FastAPI Asynchronous Micro-Service Hub with 8 Frozen Pillars & Digital IP Engine
 """
 
 from fastapi import FastAPI
@@ -8,9 +8,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from config import settings
 from seed_data import seed_database_if_empty
 
-# Canonical Domain Routers (Section 5.1 of ARCHITECTURE.md)
+# Canonical Domain Routers (Manifesto Specification 5.1 & Digital IP Spine)
 from routers import (
     auth,
+    ip,
     series,
     episodes,
     wallet,
@@ -19,10 +20,12 @@ from routers import (
     chat,
     ai,
     admin,
-    experience
+    experience,
+    telemetry,
+    intelligence
 )
 
-# Backward Compatibility Alias Routers for Frontend Legacy Clients
+# Backward Compatibility Alias Routers for Legacy Clients
 from routers import (
     stories as legacy_stories,
     creators as legacy_creators,
@@ -32,7 +35,7 @@ from routers import (
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
-    description="Welele Media™ — Vertical Micro-Drama Streaming & Monetisation Platform API"
+    description="Welele Media™ — Vertical Micro-Drama Digital IP Engine & Monetisation Platform API"
 )
 
 # CORS configuration for PWA Mobile & Web
@@ -45,9 +48,10 @@ app.add_middleware(
 )
 
 # -----------------------------------------------------------------------------
-# Register Canonical Domain Routers (Manifesto Specification 5.1)
+# Register Canonical Domain Routers (Digital IP Spine)
 # -----------------------------------------------------------------------------
 app.include_router(auth.router, prefix=settings.API_V1_STR)
+app.include_router(ip.router, prefix=settings.API_V1_STR)
 app.include_router(series.router, prefix=settings.API_V1_STR)
 app.include_router(episodes.router, prefix=settings.API_V1_STR)
 app.include_router(wallet.router, prefix=settings.API_V1_STR)
@@ -57,6 +61,8 @@ app.include_router(chat.router, prefix=settings.API_V1_STR)
 app.include_router(ai.router, prefix=settings.API_V1_STR)
 app.include_router(admin.router, prefix=settings.API_V1_STR)
 app.include_router(experience.router, prefix=settings.API_V1_STR)
+app.include_router(telemetry.router, prefix=settings.API_V1_STR)
+app.include_router(intelligence.router, prefix=settings.API_V1_STR)
 
 # -----------------------------------------------------------------------------
 # Backward-Compatible Legacy Aliases (Zero-Friction Client Migration)
@@ -74,20 +80,30 @@ def root():
     return {
         "brand": "Welele™",
         "parent": "Welele Media™",
-        "manifesto_version": "1.0 (Frozen)",
-        "pillars": [
-            "1. 9:16 Canonical Viewer",
-            "2. PWA First Architecture",
-            "3. Relational Transaction Core",
-            "4. Object Storage + CDN Media",
-            "5. Unified Payment Abstraction",
-            "6. Regional Monetisation Provider Pattern",
-            "7. Content as the Primary Asset",
-            "8. Community Embedded in the Stream"
+        "engine": "Welele Digital IP Engine v2.0",
+        "manifesto_version": "2.0 (Canonical IP Spine)",
+        "domains": [
+            "1. Digital IP Franchises",
+            "2. Story World & Character Bibles",
+            "3. 9:16 Canonical Viewer",
+            "4. Decoupled Media Assets & HLS",
+            "5. Double-Entry Accounting Journal",
+            "6. WEE Context Decision Engine",
+            "7. Audience Telemetry Spine",
+            "8. Story Intelligence Loop"
         ],
         "status": "online",
         "version": settings.VERSION,
         "docs_url": "/docs"
+    }
+
+@app.get("/health")
+def health():
+    return {
+        "status": "healthy",
+        "database": "connected",
+        "engine": "Welele Digital IP Engine v2.0",
+        "version": settings.VERSION
     }
 
 if __name__ == "__main__":

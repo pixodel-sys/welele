@@ -5,7 +5,7 @@ Handles Airtime DCB (Vodacom, MTN, Cell C, Telkom), Ozow Instant EFT, Paystack C
 """
 
 from typing import Optional
-from fastapi import APIRouter, HTTPException, Query, Header
+from fastapi import APIRouter, HTTPException, Query, Header, Request
 from pydantic import BaseModel
 from services.payment_service import payment_service
 from services.ledger_service import ledger_service
@@ -136,20 +136,48 @@ def initiate_checkout(req: TopupCheckoutPayload):
         "transaction": result
     }
 
+@router.post("/webhook/{provider_id}")
+async def process_provider_webhook(
+    provider_id: str,
+    request: Request,
+    x_welele_signature: Optional[str] = Header(None, alias="X-Welele-Signature")
+):
+    """
+    Cryptographically authenticated, idempotent webhook receiver for regional payment providers.
+    """
+    from services.commerce_service import commerce_service
+    body_bytes = await request.body()
+    try:
+        body_json = await request.json()
+    except Exception:
+        body_json = {}
+
+    success, message, data = commerce_service.process_webhook(
+        provider_id=provider_id,
+        raw_body=body_bytes,
+        raw_json=body_json,
+        signature_header=x_welele_signature
+    )
+
+    if not success:
+        raise HTTPException(status_code=400, detail={"error": message, "details": data})
+
+    return {"status": "accepted", "message": message, "data": data}
+
 @router.post("/webhook")
-def process_payment_webhook(payload: WebhookPayload, x_welele_signature: Optional[str] = Header(None)):
-    """Idempotent webhook listener for asynchronous bank/carrier settlement."""
-    if payload.status.upper() == "COMPLETED" and payload.coins_grant > 0:
-        ledger_service.credit_coins(
-            user_id=payload.user_id,
-            base_coins=payload.coins_grant,
-            bonus_coins=0,
-            transaction_type="WEBHOOK_TOPUP",
-            reference_id=payload.reference,
-            description=f"Settled payment {payload.reference}"
-        )
-    return {
-        "received": True,
-        "status": "processed",
-        "reference": payload.reference
-    }
+async def process_legacy_webhook(
+    request: Request,
+    x_welele_signature: Optional[str] = Header(None, alias="X-Welele-Signature")
+):
+    """
+    Generic webhook router defaulting to Vodacom DCB.
+    """
+    return await process_provider_webhook("vodacom_dcb", request, x_welele_signature)
+
+@router.get("/events")
+def get_payment_events_log(limit: int = 50):
+    """Returns persistent audit log of all received payment provider webhook receipts."""
+    from services.commerce_service import commerce_service
+    events = commerce_service.get_payment_events(limit=limit)
+    return {"total_events": len(events), "events": events}
+

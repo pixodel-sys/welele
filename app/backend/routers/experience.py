@@ -1,3 +1,5 @@
+from services.rbac_service import require_role, get_current_user
+from fastapi import Depends
 """
 Welele Media™ — Experience Engine API Router (WEE Layer 3: Delivery)
 Public client layout delivery, draft authoring, and simulated time-travel preview endpoints.

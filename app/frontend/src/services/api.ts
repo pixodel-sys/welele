@@ -530,3 +530,53 @@ export const retentionApi = {
     }
   }
 };
+
+// ============================================================================
+// CANONICAL DIGITAL IP & TELEMETRY APIS (GAP-001 & GAP-004)
+// ============================================================================
+
+export const ipApi = {
+  listIps: async () => {
+    const res = await API.get('/ip/list');
+    return res.data;
+  },
+  getIpDetail: async (ipId: string) => {
+    const res = await API.get(`/ip/${ipId}`);
+    return res.data;
+  },
+  createIp: async (payload: any) => {
+    const res = await API.post('/ip/create', payload);
+    return res.data;
+  },
+  saveStoryPackage: async (ipId: string, payload: any) => {
+    const res = await API.post(`/ip/${ipId}/story-forge/save`, payload);
+    return res.data;
+  }
+};
+
+export const telemetryApi = {
+  trackEvent: async (payload: {
+    event_name: string;
+    session_id: string;
+    user_id?: string;
+    ip_id?: string;
+    series_id?: string;
+    episode_id?: string;
+    playback_second?: number;
+    region_code?: string;
+    device_type?: string;
+    metadata?: Record<string, any>;
+  }) => {
+    try {
+      const res = await API.post('/events/track', payload);
+      return res.data;
+    } catch {
+      return { status: 'buffered' };
+    }
+  },
+  getRetentionTelemetry: async (seriesId: string, episodeId: string) => {
+    const res = await API.get(`/events/retention/${seriesId}/${episodeId}`);
+    return res.data;
+  }
+};
+
