@@ -2,7 +2,7 @@ import React from 'react';
 import { useApp } from '../../context/AppContext';
 import { AppMode, MarketRegion } from '../../types';
 import { WeleleLogo } from './WeleleLogo';
-import { Sparkles, Shield, Video, Smartphone, Globe, Signal, User, LogIn } from 'lucide-react';
+import { Sparkles, Shield, Video, Smartphone, Globe, Signal, User, LogIn, LogOut } from 'lucide-react';
 
 export const Header: React.FC = () => {
   const {
@@ -17,6 +17,7 @@ export const Header: React.FC = () => {
     isLoggedIn,
     setIsAuthModalOpen,
     user,
+    logout,
     activeLanguage,
     setActiveLanguage,
   } = useApp();
@@ -160,8 +161,25 @@ export const Header: React.FC = () => {
             </span>
           </button>
 
-          {/* User Sign In / Profile Avatar */}
-          {isLoggedIn ? (
+          {/* User Sign In / Profile Avatar & Role Badge */}
+          {isLoggedIn && user.role !== 'viewer' ? (
+            <div className="flex items-center gap-1.5 bg-welele-surface-2 p-1 rounded-[7px] border border-white/10">
+              <div className="flex items-center gap-1.5 px-2 py-0.5">
+                <span className={`w-2 h-2 rounded-full ${user.role === 'admin' ? 'bg-emerald-400' : 'bg-welele-pink'} animate-pulse`} />
+                <span className="text-[10px] font-bold text-white uppercase tracking-wider hidden sm:inline">
+                  {user.role === 'admin' ? 'Admin' : 'Creator'}
+                </span>
+              </div>
+              <button
+                onClick={logout}
+                className="px-2 py-1 rounded-[7px] bg-red-950/60 hover:bg-red-900 border border-red-500/30 text-red-300 text-[10px] font-bold flex items-center gap-1 transition-colors"
+                title="Log Out and Lock Surface"
+              >
+                <LogOut className="w-3 h-3" />
+                <span>Exit</span>
+              </button>
+            </div>
+          ) : isLoggedIn ? (
             <button
               onClick={() => setIsAuthModalOpen(true)}
               className="w-8 h-8 rounded-[7px] border border-welele-orange/50 overflow-hidden hover:scale-105 transition-transform"
@@ -171,7 +189,9 @@ export const Header: React.FC = () => {
             </button>
           ) : (
             <button
-              onClick={() => setIsAuthModalOpen(true)}
+              onClick={() => {
+                setIsAuthModalOpen(true);
+              }}
               className="px-3 py-1.5 rounded-[7px] bg-gradient-welele text-white text-xs font-bold shadow flex items-center gap-1 hover:opacity-95"
             >
               <LogIn className="w-3.5 h-3.5" />

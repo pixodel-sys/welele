@@ -14,7 +14,7 @@ export const RequireRole: React.FC<RequireRoleProps> = ({
   fallbackMode = 'viewer',
   children,
 }) => {
-  const { user, setMode } = useApp();
+  const { user, setMode, setIsAuthModalOpen, setAuthModalTargetRole } = useApp();
 
   const userRole = user?.role || 'viewer';
   const hasAccess = userRole === 'admin' || allowedRoles.includes(userRole);
@@ -22,6 +22,8 @@ export const RequireRole: React.FC<RequireRoleProps> = ({
   if (hasAccess) {
     return <>{children}</>;
   }
+
+  const primaryAllowedRole = allowedRoles.includes('creator') ? 'creator' : 'admin';
 
   return (
     <div className="min-h-[60vh] flex items-center justify-center p-6 animate-fade-in text-white">
@@ -51,8 +53,19 @@ export const RequireRole: React.FC<RequireRoleProps> = ({
 
         <div className="pt-2 flex flex-col gap-2">
           <button
+            onClick={() => {
+              setAuthModalTargetRole(primaryAllowedRole);
+              setIsAuthModalOpen(true);
+            }}
+            className="w-full py-2.5 rounded-[7px] bg-gradient-to-r from-welele-pink to-welele-magenta hover:opacity-95 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-lg"
+          >
+            <UserCheck className="w-4 h-4" />
+            <span>Authenticate as {primaryAllowedRole === 'creator' ? 'Showrunner / Studio' : 'Platform Administrator'}</span>
+          </button>
+
+          <button
             onClick={() => setMode(fallbackMode)}
-            className="w-full py-2.5 rounded-[7px] bg-gradient-to-r from-welele-orange to-pink-600 hover:from-orange-600 hover:to-pink-700 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-lg"
+            className="w-full py-2.5 rounded-[7px] bg-white/5 hover:bg-white/10 text-welele-muted hover:text-white font-bold text-xs flex items-center justify-center gap-2 transition-all border border-white/10"
           >
             <span>Return to {fallbackMode === 'viewer' ? 'Consumer Streaming' : 'Safe Surface'}</span>
             <ArrowRight className="w-4 h-4" />

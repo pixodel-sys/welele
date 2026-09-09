@@ -25,6 +25,8 @@ interface AppContextType {
   isLoggedIn: boolean;
   isAuthModalOpen: boolean;
   setIsAuthModalOpen: (open: boolean) => void;
+  authModalTargetRole: 'viewer' | 'creator' | 'admin';
+  setAuthModalTargetRole: (role: 'viewer' | 'creator' | 'admin') => void;
   user: UserProfile;
   login: (userData: Partial<UserProfile>) => void;
   logout: () => void;
@@ -72,6 +74,16 @@ interface AppContextType {
   setActiveLanguage: (lang: string) => void;
 }
 
+const DEFAULT_GUEST_USER: UserProfile = {
+  id: 'guest_za_01',
+  name: 'Guest Viewer',
+  phone: '082 891 2345',
+  avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+  city: 'Johannesburg, South Africa',
+  role: 'viewer',
+  permissions: ['stream:episode:free', 'stream:episode:unlock', 'wallet:recharge'],
+};
+
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -80,8 +92,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Auth state
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
+  const [authModalTargetRole, setAuthModalTargetRole] = useState<'viewer' | 'creator' | 'admin'>('viewer');
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => {
-    return localStorage.getItem('welele_logged_in') !== 'false';
+    return localStorage.getItem('welele_logged_in') === 'true';
   });
 
   const [user, setUser] = useState<UserProfile>(() => {
@@ -89,16 +102,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (saved) {
       try { return JSON.parse(saved); } catch (e) {}
     }
-    return {
-      id: 'user_joburg_77',
-      name: 'Sipho Dlamini',
-      phone: '082 891 2345',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
-      city: 'Johannesburg, South Africa',
-      role: 'creator', // Default to verified showrunner role for full Studio OS experience
-      creator_id: 'creator_zola',
-      permissions: ['series:create', 'episode:upload', 'ai:storyforge:execute', 'analytics:read:own'],
-    };
+    return DEFAULT_GUEST_USER;
   });
 
   // Market & Region
@@ -159,12 +163,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setModeState(targetMode);
   };
 
-  // Attempt mode change with desktop gate check
+  // Attempt mode change with desktop gate check and RBAC persona authorization
   const attemptModeChange = (targetMode: AppMode) => {
     if (typeof window !== 'undefined' && window.innerWidth < 768 && targetMode !== 'viewer') {
       setIsDesktopGateModalOpen(true);
       return;
     }
+
+    if (targetMode === 'creator') {
+      if (user?.role !== 'creator' && user?.role !== 'admin') {
+        setAuthModalTargetRole('creator');
+        setIsAuthModalOpen(true);
+        return;
+      }
+    } else if (targetMode === 'admin') {
+      if (user?.role !== 'admin') {
+        setAuthModalTargetRole('admin');
+        setIsAuthModalOpen(true);
+        return;
+      }
+    }
+
     setModeState(targetMode);
   };
 
@@ -218,12 +237,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setIsLoggedIn(true);
     localStorage.setItem('welele_logged_in', 'true');
     localStorage.setItem('welele_user_profile', JSON.stringify(updated));
+    if (userData.token) {
+      localStorage.setItem('welele_auth_token', userData.token);
+    }
     if (userData.phone) setUserPhoneNumber(userData.phone);
   };
 
   const logout = () => {
     setIsLoggedIn(false);
-    localStorage.setItem('welele_logged_in', 'false');
+    localStorage.removeItem('welele_logged_in');
+    localStorage.removeItem('welele_auth_token');
+    localStorage.removeItem('welele_user_profile');
+    setUser(DEFAULT_GUEST_USER);
+    setModeState('viewer');
   };
 
   const setMarket = (m: MarketRegion) => {
@@ -422,6 +448,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         isLoggedIn,
         isAuthModalOpen,
         setIsAuthModalOpen,
+        authModalTargetRole,
+        setAuthModalTargetRole,
         user,
         login,
         logout,
