@@ -59,45 +59,6 @@ export const Header: React.FC = () => {
           </div>
         </div>
 
-        {/* Desktop-Only Workstation Switcher (Hidden on Mobile) */}
-        <div className="hidden md:flex items-center bg-welele-surface-2 p-1 rounded-[7px] border border-white/10 shadow-inner">
-          <button
-            onClick={() => attemptModeChange('viewer')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[7px] text-xs font-semibold transition-all ${
-              mode === 'viewer'
-                ? 'bg-gradient-welele text-white shadow-md'
-                : 'text-welele-muted hover:text-white'
-            }`}
-          >
-            <Smartphone className="w-3.5 h-3.5" />
-            <span>Viewer</span>
-          </button>
-
-          <button
-            onClick={() => attemptModeChange('creator')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[7px] text-xs font-semibold transition-all ${
-              mode === 'creator'
-                ? 'bg-gradient-to-r from-welele-pink to-welele-magenta text-white shadow-md'
-                : 'text-welele-muted hover:text-white'
-            }`}
-          >
-            <Video className="w-3.5 h-3.5" />
-            <span>Creator Studio</span>
-          </button>
-
-          <button
-            onClick={() => attemptModeChange('admin')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[7px] text-xs font-semibold transition-all ${
-              mode === 'admin'
-                ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md'
-                : 'text-welele-muted hover:text-white'
-            }`}
-          >
-            <Shield className="w-3.5 h-3.5" />
-            <span>Admin</span>
-          </button>
-        </div>
-
         {/* Right Section: Market Selector, Airtime Badge, Coin Pill, Auth */}
         <div className="flex items-center gap-1.5 sm:gap-2">
           {/* Market Region Selector */}
