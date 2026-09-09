@@ -6,6 +6,7 @@ Validates Creator Studio OS, Series Command Room, 5-Step Pipeline Ingestion, and
 from fastapi.testclient import TestClient
 from main import app
 from database import db
+from services.rbac_service import create_access_token
 
 client = TestClient(app)
 
@@ -72,7 +73,9 @@ def test_creator_foundation_and_moderation_bridge():
     print(f"[PASS] Episode Pipeline: Ingested episode '{created_ep['title']}' (ID: {created_ep['id']}) with status 'under_review'.")
 
     # 4. Moderation Bridge: Verify Item Appears in Admin Moderation Queue
-    res_mod = client.get("/api/admin/moderation-queue")
+    admin_token = create_access_token(user_id="admin_supervisor", role="admin")
+    admin_headers = {"Authorization": f"Bearer {admin_token}"}
+    res_mod = client.get("/api/admin/moderation-queue", headers=admin_headers)
     assert res_mod.status_code == 200
     queue = res_mod.json().get("queue", [])
     matching_mod_item = next((item for item in queue if item.get("episode_id") == created_ep["id"]), None)
@@ -80,18 +83,20 @@ def test_creator_foundation_and_moderation_bridge():
     print(f"[PASS] Admin Moderation Bridge: Episode bridged to queue item '{matching_mod_item['id']}'.")
 
     # 5. Admin Moderation: Approve Item & Verify Status Sync to Story
-    res_appr = client.post(f"/api/admin/moderation/{matching_mod_item['id']}/approve")
+    res_appr = client.post(f"/api/admin/moderation/{matching_mod_item['id']}/approve", headers=admin_headers)
     assert res_appr.status_code == 200
     appr_data = res_appr.json()
     assert appr_data["success"] is True
-    assert appr_data["item"]["status"] == "approved"
+    assert appr_data["status"] == "approved"
 
-    # Verify Story has episode updated to 'published'
-    updated_story = next((s for s in db.get("stories") if s["id"] == test_series_id), None)
-    approved_ep = next((e for e in updated_story["episodes"] if e["id"] == created_ep["id"]), None)
+    # Verify Story has episode updated to 'published' in SeriesRepository
+    from repositories.series_repository import series_repository
+    updated_series = series_repository.get_series_detail(test_series_id)
+    assert updated_series is not None
+    approved_ep = next((e for e in updated_series["episodes"] if e["id"] == created_ep["id"]), None)
     assert approved_ep is not None
     assert approved_ep["status"] == "published"
-    print(f"[PASS] Lifecycle Completed: Approved episode promoted to 'published' in global story feed.")
+    print(f"[PASS] Lifecycle Completed: Approved episode promoted to 'published' in global series repository.")
 
     print("\n=======================================================")
     print("ALL CREATOR FOUNDATION & PIPELINE TESTS PASSED!")

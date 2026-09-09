@@ -16,7 +16,7 @@ class SeriesRepository(BaseRepository):
     def _seed_default_series(self):
         existing = self.local_get("series")
         if not existing:
-            # Seed canonical series linked to ip_blood_ties
+            # 1. Blood Ties
             series_1 = {
                 "id": "story_blood_ties",
                 "ip_id": "ip_blood_ties",
@@ -42,8 +42,139 @@ class SeriesRepository(BaseRepository):
             }
             self.local_insert("series", series_1)
 
+            # 2. Queen of Jozi
+            series_2 = {
+                "id": "story_queen_of_jozi",
+                "ip_id": "ip_queen_of_jozi",
+                "season_number": 1,
+                "title": "Queen of Jozi",
+                "tagline": "One woman's ruthless rise to the top of Johannesburg's underworld.",
+                "synopsis": "When her husband's gold syndication empire falls into rival hands, Nina Khumalo steps from the shadows to reclaim the throne in Sandton.",
+                "cover_image": "/banners/queen_of_jozi_banner.jpg",
+                "vertical_poster": "/posters/queen_of_jozi.jpg",
+                "genre": "Crime • Empire • Dynasty",
+                "rating": 4.99,
+                "total_episodes": 2,
+                "free_episodes": 1,
+                "coin_price_per_episode": 5,
+                "is_published": True,
+                "creator_id": "creator_zola",
+                "creator_name": "Zola Dlamini",
+                "creator_avatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80",
+                "available_languages": ["isiZulu", "English", "Sesotho"],
+                "tags": ["QueenOfJozi", "SandtonDynasty", "MzansiCrime"],
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+            self.local_insert("series", series_2)
+
+            # 3. The CEO's Secret Wife
+            series_3 = {
+                "id": "story_ceo_wife",
+                "ip_id": "ip_ceo_wife",
+                "season_number": 1,
+                "title": "The CEO's Secret Wife",
+                "tagline": "A fake marriage. A hidden identity. A love that could ruin everything.",
+                "synopsis": "To save her family's heritage estate from foreclosure, Zandile agrees to a 1-year secret contract marriage with Sandile Ndlovu, Johannesburg's most feared billionaire CEO.",
+                "cover_image": "/banners/ceo_secret_wife_banner.jpg",
+                "vertical_poster": "/posters/ceo_secret_wife.jpg",
+                "genre": "Romance • Contract Marriage",
+                "rating": 4.96,
+                "total_episodes": 2,
+                "free_episodes": 1,
+                "coin_price_per_episode": 5,
+                "is_published": True,
+                "creator_id": "creator_amaka",
+                "creator_name": "Amaka Okafor",
+                "creator_avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80",
+                "available_languages": ["English", "isiZulu", "Swahili"],
+                "tags": ["SecretWife", "BillionaireRomance", "Trending"],
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+            self.local_insert("series", series_3)
+
+            # 4. Umembeso: Royal Secrets
+            series_4 = {
+                "id": "story_umembeso",
+                "ip_id": "ip_umembeso",
+                "season_number": 1,
+                "title": "Umembeso: Royal Secrets",
+                "tagline": "A traditional royal wedding where every gift carries a deadly secret.",
+                "synopsis": "During the opulent royal dowry ceremony in KwaZulu-Natal, an ancient family talisman is stolen, threatening to expose a thirty-year bloodline deception before the vows are sealed.",
+                "cover_image": "/banners/umembeso_banner.jpg",
+                "vertical_poster": "/posters/umembeso.jpg",
+                "genre": "Romance • Royal • Mystery",
+                "rating": 4.94,
+                "total_episodes": 2,
+                "free_episodes": 1,
+                "coin_price_per_episode": 5,
+                "is_published": True,
+                "creator_id": "creator_zola",
+                "creator_name": "Zola Dlamini",
+                "creator_avatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80",
+                "available_languages": ["isiZulu", "isiXhosa", "English"],
+                "tags": ["Umembeso", "RoyalSecrets", "ZuluTradition"],
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+            self.local_insert("series", series_4)
+
+            # 5. The Hustlers of Alex
+            series_5 = {
+                "id": "story_the_hustlers",
+                "ip_id": "ip_the_hustlers",
+                "season_number": 1,
+                "title": "The Hustlers of Alex",
+                "tagline": "In the streets of Alexandra, survival is an art and loyalty has an expiry date.",
+                "synopsis": "Three township innovators invent an off-grid solar micro-grid, only to find themselves hunted by an energy syndicate that will burn Alex to the ground to keep their monopoly.",
+                "cover_image": "/banners/blood_ties_banner.jpg",
+                "vertical_poster": "/posters/blood_ties.jpg",
+                "genre": "Township Crime • Heist • Hustle",
+                "rating": 4.88,
+                "total_episodes": 2,
+                "free_episodes": 1,
+                "coin_price_per_episode": 5,
+                "is_published": True,
+                "creator_id": "creator_kabelo",
+                "creator_name": "Kabelo Motsepe",
+                "creator_avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80",
+                "available_languages": ["isiZulu", "Sesotho", "English"],
+                "tags": ["Township", "Heist", "Hustle"],
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+            self.local_insert("series", series_5)
+
+            # 6. Durban Nights
+            series_6 = {
+                "id": "story_durban_nights",
+                "ip_id": "ip_durban_nights",
+                "season_number": 1,
+                "title": "Durban Nights",
+                "tagline": "Where coastal glamour meets the darkest beats of the underground.",
+                "synopsis": "A gqom producer's breakout track secretly encodes the coordinates to a lost oceanic container in Durban Harbor, turning Florida Road into a lethal playground.",
+                "cover_image": "/banners/queen_of_jozi_banner.jpg",
+                "vertical_poster": "/posters/queen_of_jozi.jpg",
+                "genre": "Coastal Noir • Music • Betrayal",
+                "rating": 4.91,
+                "total_episodes": 2,
+                "free_episodes": 1,
+                "coin_price_per_episode": 5,
+                "is_published": True,
+                "creator_id": "creator_nomvula",
+                "creator_name": "Nomvula Khumalo",
+                "creator_avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80",
+                "available_languages": ["isiZulu", "English"],
+                "tags": ["DurbanNights", "Gqom", "Noir"],
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+            self.local_insert("series", series_6)
+
             # Seed episodes
             episodes_data = [
+                # Blood Ties
                 {
                     "id": "ep_bt_1",
                     "series_id": "story_blood_ties",
@@ -88,6 +219,116 @@ class SeriesRepository(BaseRepository):
                     "cliffhanger_hook": "The security camera reveals the traitor in the family.",
                     "status": "published",
                     "created_at": datetime.now(timezone.utc).isoformat()
+                },
+                # Queen of Jozi
+                {
+                    "id": "ep_qj_1",
+                    "series_id": "story_queen_of_jozi",
+                    "story_package_id": "sfp_qj_01",
+                    "episode_number": 1,
+                    "title": "The Golden Takeover",
+                    "synopsis": "Nina walks into the Sandton boardroom as the rival syndicate votes to liquidate her family's mining assets.",
+                    "duration_seconds": 84,
+                    "is_free": True,
+                    "coin_price": 0,
+                    "cliffhanger_time_seconds": 74,
+                    "cliffhanger_hook": "Who signed over 51% of the shares before sunrise?",
+                    "status": "published",
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                },
+                {
+                    "id": "ep_qj_2",
+                    "series_id": "story_queen_of_jozi",
+                    "story_package_id": "sfp_qj_01",
+                    "episode_number": 2,
+                    "title": "Midnight in Rosebank",
+                    "synopsis": "A tense standoff at the penthouse reveals an undercover mole inside the private security team.",
+                    "duration_seconds": 79,
+                    "is_free": False,
+                    "coin_price": 5,
+                    "cliffhanger_time_seconds": 69,
+                    "cliffhanger_hook": "The security feed was hacked from inside the room.",
+                    "status": "published",
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                },
+                # The CEO's Secret Wife
+                {
+                    "id": "ep_ceo_1",
+                    "series_id": "story_ceo_wife",
+                    "story_package_id": "sfp_ceo_01",
+                    "episode_number": 1,
+                    "title": "The Proposal",
+                    "synopsis": "Sandile presents an offer Zandile cannot refuse: 50 million Rand and a ring, with strictly no feelings attached.",
+                    "duration_seconds": 62,
+                    "is_free": True,
+                    "coin_price": 0,
+                    "cliffhanger_time_seconds": 54,
+                    "cliffhanger_hook": "Sign before the clock strikes midnight.",
+                    "status": "published",
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                },
+                {
+                    "id": "ep_ceo_2",
+                    "series_id": "story_ceo_wife",
+                    "story_package_id": "sfp_ceo_01",
+                    "episode_number": 2,
+                    "title": "The Contract",
+                    "synopsis": "Clause 7: You must act as the devoted wife in front of the board and media at all costs.",
+                    "duration_seconds": 60,
+                    "is_free": False,
+                    "coin_price": 5,
+                    "cliffhanger_time_seconds": 52,
+                    "cliffhanger_hook": "Who leaked our marriage certificate to the press?",
+                    "status": "published",
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                },
+                # Umembeso
+                {
+                    "id": "ep_um_1",
+                    "series_id": "story_umembeso",
+                    "story_package_id": "sfp_um_01",
+                    "episode_number": 1,
+                    "title": "The Royal Gift",
+                    "synopsis": "The unsealing of the traditional dowry chest reveals a devastating secret from 30 years ago.",
+                    "duration_seconds": 75,
+                    "is_free": True,
+                    "coin_price": 0,
+                    "cliffhanger_time_seconds": 65,
+                    "cliffhanger_hook": "The talisman belongs to the rival royal clan.",
+                    "status": "published",
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                },
+                # The Hustlers of Alex
+                {
+                    "id": "ep_ha_1",
+                    "series_id": "story_the_hustlers",
+                    "story_package_id": "sfp_ha_01",
+                    "episode_number": 1,
+                    "title": "Grid Lockdown",
+                    "synopsis": "When the lights go out across Alexandra, the underground solar grid powers up.",
+                    "duration_seconds": 70,
+                    "is_free": True,
+                    "coin_price": 0,
+                    "cliffhanger_time_seconds": 60,
+                    "cliffhanger_hook": "The syndicate cut the emergency line.",
+                    "status": "published",
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                },
+                # Durban Nights
+                {
+                    "id": "ep_dn_1",
+                    "series_id": "story_durban_nights",
+                    "story_package_id": "sfp_dn_01",
+                    "episode_number": 1,
+                    "title": "Florida Road Midnight",
+                    "synopsis": "A secret track playing in the club sets off a city-wide manhunt.",
+                    "duration_seconds": 72,
+                    "is_free": True,
+                    "coin_price": 0,
+                    "cliffhanger_time_seconds": 62,
+                    "cliffhanger_hook": "The DJ is not who they say they are.",
+                    "status": "published",
+                    "created_at": datetime.now(timezone.utc).isoformat()
                 }
             ]
 
@@ -96,20 +337,20 @@ class SeriesRepository(BaseRepository):
                 self.local_insert("media_assets", {
                     "id": f"media_{ep['id']}",
                     "episode_id": ep["id"],
-                    "storage_key": f"masters/blood_ties/{ep['id']}.mp4",
+                    "storage_key": f"masters/{ep['series_id']}/{ep['id']}.mp4",
                     "master_video_url": "/videos/welele_placeholder.mp4",
-                    "hls_master_manifest_url": f"https://cdn.welele.media/hls/blood_ties/{ep['id']}/master.m3u8",
+                    "hls_master_manifest_url": f"https://cdn.welele.media/hls/{ep['series_id']}/{ep['id']}/master.m3u8",
                     "thumbnail_url": "/posters/blood_ties.jpg",
                     "duration_seconds": ep["duration_seconds"],
                     "transcoding_status": "READY",
                     "renditions_json": {
-                        "1080p": f"https://cdn.welele.media/hls/blood_ties/{ep['id']}/1080p.m3u8",
-                        "720p": f"https://cdn.welele.media/hls/blood_ties/{ep['id']}/720p.m3u8",
-                        "480p": f"https://cdn.welele.media/hls/blood_ties/{ep['id']}/480p.m3u8"
+                        "1080p": f"https://cdn.welele.media/hls/{ep['series_id']}/{ep['id']}/1080p.m3u8",
+                        "720p": f"https://cdn.welele.media/hls/{ep['series_id']}/{ep['id']}/720p.m3u8",
+                        "480p": f"https://cdn.welele.media/hls/{ep['series_id']}/{ep['id']}/480p.m3u8"
                     },
                     "subtitles_vtt_json": {
-                        "isiZulu": f"https://cdn.welele.media/subs/blood_ties/{ep['id']}_zu.vtt",
-                        "English": f"https://cdn.welele.media/subs/blood_ties/{ep['id']}_en.vtt"
+                        "isiZulu": f"https://cdn.welele.media/subs/{ep['series_id']}/{ep['id']}_zu.vtt",
+                        "English": f"https://cdn.welele.media/subs/{ep['series_id']}/{ep['id']}_en.vtt"
                     },
                     "created_at": datetime.now(timezone.utc).isoformat(),
                     "updated_at": datetime.now(timezone.utc).isoformat()
@@ -315,6 +556,8 @@ class SeriesRepository(BaseRepository):
                         "captions_present": True
                     })
                 })
+        return queue
+
     # --- Media Jobs & Rendition Operations (Amendment 1) ---
 
     def create_media_job(

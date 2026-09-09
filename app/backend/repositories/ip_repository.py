@@ -98,6 +98,101 @@ class IPRepository(BaseRepository):
                 "created_at": datetime.now(timezone.utc).isoformat()
             })
 
+            # 2. Queen of Jozi
+            self.local_insert("digital_ips", {
+                "id": "ip_queen_of_jozi",
+                "title": "Queen of Jozi: Mining Syndicate",
+                "franchise_code": "IP-QUEEN-JOZI",
+                "logline": "One woman's ruthless rise to the top of Johannesburg's underworld.",
+                "synopsis": "Nina Khumalo steps from the shadows to reclaim the throne in Sandton when rival syndicates attempt a hostile takeover.",
+                "genre": "Crime • Empire • Dynasty",
+                "primary_language": "isiZulu",
+                "master_owner_id": "creator_zola",
+                "global_valuation_usd": 1500000.00,
+                "status": "active",
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
+            self.local_insert("story_worlds", {
+                "id": "sw_queen_of_jozi_01",
+                "ip_id": "ip_queen_of_jozi",
+                "world_name": "Sandton Syndicate Towers",
+                "geographical_setting": "Rosebank Penthouses & Reef Gold Refineries",
+                "time_period": "Contemporary 2026",
+                "mythology_and_rules": "He who controls the gold refinery permits sets the law across Gauteng.",
+                "cultural_context": "Elite cosmopolitan Jozi corporate warfare meets street security enforcement.",
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
+
+            # 3. The CEO's Secret Wife
+            self.local_insert("digital_ips", {
+                "id": "ip_ceo_wife",
+                "title": "The CEO's Secret Wife: Dynasty Contract",
+                "franchise_code": "IP-CEO-WIFE",
+                "logline": "A fake marriage with a ruthless billionaire CEO turns into a battle for an empire.",
+                "synopsis": "A 1-year contract marriage to save a heritage estate turns into forbidden passion amidst Sandton boardroom sabotage.",
+                "genre": "Romance • Contract Marriage",
+                "primary_language": "English",
+                "master_owner_id": "creator_amaka",
+                "global_valuation_usd": 2100000.00,
+                "status": "active",
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
+            self.local_insert("story_worlds", {
+                "id": "sw_ceo_wife_01",
+                "ip_id": "ip_ceo_wife",
+                "world_name": "Ndlovu Holdings & Clifton Waterfront",
+                "geographical_setting": "Sandton Headquarters & Cape Town Penthouses",
+                "time_period": "Contemporary 2026",
+                "mythology_and_rules": "Boardroom voting shares determine family sovereignty.",
+                "cultural_context": "High-fashion Pan-African luxury romance with high-society drama.",
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
+
+            # 4. Umembeso: Royal Secrets
+            self.local_insert("digital_ips", {
+                "id": "ip_umembeso",
+                "title": "Umembeso: Royal Bloodline",
+                "franchise_code": "IP-UMEMBESO",
+                "logline": "A traditional royal wedding where every gift carries a deadly secret.",
+                "synopsis": "Ancient family talismans and 30-year secrets clash during an opulent royal dowry ceremony.",
+                "genre": "Romance • Royal • Mystery",
+                "primary_language": "isiZulu",
+                "master_owner_id": "creator_zola",
+                "global_valuation_usd": 980000.00,
+                "status": "active",
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
+
+            # 5. The Hustlers of Alex
+            self.local_insert("digital_ips", {
+                "id": "ip_the_hustlers",
+                "title": "The Hustlers of Alex: Solar Syndicate",
+                "franchise_code": "IP-HUSTLERS-ALEX",
+                "logline": "Three township innovators invent an off-grid solar micro-grid and fight off cartels.",
+                "synopsis": "Township resilience turns into an all-out turf battle against energy monopolists.",
+                "genre": "Township Crime • Heist • Hustle",
+                "primary_language": "isiZulu",
+                "master_owner_id": "creator_kabelo",
+                "global_valuation_usd": 850000.00,
+                "status": "active",
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
+
+            # 6. Durban Nights
+            self.local_insert("digital_ips", {
+                "id": "ip_durban_nights",
+                "title": "Durban Nights: Gqom Underworld",
+                "franchise_code": "IP-DURBAN-NIGHTS",
+                "logline": "Where coastal glamour meets the darkest beats of the underground.",
+                "synopsis": "A music producer unearths dangerous shipping secrets buried in Durban Harbor.",
+                "genre": "Coastal Noir • Music • Betrayal",
+                "primary_language": "isiZulu",
+                "master_owner_id": "creator_nomvula",
+                "global_valuation_usd": 920000.00,
+                "status": "active",
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
+
     def list_ips(self) -> List[Dict[str, Any]]:
         ips = self.local_get("digital_ips")
         series_list = self.local_get("series")
