@@ -64,25 +64,25 @@ class StorySchema(BaseModel):
 
 class CreateSeriesRequest(BaseModel):
     title: str
-    tagline: str
-    synopsis: str
-    cover_image: str
-    vertical_poster: str
+    tagline: str = "Welele Original Microdrama"
+    synopsis: str = ""
+    cover_image: str = "/banners/blood_ties_banner.jpg"
+    vertical_poster: str = "/posters/blood_ties.jpg"
     genre: str
-    language: str
-    available_languages: List[str] = ["English"]
+    language: str = "isiZulu / English"
+    available_languages: List[str] = ["English", "isiZulu"]
     tags: List[str] = []
-    creator_id: str
+    creator_id: Optional[str] = None
     coin_price_per_episode: int = 5
 
 class CreateEpisodeRequest(BaseModel):
     series_id: str
-    episode_number: int
+    episode_number: int = 1
     title: str
-    synopsis: str
-    video_url: str
-    thumbnail_url: str
-    duration_seconds: int
+    synopsis: str = ""
+    video_url: str = "/videos/welele_placeholder.mp4"
+    thumbnail_url: Optional[str] = None
+    duration_seconds: int = 60
     is_free: bool = True
     coin_price: int = 0
     cliffhanger_time: int = 0

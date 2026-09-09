@@ -37,7 +37,11 @@ def test_experience_engine_lifecycle():
     print(f"[PASS] WEE Layer 2 (Engine): Catalog hydration verified on slot '{first_slot['slot_id']}' with story '{first_slot['story']['title']}'.")
 
     # 3. Draft authoring & Simulated Time-Travel Preview
-    preview_res = client.get("/api/experience/preview/home?state=draft&simulated_time=2026-10-01T12:00:00Z")
+    from services.rbac_service import create_access_token
+    admin_token = create_access_token(user_id="admin_supervisor", role="admin")
+    admin_headers = {"Authorization": f"Bearer {admin_token}"}
+
+    preview_res = client.get("/api/experience/preview/home?state=draft&simulated_time=2026-10-01T12:00:00Z", headers=admin_headers)
     assert preview_res.status_code == 200, "Preview endpoint failed"
     preview_manifest = preview_res.json()
     assert preview_manifest["page_id"] == "home"
@@ -47,10 +51,10 @@ def test_experience_engine_lifecycle():
     save_draft_res = client.put("/api/experience/page/home/draft", json={
         "meta": {"title": "Welele™ | Curated African Dramas", "theme": "dark_gold_glow"},
         "sections": manifest["sections"]
-    })
+    }, headers=admin_headers)
     assert save_draft_res.status_code == 200, "Save draft failed"
 
-    pub_res = client.post("/api/experience/page/home/publish", json={})
+    pub_res = client.post("/api/experience/page/home/publish", json={}, headers=admin_headers)
     assert pub_res.status_code == 200, "Publish failed"
     pub_data = pub_res.json()
     assert pub_data["status"] == "published"

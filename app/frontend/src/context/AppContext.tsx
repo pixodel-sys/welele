@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { AppMode, Story, Episode, CoinPack, MarketRegion, SACarrier, AirtimePass } from '../types';
-import { storyApi, monetizationApi } from '../services/api';
+import { storyApi, monetizationApi, authApi } from '../services/api';
 import { DEFAULT_STORIES } from '../services/mockData';
 
 interface UserProfile {
@@ -9,12 +9,17 @@ interface UserProfile {
   phone: string;
   avatar: string;
   city: string;
+  role: 'viewer' | 'creator' | 'admin';
+  creator_id?: string;
+  permissions?: string[];
+  token?: string;
 }
 
 interface AppContextType {
   mode: AppMode;
   setMode: (mode: AppMode) => void;
   attemptModeChange: (targetMode: AppMode) => void;
+  switchRole: (targetRole: 'viewer' | 'creator' | 'admin') => Promise<void>;
   isDesktopGateModalOpen: boolean;
   setIsDesktopGateModalOpen: (open: boolean) => void;
   isLoggedIn: boolean;
@@ -76,7 +81,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Auth state
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => {
-    return localStorage.getItem('welele_logged_in') !== 'false'; // Default to logged in for seamless demo
+    return localStorage.getItem('welele_logged_in') !== 'false';
   });
 
   const [user, setUser] = useState<UserProfile>(() => {
@@ -90,6 +95,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       phone: '082 891 2345',
       avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
       city: 'Johannesburg, South Africa',
+      role: 'creator', // Default to verified showrunner role for full Studio OS experience
+      creator_id: 'creator_zola',
+      permissions: ['series:create', 'episode:upload', 'ai:storyforge:execute', 'analytics:read:own'],
     };
   });
 
@@ -158,6 +166,50 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return;
     }
     setModeState(targetMode);
+  };
+
+  const switchRole = async (targetRole: 'viewer' | 'creator' | 'admin') => {
+    try {
+      if (targetRole === 'admin') {
+        const res = await authApi.adminLogin();
+        if (res?.access_token) {
+          localStorage.setItem('welele_auth_token', res.access_token);
+        }
+        setUser((prev) => ({
+          ...prev,
+          role: 'admin',
+          permissions: ['*'],
+          token: res?.access_token
+        }));
+      } else if (targetRole === 'creator') {
+        const res = await authApi.creatorLogin('creator_zola', '1234');
+        if (res?.access_token) {
+          localStorage.setItem('welele_auth_token', res.access_token);
+        }
+        setUser((prev) => ({
+          ...prev,
+          role: 'creator',
+          creator_id: 'creator_zola',
+          permissions: ['series:create', 'episode:upload', 'ai:storyforge:execute', 'analytics:read:own'],
+          token: res?.access_token
+        }));
+      } else {
+        const res = await authApi.guestLogin(market);
+        if (res?.access_token) {
+          localStorage.setItem('welele_auth_token', res.access_token);
+        }
+        setUser((prev) => ({
+          ...prev,
+          role: 'viewer',
+          creator_id: undefined,
+          permissions: ['stream:episode:free', 'stream:episode:unlock', 'wallet:recharge'],
+          token: res?.access_token
+        }));
+      }
+    } catch (err) {
+      console.warn('Role switch fallback:', err);
+      setUser((prev) => ({ ...prev, role: targetRole }));
+    }
   };
 
   const login = (userData: Partial<UserProfile>) => {
@@ -364,6 +416,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         mode,
         setMode,
         attemptModeChange,
+        switchRole,
         isDesktopGateModalOpen,
         setIsDesktopGateModalOpen,
         isLoggedIn,

@@ -174,5 +174,25 @@ FOR ALL USING (
 ## 6. Frontend Navigation & Interface Gating
 
 1. **Viewer Session:** Top mode switcher is hidden; user interacts exclusively with the mobile-optimized vertical streaming interface.
-2. **Creator Session:** Redirected directly to `/creator` workstation upon login. Displays series management, Story Forge AI, and MoMo payout settings.
-3. **Admin Session:** Displays Admin Studio with device simulators, experience tree re-ordering, AI moderation queues, and KYC approvals.
+2. **Creator Session:** Redirected directly to `/creator` workstation upon login. Displays series management, Story Forge AI, and MoMo payout settings. Wrapped with `<RequireRole allowedRoles={['creator', 'admin']}>`.
+3. **Admin Session:** Displays Admin Studio with device simulators, experience tree re-ordering, AI moderation queues, and KYC approvals. Wrapped with `<RequireRole allowedRoles={['admin']}>`.
+
+---
+
+## 7. Institutional Trust Infrastructure: Append-Only Hash-Chained Audit Ledger
+
+Welele Media implements an institutional-grade, cryptographic append-only audit ledger across **6 core trust domains**:
+
+### Trust Domains & Sensitive State Transitions
+1. **AUTH**: `auth.login`, `auth.failed_login`, `auth.token_refresh`, `auth.role_change`
+2. **IP**: `ip.created`, `ip.rights_changed`, `ip.contributor_changed`, `ip.story_package_created`
+3. **CONTENT**: `content.series_created`, `content.episode_created`, `content.episode_submitted`, `content.moderation_decision`, `content.publication`, `content.unpublication`
+4. **COMMERCE**: `commerce.payment_received`, `commerce.wallet_mutation`, `commerce.royalty_calculation`, `commerce.payout`, `commerce.refund`
+5. **EXPERIENCE**: `experience.layout_changed`, `experience.draft_published`, `experience.schedule_changed`
+6. **SECURITY**: `security.permission_denied`, `security.ownership_violation`, `security.signature_failure`, `security.suspicious_access`
+
+### Cryptographic Integrity & Immutability Guarantees
+- **Payload Hash**: Each event's canonical JSON payload is hashed with `SHA-256`.
+- **Chain Hash**: Each entry links to the previous entry via `SHA-256(entry_index + previous_entry_hash + payload_hash + timestamp)`.
+- **Append-Only Database Rule**: Strict database-level `REVOKE UPDATE, DELETE, TRUNCATE ON security_audit_ledger FROM PUBLIC, authenticated, anon;`
+- **Tamper-Evident Verification**: The platform verifies chain continuity and cryptographic non-repudiation via `/api/admin/audit-logs/verify-chain`.

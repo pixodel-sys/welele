@@ -1,12 +1,14 @@
 """
-Welele Media™ — Creator Hub API Router (Normalized DAL Implementation)
-Connects Creator Studio to SeriesRepository, IPRepository, and decoupled Media Assets.
+Welele Media™ — Creator Hub API Router (Normalized DAL & Institutional Trust)
+Connects Creator Studio to SeriesRepository, IPRepository, and decoupled Media Assets,
+enforcing strict Creator Tenant Isolation and emitting CONTENT domain audit events.
 """
 
 import uuid
 from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException, Query, Depends
-from services.rbac_service import require_role, get_current_user
+from services.rbac_service import require_role, get_current_user, enforce_tenant_access
+from services.audit_service import audit_service
 from repositories.series_repository import series_repository
 from repositories.ip_repository import ip_repository
 from repositories.event_repository import event_repository
@@ -16,6 +18,7 @@ router = APIRouter(prefix="/creators", tags=["Creator Hub"])
 
 @router.get("/list")
 def list_creators():
+    """Public creator directory."""
     return {
         "creators": [
             {
@@ -36,6 +39,7 @@ def list_creators():
 
 @router.get("/{creator_id}")
 def get_creator_profile(creator_id: str):
+    """Public creator profile information."""
     creator = {
         "id": creator_id,
         "name": "Zola Dlamini",
@@ -56,8 +60,11 @@ def get_creator_profile(creator_id: str):
         "total_series": len(series_list)
     }
 
-@router.get("/{creator_id}/dashboard")
-def get_creator_dashboard(creator_id: str):
+@router.get("/{creator_id}/dashboard", dependencies=[Depends(require_role(["creator", "admin"]))])
+def get_creator_dashboard(creator_id: str, auth_user: dict = Depends(get_current_user)):
+    """Creator Dashboard KPIs & owned series roster (Tenant Protected)."""
+    enforce_tenant_access(auth_user, creator_id, domain="CONTENT", action="view dashboard analytics")
+    
     series_list = series_repository.list_feed()
     total_views = sum(s.get("total_views", 0) for s in series_list)
     total_episodes_count = sum(len(s.get("episodes", [])) for s in series_list)
@@ -76,8 +83,11 @@ def get_creator_dashboard(creator_id: str):
         "series": series_list
     }
 
-@router.get("/{creator_id}/episodes")
-def get_creator_episodes(creator_id: str, status: str = Query(None)):
+@router.get("/{creator_id}/episodes", dependencies=[Depends(require_role(["creator", "admin"]))])
+def get_creator_episodes(creator_id: str, status: str = Query(None), auth_user: dict = Depends(get_current_user)):
+    """Lists creator's episodes across draft, under review, and published states."""
+    enforce_tenant_access(auth_user, creator_id, domain="CONTENT", action="list episodes")
+
     all_episodes = series_repository.local_get("episodes")
     all_series = series_repository.local_get("series")
     series_map = {s["id"]: s for s in all_series}
@@ -97,14 +107,17 @@ def get_creator_episodes(creator_id: str, status: str = Query(None)):
 
     return {"episodes": filtered, "total": len(filtered)}
 
-@router.get("/series/{series_id}/workspace")
-def get_series_workspace(series_id: str):
+@router.get("/series/{series_id}/workspace", dependencies=[Depends(require_role(["creator", "admin"]))])
+def get_series_workspace(series_id: str, auth_user: dict = Depends(get_current_user)):
+    """Series Command Room workspace data with retention & coin metrics."""
     series = series_repository.get_series_detail(series_id)
     if not series:
         all_series = series_repository.local_get("series")
         series = next((s for s in all_series if s["id"] == series_id), None)
         if not series:
             raise HTTPException(status_code=404, detail="Series not found")
+
+    enforce_tenant_access(auth_user, series.get("creator_id"), domain="CONTENT", action="access series workspace")
 
     all_episodes = series_repository.local_get("episodes")
     series_episodes = [e for e in all_episodes if e.get("series_id") == series_id]
@@ -130,14 +143,18 @@ def get_series_workspace(series_id: str):
         }
     }
 
-@router.post("/series/create")
-def create_series(req: CreateSeriesRequest):
+@router.post("/series/create", dependencies=[Depends(require_role(["creator", "admin"]))])
+def create_series(req: CreateSeriesRequest, auth_user: dict = Depends(get_current_user)):
+    """Registers a new microdrama series under a creator and records an audit event."""
+    creator_id = req.creator_id or auth_user.get("creator_id") or auth_user.get("sub")
+    enforce_tenant_access(auth_user, creator_id, domain="CONTENT", action="create series")
+
     new_id = f"story_{uuid.uuid4().hex[:8]}"
     now_ts = datetime.now(timezone.utc).isoformat()
 
     new_series = {
         "id": new_id,
-        "ip_id": "ip_blood_ties", # Linked to canonical IP root
+        "ip_id": "ip_blood_ties",
         "season_number": 1,
         "title": req.title,
         "tagline": req.tagline,
@@ -150,7 +167,7 @@ def create_series(req: CreateSeriesRequest):
         "free_episodes": 2,
         "coin_price_per_episode": req.coin_price_per_episode,
         "is_published": True,
-        "creator_id": req.creator_id,
+        "creator_id": creator_id,
         "creator_name": "Zola Dlamini",
         "creator_avatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80",
         "available_languages": req.available_languages or ["isiZulu", "English"],
@@ -159,12 +176,25 @@ def create_series(req: CreateSeriesRequest):
         "updated_at": now_ts
     }
     series_repository.local_insert("series", new_series)
+
+    audit_service.record_trust_event(
+        domain="CONTENT",
+        event_type="content.series_created",
+        actor_id=auth_user.get("sub", creator_id),
+        actor_role=auth_user.get("role", "creator"),
+        target_type="series",
+        target_id=new_id,
+        after_state={"title": req.title, "genre": req.genre, "creator_id": creator_id},
+        metadata={"pricing": req.coin_price_per_episode}
+    )
+
     return {"success": True, "story": new_series}
 
-@router.post("/episodes/add")
-def add_episode(req: CreateEpisodeRequest):
+@router.post("/episodes/add", dependencies=[Depends(require_role(["creator", "admin"]))])
+def add_episode(req: CreateEpisodeRequest, auth_user: dict = Depends(get_current_user)):
     """
-    Ingests episode through normalized DAL, attaching decoupled media and submitting to moderation.
+    Ingests episode through normalized DAL, attaching decoupled media, submitting to moderation,
+    and recording immutable CONTENT audit events.
     """
     series = series_repository.get_series_detail(req.series_id)
     if not series:
@@ -173,7 +203,9 @@ def add_episode(req: CreateEpisodeRequest):
         if not series:
             raise HTTPException(status_code=404, detail="Series not found")
 
-    status = req.status or "under_review"
+    enforce_tenant_access(auth_user, series.get("creator_id"), domain="CONTENT", action="add episode")
+
+    status_target = req.status or "under_review"
     ep_payload = {
         "series_id": req.series_id,
         "episode_number": req.episode_number,
@@ -204,18 +236,46 @@ def add_episode(req: CreateEpisodeRequest):
         duration_seconds=req.duration_seconds
     )
 
+    audit_service.record_trust_event(
+        domain="CONTENT",
+        event_type="content.episode_created",
+        actor_id=auth_user.get("sub", "creator"),
+        actor_role=auth_user.get("role", "creator"),
+        target_type="episode",
+        target_id=created_ep["id"],
+        after_state={"title": req.title, "series_id": req.series_id, "duration": req.duration_seconds},
+        metadata={"preflight_checks": req.preflight_health}
+    )
+
     # 3. Submit for Moderation
-    if status in ["under_review", "submitted", "pending_review"]:
+    if status_target in ["under_review", "submitted", "pending_review"]:
         series_repository.submit_for_moderation(created_ep["id"])
         created_ep["status"] = "under_review"
 
+        audit_service.record_trust_event(
+            domain="CONTENT",
+            event_type="content.episode_submitted",
+            actor_id=auth_user.get("sub", "creator"),
+            actor_role=auth_user.get("role", "creator"),
+            target_type="episode_moderation_queue",
+            target_id=created_ep["id"],
+            after_state={"status": "under_review", "series_id": req.series_id},
+            metadata={"cliffhanger_hook": req.cliffhanger_hook}
+        )
+
     return {"success": True, "episode": created_ep}
 
-@router.get("/analytics/retention")
-def get_retention_telemetry(series_id: str = Query("story_blood_ties"), episode_number: int = Query(1)):
-    """
-    Routes retention telemetry through EventRepository instead of random numbers.
-    """
+@router.get("/analytics/retention", dependencies=[Depends(require_role(["creator", "admin"]))])
+def get_retention_telemetry(
+    series_id: str = Query("story_blood_ties"),
+    episode_number: int = Query(1),
+    auth_user: dict = Depends(get_current_user)
+):
+    """Routes retention telemetry through EventRepository with tenant isolation."""
+    series = series_repository.get_series_detail(series_id)
+    if series:
+        enforce_tenant_access(auth_user, series.get("creator_id"), domain="CONTENT", action="view telemetry")
+
     ep_id = f"ep_bt_{episode_number}"
     res = event_repository.get_episode_retention(series_id, ep_id)
     return {

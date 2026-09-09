@@ -81,7 +81,7 @@ def test_complete_ip_supply_chain_vertical_slice():
         }
     }
 
-    res_ep = client.post("/api/creators/episodes/add", json=ep_payload)
+    res_ep = client.post("/api/creators/episodes/add", json=ep_payload, headers=creator_headers)
     assert res_ep.status_code == 200, f"Episode creation failed: {res_ep.text}"
     created_ep = res_ep.json()["episode"]
     assert created_ep["status"] == "under_review"

@@ -13,8 +13,11 @@ client = TestClient(app)
 def test_creator_foundation_and_moderation_bridge():
     print("Testing Creator Studio OS & Episode Pipeline...")
 
+    creator_token = create_access_token(user_id="creator_zola", role="creator")
+    creator_headers = {"Authorization": f"Bearer {creator_token}"}
+
     # 1. Creator Dashboard Metrics
-    res_dash = client.get("/api/creators/creator_zola/dashboard")
+    res_dash = client.get("/api/creators/creator_zola/dashboard", headers=creator_headers)
     assert res_dash.status_code == 200
     dash_data = res_dash.json()
     assert "stats" in dash_data
@@ -27,7 +30,7 @@ def test_creator_foundation_and_moderation_bridge():
     assert len(stories) > 0
     test_series_id = stories[0]["id"]
     
-    res_work = client.get(f"/api/creators/series/{test_series_id}/workspace")
+    res_work = client.get(f"/api/creators/series/{test_series_id}/workspace", headers=creator_headers)
     assert res_work.status_code == 200
     work_data = res_work.json()
     assert "series" in work_data
@@ -63,8 +66,11 @@ def test_creator_foundation_and_moderation_bridge():
             "captions_present": True
         }
     }
+    creator_id = stories[0].get("creator_id", "creator_zola")
+    creator_token = create_access_token(user_id=creator_id, role="creator")
+    creator_headers = {"Authorization": f"Bearer {creator_token}"}
 
-    res_add = client.post("/api/creators/episodes/add", json=new_ep_payload)
+    res_add = client.post("/api/creators/episodes/add", json=new_ep_payload, headers=creator_headers)
     assert res_add.status_code == 200
     add_data = res_add.json()
     assert add_data["success"] is True

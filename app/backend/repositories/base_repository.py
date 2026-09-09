@@ -29,7 +29,8 @@ class BaseRepository:
         "intelligence_evidence": [],
         "intelligence_recommendations": [],
         "bullet_comments": [],
-        "experience_layouts": []
+        "experience_layouts": [],
+        "security_audit_ledger": []
     }
 
     def __init__(self):

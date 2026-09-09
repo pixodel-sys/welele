@@ -23,6 +23,17 @@ const API = axios.create({
   },
 });
 
+// Attach Authorization Bearer token from localStorage to all outgoing API requests
+API.interceptors.request.use((config) => {
+  const token = localStorage.getItem('welele_auth_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+}, (error) => {
+  return Promise.reject(error);
+});
+
 // ============================================================================
 // CANONICAL DOMAIN SERVICE CLIENTS (Section 5.1 & Architecture Manifesto)
 // ============================================================================
@@ -34,13 +45,33 @@ export const authApi = {
   },
   verifyOtp: async (phone_number: string, otp_code: string) => {
     const res = await API.post('/auth/phone/verify-otp', { phone_number, otp_code });
+    if (res.data?.access_token) {
+      localStorage.setItem('welele_auth_token', res.data.access_token);
+    }
     return res.data;
   },
   guestLogin: async (region_code = 'ZA') => {
     const res = await API.post('/auth/guest', { region_code });
+    if (res.data?.access_token) {
+      localStorage.setItem('welele_auth_token', res.data.access_token);
+    }
     return res.data;
   },
-  getProfile: async (user_id: string) => {
+  creatorLogin: async (creator_id = 'creator_zola', studio_pin = '1234') => {
+    const res = await API.post('/auth/creator/login', { creator_id, studio_pin });
+    if (res.data?.access_token) {
+      localStorage.setItem('welele_auth_token', res.data.access_token);
+    }
+    return res.data;
+  },
+  adminLogin: async (admin_key = 'admin_master_welele_2026', two_factor_code = '999888') => {
+    const res = await API.post('/auth/admin/login', { admin_key, two_factor_code });
+    if (res.data?.access_token) {
+      localStorage.setItem('welele_auth_token', res.data.access_token);
+    }
+    return res.data;
+  },
+  getProfile: async (user_id?: string) => {
     const res = await API.get('/auth/me', { params: { user_id } });
     return res.data;
   },
@@ -409,6 +440,14 @@ export const adminApi = {
   },
   rejectItem: async (itemId: string, feedback?: string) => {
     const res = await API.post(`/admin/moderation/${itemId}/reject`, { feedback });
+    return res.data;
+  },
+  getAuditLogs: async (params?: { domain?: string; event_type?: string; actor_id?: string; limit?: number }) => {
+    const res = await API.get('/admin/audit-logs', { params });
+    return res.data;
+  },
+  verifyAuditChain: async () => {
+    const res = await API.post('/admin/audit-logs/verify-chain');
     return res.data;
   },
 };

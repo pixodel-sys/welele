@@ -14,6 +14,7 @@ import { VerticalPlayer } from './components/viewer/VerticalPlayer';
 import { ProfileScreen } from './components/viewer/ProfileScreen';
 import { CreatorStudioShell } from './components/creator/CreatorStudioShell';
 import { AdminDashboard } from './components/admin/AdminDashboard';
+import { RequireRole } from './components/common/RequireRole';
 import { Story, Episode } from './types';
 import { Bookmark, Play, Star, ShieldAlert } from 'lucide-react';
 import { useContentProtection } from './hooks/useContentProtection';
@@ -165,10 +166,18 @@ export const App: React.FC = () => {
         )}
 
         {/* MODE: CREATOR STUDIO (Creator Operating System) */}
-        {mode === 'creator' && <CreatorStudioShell />}
+        {mode === 'creator' && (
+          <RequireRole allowedRoles={['creator', 'admin']} fallbackMode="viewer">
+            <CreatorStudioShell />
+          </RequireRole>
+        )}
 
         {/* MODE: ADMIN CONSOLE (Desktop Workstation) */}
-        {mode === 'admin' && <AdminDashboard />}
+        {mode === 'admin' && (
+          <RequireRole allowedRoles={['admin']} fallbackMode="viewer">
+            <AdminDashboard />
+          </RequireRole>
+        )}
       </main>
 
       {/* Viewer Bottom Mobile Navigation Bar */}

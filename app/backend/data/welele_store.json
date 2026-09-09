@@ -1656,6 +1656,33 @@
       "text": "This cliffhanger is insane!",
       "likes": 0,
       "time_ago": "Just now"
+    },
+    {
+      "id": "c_b5d5471d",
+      "episode_id": "ep_bt_1",
+      "user_name": "Lerato Khumalo",
+      "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80",
+      "text": "This cliffhanger is insane!",
+      "likes": 0,
+      "time_ago": "Just now"
+    },
+    {
+      "id": "c_bc5e5438",
+      "episode_id": "ep_bt_1",
+      "user_name": "Lerato Khumalo",
+      "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80",
+      "text": "This cliffhanger is insane!",
+      "likes": 0,
+      "time_ago": "Just now"
+    },
+    {
+      "id": "c_ea859da9",
+      "episode_id": "ep_bt_1",
+      "user_name": "Lerato Khumalo",
+      "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80",
+      "text": "This cliffhanger is insane!",
+      "likes": 0,
+      "time_ago": "Just now"
     }
   ],
   "reactions": [
@@ -1971,7 +1998,7 @@
       "version": "1.0.0",
       "status": "draft",
       "published_at": "2026-08-01T00:00:00Z",
-      "updated_at": "2026-09-09T19:47:11.855922Z",
+      "updated_at": "2026-09-09T20:06:50.955219+00:00",
       "meta": {
         "title": "Welele™ | Curated African Dramas",
         "theme": "dark_gold_glow",
@@ -2537,10 +2564,10 @@
     },
     {
       "page_id": "home",
-      "version": "2026.09.09.v31",
+      "version": "2026.09.09.v416",
       "status": "published",
-      "published_at": "2026-09-09T19:47:11.915884Z",
-      "updated_at": "2026-09-09T19:47:11.915914Z",
+      "published_at": "2026-09-09T20:06:56.508797+00:00",
+      "updated_at": "2026-09-09T20:06:56.508797+00:00",
       "meta": {
         "title": "Welele™ | Curated African Dramas",
         "theme": "dark_gold_glow",

@@ -95,6 +95,18 @@ class CommerceService(BaseRepository):
             ledger_transaction_id=ledger_tx_id
         )
 
+        from services.audit_service import audit_service
+        audit_service.record_trust_event(
+            domain="COMMERCE",
+            event_type="commerce.payment_received",
+            actor_id=event.user_id,
+            actor_role="viewer",
+            target_type="wallet",
+            target_id=event.user_id,
+            after_state={"coins_granted": event.coins_grant, "amount_fiat": event.amount_fiat, "currency": event.currency},
+            metadata={"provider": provider_id, "provider_tx": event.provider_transaction_id, "ledger_tx": ledger_tx_id}
+        )
+
         # 7. If payment target is instant episode unlock, execute unlock
         if event.target_type == "EPISODE_UNLOCK" and event.target_id:
             ledger_repository.unlock_episode_record(

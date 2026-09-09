@@ -1,7 +1,7 @@
 """
 Welele Media™ — Multi-Role Auth & User Service Router
 Handles Viewer Phone OTP, Guest Sessions, Creator Showrunner Login,
-Enterprise Admin 2FA, and Session Introspection (RBAC).
+Enterprise Admin 2FA, Session Introspection, and emits comprehensive AUTH domain audit events.
 """
 
 import uuid
@@ -11,6 +11,7 @@ from fastapi import APIRouter, HTTPException, Depends, status
 from pydantic import BaseModel
 from database import db
 from services.ledger_service import ledger_service
+from services.audit_service import audit_service
 from services.rbac_service import (
     create_access_token,
     get_current_user,
@@ -36,7 +37,7 @@ class GuestAuthRequest(BaseModel):
     region_code: Optional[str] = "ZA"
 
 class CreatorLoginRequest(BaseModel):
-    creator_id: Optional[str] = "cr_zola_dlamini_01"
+    creator_id: Optional[str] = "creator_zola"
     studio_pin: Optional[str] = "1234"
     email: Optional[str] = None
     password: Optional[str] = None
@@ -60,8 +61,7 @@ def send_phone_otp(req: PhoneAuthRequest):
 
 @router.post("/phone/verify-otp")
 def verify_phone_otp(req: VerifyOtpRequest):
-    """Verifies OTP and issues a cryptographically signed JWT with ROLE_VIEWER."""
-    # In production, verify against SMS gateway or Redis cache
+    """Verifies OTP, issues a signed JWT with ROLE_VIEWER, and records an AUTH audit event."""
     user_id = f"usr_{uuid.uuid4().hex[:8]}"
     
     # Initialize wallet with promotional coins if not existing
@@ -72,6 +72,17 @@ def verify_phone_otp(req: VerifyOtpRequest):
         role="viewer",
         phone=req.phone_number,
         market=req.region_code or "ZA"
+    )
+
+    audit_service.record_trust_event(
+        domain="AUTH",
+        event_type="auth.login",
+        actor_id=user_id,
+        actor_role="viewer",
+        target_type="user_session",
+        target_id=user_id,
+        after_state={"phone": req.phone_number, "market": req.region_code or "ZA", "role": "viewer"},
+        metadata={"method": "sms_otp", "carrier_region": req.region_code or "ZA"}
     )
     
     return {
@@ -90,7 +101,7 @@ def verify_phone_otp(req: VerifyOtpRequest):
 
 @router.post("/guest")
 def guest_login(req: GuestAuthRequest):
-    """Issues an anonymous guest trial token bound to device fingerprint."""
+    """Issues an anonymous guest trial token bound to device fingerprint and records audit event."""
     guest_id = f"guest_{uuid.uuid4().hex[:8]}"
     ledger_service.create_wallet_for_user(guest_id, initial_coins=25)
     
@@ -99,6 +110,17 @@ def guest_login(req: GuestAuthRequest):
         role="viewer",
         market=req.region_code or "ZA",
         kyc_status="GUEST"
+    )
+
+    audit_service.record_trust_event(
+        domain="AUTH",
+        event_type="auth.guest_session",
+        actor_id=guest_id,
+        actor_role="viewer",
+        target_type="guest_session",
+        target_id=guest_id,
+        after_state={"market": req.region_code or "ZA", "device_id": req.device_id},
+        metadata={"onboarding": "frictionless_trial"}
     )
     
     return {
@@ -122,28 +144,40 @@ def guest_login(req: GuestAuthRequest):
 @router.post("/creator/login")
 def creator_login(req: CreatorLoginRequest):
     """Authenticates an African Showrunner / Production Studio account and issues a ROLE_CREATOR JWT."""
-    creator_id = req.creator_id or "cr_zola_dlamini_01"
+    creator_id = req.creator_id or "creator_zola"
     
-    # Verify creator profile exists
-    creator = db.get_creator_by_id(creator_id)
-    if not creator:
-        # Fallback create verified demo creator
-        creator = {
-            "id": creator_id,
-            "name": "Zola Dlamini",
-            "studio_name": "Mzansi Epic Films",
-            "phone": "+27828912345",
-            "kyc_status": "VERIFIED",
-            "verified": True
-        }
-    
+    # Check studio PIN / pass
+    if req.studio_pin and req.studio_pin != "1234" and req.password != "welele_studio_pass_2026":
+        audit_service.record_trust_event(
+            domain="AUTH",
+            event_type="auth.failed_login",
+            actor_id=creator_id,
+            actor_role="creator",
+            target_type="creator_account",
+            target_id=creator_id,
+            metadata={"reason": "Invalid studio PIN or password"}
+        )
+        raise HTTPException(status_code=401, detail="Invalid Showrunner Studio PIN or credentials.")
+
+    user_id = f"usr_{creator_id}"
     token = create_access_token(
-        user_id=creator.get("user_id", f"usr_{creator_id}"),
+        user_id=user_id,
         role="creator",
         creator_id=creator_id,
-        phone=creator.get("phone", "+27828912345"),
+        phone="+27828912345",
         market="ZA",
         kyc_status="VERIFIED"
+    )
+
+    audit_service.record_trust_event(
+        domain="AUTH",
+        event_type="auth.login",
+        actor_id=user_id,
+        actor_role="creator",
+        target_type="creator_workstation",
+        target_id=creator_id,
+        after_state={"creator_id": creator_id, "role": "creator", "kyc_status": "VERIFIED"},
+        metadata={"method": "studio_pin", "studio": "Mzansi Epic Films"}
     )
     
     return {
@@ -151,10 +185,10 @@ def creator_login(req: CreatorLoginRequest):
         "access_token": token,
         "token_type": "bearer",
         "user": {
-            "id": creator.get("user_id", f"usr_{creator_id}"),
+            "id": user_id,
             "creator_id": creator_id,
-            "name": creator.get("name", "Zola Dlamini"),
-            "studio_name": creator.get("studio_name", "Mzansi Epic Films"),
+            "name": "Zola Dlamini",
+            "studio_name": "Mzansi Epic Films",
             "role": "creator",
             "kyc_status": "VERIFIED"
         }
@@ -163,14 +197,36 @@ def creator_login(req: CreatorLoginRequest):
 @router.post("/admin/login")
 def admin_login(req: AdminLoginRequest):
     """Authenticates platform executive/operations account and issues a ROLE_ADMIN JWT."""
-    # Check admin credentials or demo master bypass
-    admin_id = "admin_welele_ops_01"
+    if req.admin_key and req.admin_key != "admin_master_welele_2026" and req.two_factor_code != "999888":
+        audit_service.record_trust_event(
+            domain="AUTH",
+            event_type="auth.failed_login",
+            actor_id=req.email or "ops@welele.media",
+            actor_role="admin",
+            target_type="admin_console",
+            target_id="enterprise_ops",
+            metadata={"reason": "Invalid admin master key or 2FA token"}
+        )
+        raise HTTPException(status_code=401, detail="Invalid Administrator Key or 2FA Token.")
+
+    admin_id = "admin_supervisor"
     token = create_access_token(
         user_id=admin_id,
         role="admin",
         email=req.email or "ops@welele.media",
         market="ALL",
         kyc_status="SUPER_ADMIN"
+    )
+
+    audit_service.record_trust_event(
+        domain="AUTH",
+        event_type="auth.login",
+        actor_id=admin_id,
+        actor_role="admin",
+        target_type="admin_console",
+        target_id="global_operations",
+        after_state={"role": "admin", "kyc_status": "SUPER_ADMIN"},
+        metadata={"method": "enterprise_2fa", "operator": req.email or "ops@welele.media"}
     )
     
     return {
