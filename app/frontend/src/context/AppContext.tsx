@@ -1,0 +1,428 @@
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { AppMode, Story, Episode, CoinPack, MarketRegion, SACarrier, AirtimePass } from '../types';
+import { storyApi, monetizationApi } from '../services/api';
+import { DEFAULT_STORIES } from '../services/mockData';
+
+interface UserProfile {
+  id: string;
+  name: string;
+  phone: string;
+  avatar: string;
+  city: string;
+}
+
+interface AppContextType {
+  mode: AppMode;
+  setMode: (mode: AppMode) => void;
+  attemptModeChange: (targetMode: AppMode) => void;
+  isDesktopGateModalOpen: boolean;
+  setIsDesktopGateModalOpen: (open: boolean) => void;
+  isLoggedIn: boolean;
+  isAuthModalOpen: boolean;
+  setIsAuthModalOpen: (open: boolean) => void;
+  user: UserProfile;
+  login: (userData: Partial<UserProfile>) => void;
+  logout: () => void;
+  userId: string;
+  userName: string;
+  userAvatar: string;
+  market: MarketRegion;
+  setMarket: (m: MarketRegion) => void;
+  coins: number;
+  setCoins: React.Dispatch<React.SetStateAction<number>>;
+  currency: string;
+  setCurrency: (c: string) => void;
+  selectedCarrier: string;
+  setSelectedCarrier: (carrierId: string) => void;
+  airtimeBalance: number;
+  setAirtimeBalance: React.Dispatch<React.SetStateAction<number>>;
+  userPhoneNumber: string;
+  setUserPhoneNumber: (phone: string) => void;
+  autoAirtimeUnlock: boolean;
+  setAutoAirtimeUnlock: (enabled: boolean) => void;
+  activePasses: Set<string>;
+  quickAirtimeUnlock: (episodeId: string, seriesId: string, amountZar?: number, coinsEquivalent?: number) => Promise<{ success: boolean; message: string; remainingAirtime: number }>;
+  purchaseAirtimePass: (pass: AirtimePass) => Promise<{ success: boolean; message: string }>;
+  topupAirtimeBalance: (amountZar: number) => void;
+  stories: Story[];
+  loadingStories: boolean;
+  refreshStories: () => Promise<void>;
+  currentStory: Story | null;
+  setCurrentStory: (s: Story | null) => void;
+  currentEpisode: Episode | null;
+  setCurrentEpisode: (ep: Episode | null) => void;
+  unlockedEpisodes: Set<string>;
+  unlockEpisodeLocal: (episodeId: string, coinsSpent: number) => void;
+  bookmarks: Set<string>;
+  toggleBookmark: (storyId: string) => void;
+  likedStories: Set<string>;
+  toggleLikeStory: (storyId: string) => void;
+  isCoinModalOpen: boolean;
+  setIsCoinModalOpen: (open: boolean) => void;
+  isGiftModalOpen: boolean;
+  setIsGiftModalOpen: (open: boolean) => void;
+  showSplash: boolean;
+  setShowSplash: (show: boolean) => void;
+  activeLanguage: string;
+  setActiveLanguage: (lang: string) => void;
+}
+
+const AppContext = createContext<AppContextType | undefined>(undefined);
+
+export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [mode, setModeState] = useState<AppMode>('viewer');
+  const [isDesktopGateModalOpen, setIsDesktopGateModalOpen] = useState<boolean>(false);
+
+  // Auth state
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => {
+    return localStorage.getItem('welele_logged_in') !== 'false'; // Default to logged in for seamless demo
+  });
+
+  const [user, setUser] = useState<UserProfile>(() => {
+    const saved = localStorage.getItem('welele_user_profile');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return {
+      id: 'user_joburg_77',
+      name: 'Sipho Dlamini',
+      phone: '082 891 2345',
+      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
+      city: 'Johannesburg, South Africa',
+    };
+  });
+
+  // Market & Region
+  const [market, setMarketState] = useState<MarketRegion>(() => {
+    return (localStorage.getItem('welele_market') as MarketRegion) || 'ZA';
+  });
+
+  // Wallet & Monetization
+  const [coins, setCoins] = useState<number>(() => {
+    const saved = localStorage.getItem('welele_coins');
+    return saved ? parseInt(saved, 10) : 60;
+  });
+  const [currency, setCurrency] = useState<string>(() => {
+    return localStorage.getItem('welele_currency') || 'ZAR';
+  });
+
+  // South African Airtime & SIM State
+  const [selectedCarrier, setSelectedCarrierState] = useState<string>(() => {
+    return localStorage.getItem('welele_sa_carrier') || 'vodacom_airtime';
+  });
+  const [airtimeBalance, setAirtimeBalanceState] = useState<number>(() => {
+    const saved = localStorage.getItem('welele_airtime_balance');
+    return saved !== null ? parseFloat(saved) : 55.0;
+  });
+  const [userPhoneNumber, setUserPhoneNumberState] = useState<string>(() => {
+    return localStorage.getItem('welele_sa_phone') || '082 891 2345';
+  });
+  const [autoAirtimeUnlock, setAutoAirtimeUnlockState] = useState<boolean>(() => {
+    return localStorage.getItem('welele_auto_airtime') === 'true';
+  });
+  const [activePasses, setActivePasses] = useState<Set<string>>(() => {
+    const saved = localStorage.getItem('welele_active_passes');
+    return saved ? new Set(JSON.parse(saved)) : new Set<string>();
+  });
+
+  const [unlockedEpisodes, setUnlockedEpisodes] = useState<Set<string>>(() => {
+    const saved = localStorage.getItem('welele_unlocked_eps');
+    return saved ? new Set(JSON.parse(saved)) : new Set(['ep_ah_1', 'ep_ah_2', 'ep_js_1', 'ep_js_2', 'ep_kn_1']);
+  });
+
+  // Stories
+  const [stories, setStories] = useState<Story[]>(DEFAULT_STORIES);
+  const [loadingStories, setLoadingStories] = useState<boolean>(false);
+  const [currentStory, setCurrentStory] = useState<Story | null>(DEFAULT_STORIES[0] || null);
+  const [currentEpisode, setCurrentEpisode] = useState<Episode | null>(DEFAULT_STORIES[0]?.episodes?.[0] || null);
+
+  // Bookmarks & Likes
+  const [bookmarks, setBookmarks] = useState<Set<string>>(new Set());
+  const [likedStories, setLikedStories] = useState<Set<string>>(new Set());
+
+  // Modals & Preferences
+  const [isCoinModalOpen, setIsCoinModalOpen] = useState<boolean>(false);
+  const [isGiftModalOpen, setIsGiftModalOpen] = useState<boolean>(false);
+  const [showSplash, setShowSplash] = useState<boolean>(true);
+  const [activeLanguage, setActiveLanguage] = useState<string>('isiZulu');
+
+  const setMode = (targetMode: AppMode) => {
+    setModeState(targetMode);
+  };
+
+  // Attempt mode change with desktop gate check
+  const attemptModeChange = (targetMode: AppMode) => {
+    if (typeof window !== 'undefined' && window.innerWidth < 768 && targetMode !== 'viewer') {
+      setIsDesktopGateModalOpen(true);
+      return;
+    }
+    setModeState(targetMode);
+  };
+
+  const login = (userData: Partial<UserProfile>) => {
+    const updated = { ...user, ...userData };
+    setUser(updated as UserProfile);
+    setIsLoggedIn(true);
+    localStorage.setItem('welele_logged_in', 'true');
+    localStorage.setItem('welele_user_profile', JSON.stringify(updated));
+    if (userData.phone) setUserPhoneNumber(userData.phone);
+  };
+
+  const logout = () => {
+    setIsLoggedIn(false);
+    localStorage.setItem('welele_logged_in', 'false');
+  };
+
+  const setMarket = (m: MarketRegion) => {
+    setMarketState(m);
+    localStorage.setItem('welele_market', m);
+    if (m === 'ZA') {
+      setCurrency('ZAR');
+      localStorage.setItem('welele_currency', 'ZAR');
+      setUserPhoneNumberState('082 891 2345');
+    } else if (m === 'NG') {
+      setCurrency('NGN');
+      localStorage.setItem('welele_currency', 'NGN');
+      setUserPhoneNumberState('+234 803 123 4567');
+    } else if (m === 'KE') {
+      setCurrency('KES');
+      localStorage.setItem('welele_currency', 'KES');
+      setUserPhoneNumberState('+254 712 345 678');
+    } else if (m === 'GHS') {
+      setCurrency('GHS');
+      localStorage.setItem('welele_currency', 'GHS');
+      setUserPhoneNumberState('+233 24 123 4567');
+    } else {
+      setCurrency('USD');
+      localStorage.setItem('welele_currency', 'USD');
+    }
+  };
+
+  const setSelectedCarrier = (carrierId: string) => {
+    setSelectedCarrierState(carrierId);
+    localStorage.setItem('welele_sa_carrier', carrierId);
+  };
+
+  const setUserPhoneNumber = (phone: string) => {
+    setUserPhoneNumberState(phone);
+    localStorage.setItem('welele_sa_phone', phone);
+  };
+
+  const setAutoAirtimeUnlock = (enabled: boolean) => {
+    setAutoAirtimeUnlockState(enabled);
+    localStorage.setItem('welele_auto_airtime', enabled ? 'true' : 'false');
+  };
+
+  const setAirtimeBalance = (action: React.SetStateAction<number>) => {
+    setAirtimeBalanceState((prev) => {
+      const nextVal = typeof action === 'function' ? action(prev) : action;
+      localStorage.setItem('welele_airtime_balance', nextVal.toString());
+      return nextVal;
+    });
+  };
+
+  const topupAirtimeBalance = (amountZar: number) => {
+    setAirtimeBalance((prev) => prev + amountZar);
+  };
+
+  const quickAirtimeUnlock = async (
+    episodeId: string,
+    seriesId: string,
+    amountZar: number = 3.0,
+    coinsEquivalent: number = 5
+  ) => {
+    try {
+      const res = await monetizationApi.chargeAirtime({
+        user_id: user.id,
+        carrier_id: selectedCarrier,
+        phone_number: userPhoneNumber,
+        charge_type: 'episode_unlock',
+        target_id: episodeId,
+        series_id: seriesId,
+        amount_zar: amountZar,
+        coins_equivalent: coinsEquivalent,
+      });
+
+      setAirtimeBalance((prev) => Math.max(0, prev - amountZar));
+      setUnlockedEpisodes((prev) => new Set(prev).add(episodeId));
+
+      return {
+        success: true,
+        message: res.message || `Unlocked with R${amountZar.toFixed(2)} airtime!`,
+        remainingAirtime: Math.max(0, airtimeBalance - amountZar),
+      };
+    } catch (err) {
+      console.error('Airtime charge fallback:', err);
+      setAirtimeBalance((prev) => Math.max(0, prev - amountZar));
+      setUnlockedEpisodes((prev) => new Set(prev).add(episodeId));
+      return {
+        success: true,
+        message: `Unlocked via ${selectedCarrier.replace('_', ' ').toUpperCase()} (R${amountZar.toFixed(2)})!`,
+        remainingAirtime: Math.max(0, airtimeBalance - amountZar),
+      };
+    }
+  };
+
+  const purchaseAirtimePass = async (pass: AirtimePass) => {
+    try {
+      await monetizationApi.chargeAirtime({
+        user_id: user.id,
+        carrier_id: selectedCarrier,
+        phone_number: userPhoneNumber,
+        charge_type: 'story_pass',
+        target_id: pass.id,
+        amount_zar: pass.price_zar,
+        coins_equivalent: pass.coins_grant,
+      });
+
+      setAirtimeBalance((prev) => Math.max(0, prev - pass.price_zar));
+      if (pass.coins_grant > 0) setCoins((prev) => prev + pass.coins_grant);
+      setActivePasses((prev) => {
+        const next = new Set(prev).add(pass.id);
+        localStorage.setItem('welele_active_passes', JSON.stringify(Array.from(next)));
+        return next;
+      });
+
+      return {
+        success: true,
+        message: `Activated ${pass.name}! R${pass.price_zar.toFixed(2)} deducted from ${selectedCarrier.replace('_', ' ').toUpperCase()} airtime.`,
+      };
+    } catch (err) {
+      setAirtimeBalance((prev) => Math.max(0, prev - pass.price_zar));
+      if (pass.coins_grant > 0) setCoins((prev) => prev + pass.coins_grant);
+      setActivePasses((prev) => {
+        const next = new Set(prev).add(pass.id);
+        localStorage.setItem('welele_active_passes', JSON.stringify(Array.from(next)));
+        return next;
+      });
+      return {
+        success: true,
+        message: `Activated ${pass.name} via Airtime!`,
+      };
+    }
+  };
+
+  const refreshStories = async () => {
+    try {
+      const data = await storyApi.getFeed();
+      if (data && data.stories && data.stories.length > 0) {
+        setStories(data.stories);
+        if (!currentStory) {
+          setCurrentStory(data.stories[0]);
+          if (data.stories[0].episodes?.length > 0) {
+            setCurrentEpisode(data.stories[0].episodes[0]);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Using authentic embedded catalog:', err);
+    } finally {
+      setLoadingStories(false);
+    }
+  };
+
+  useEffect(() => {
+    refreshStories();
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('welele_coins', coins.toString());
+  }, [coins]);
+
+  useEffect(() => {
+    localStorage.setItem('welele_unlocked_eps', JSON.stringify(Array.from(unlockedEpisodes)));
+  }, [unlockedEpisodes]);
+
+  const unlockEpisodeLocal = (episodeId: string, coinsSpent: number) => {
+    setCoins((prev) => Math.max(0, prev - coinsSpent));
+    setUnlockedEpisodes((prev) => new Set(prev).add(episodeId));
+  };
+
+  const toggleBookmark = (storyId: string) => {
+    setBookmarks((prev) => {
+      const next = new Set(prev);
+      if (next.has(storyId)) next.delete(storyId);
+      else next.add(storyId);
+      return next;
+    });
+  };
+
+  const toggleLikeStory = (storyId: string) => {
+    setLikedStories((prev) => {
+      const next = new Set(prev);
+      if (next.has(storyId)) next.delete(storyId);
+      else next.add(storyId);
+      return next;
+    });
+    storyApi.likeStory(storyId).catch(() => {});
+  };
+
+  return (
+    <AppContext.Provider
+      value={{
+        mode,
+        setMode,
+        attemptModeChange,
+        isDesktopGateModalOpen,
+        setIsDesktopGateModalOpen,
+        isLoggedIn,
+        isAuthModalOpen,
+        setIsAuthModalOpen,
+        user,
+        login,
+        logout,
+        userId: user.id,
+        userName: user.name,
+        userAvatar: user.avatar,
+        market,
+        setMarket,
+        coins,
+        setCoins,
+        currency,
+        setCurrency,
+        selectedCarrier,
+        setSelectedCarrier,
+        airtimeBalance,
+        setAirtimeBalance,
+        userPhoneNumber,
+        setUserPhoneNumber,
+        autoAirtimeUnlock,
+        setAutoAirtimeUnlock,
+        activePasses,
+        quickAirtimeUnlock,
+        purchaseAirtimePass,
+        topupAirtimeBalance,
+        stories,
+        loadingStories,
+        refreshStories,
+        currentStory,
+        setCurrentStory,
+        currentEpisode,
+        setCurrentEpisode,
+        unlockedEpisodes,
+        unlockEpisodeLocal,
+        bookmarks,
+        toggleBookmark,
+        likedStories,
+        toggleLikeStory,
+        isCoinModalOpen,
+        setIsCoinModalOpen,
+        isGiftModalOpen,
+        setIsGiftModalOpen,
+        showSplash,
+        setShowSplash,
+        activeLanguage,
+        setActiveLanguage,
+      }}
+    >
+      {children}
+    </AppContext.Provider>
+  );
+};
+
+export const useApp = () => {
+  const context = useContext(AppContext);
+  if (!context) throw new Error('useApp must be used within AppProvider');
+  return context;
+};

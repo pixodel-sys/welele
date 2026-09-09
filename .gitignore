@@ -1,0 +1,32 @@
+# Environment & Secrets
+.env
+.env.local
+.env.*.local
+*.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv/
+.pytest_cache/
+*.log
+
+# Node & Frontend
+node_modules/
+dist/
+dist-ssr/
+*.local
+.npm
+.eslintcache
+
+# OS & IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

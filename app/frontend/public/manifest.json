@@ -1,0 +1,44 @@
+{
+  "name": "Welele™ — Stories That Move You",
+  "short_name": "Welele",
+  "description": "Africa's premier vertical micro-drama storytelling platform. 9:16 mobile cinema, fast airtime unlocks, and live communal chat.",
+  "start_url": "/",
+  "id": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0B0C0E",
+  "theme_color": "#0B0C0E",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["entertainment", "video", "drama", "lifestyle"],
+  "icons": [
+    {
+      "src": "/brand/welele_mark.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/brand/welele_mark.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Trending Dramas",
+      "short_name": "Trending",
+      "description": "Watch the latest viral African microdramas",
+      "url": "/?tab=home",
+      "icons": [{ "src": "/brand/welele_mark.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Welele Chat",
+      "short_name": "Chat",
+      "description": "Join live real-time episode discussions",
+      "url": "/?tab=chat",
+      "icons": [{ "src": "/brand/welele_mark.png", "sizes": "96x96" }]
+    }
+  ]
+}
