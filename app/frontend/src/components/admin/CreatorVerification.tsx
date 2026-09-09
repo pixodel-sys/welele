@@ -43,7 +43,7 @@ export const CreatorVerification: React.FC = () => {
               </div>
               <span className="text-[11px] text-welele-muted">{c.handle} • {c.country}</span>
               <p className="text-[10px] text-welele-gold mt-1">
-                🪙 {c.coin_earnings?.toLocaleString()} Coins earned
+                🪙 {(c.coin_earnings || 0).toLocaleString()} Coins earned
               </p>
             </div>
           </div>

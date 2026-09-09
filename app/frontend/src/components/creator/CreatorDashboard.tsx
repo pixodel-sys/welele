@@ -336,7 +336,7 @@ export const CreatorDashboard: React.FC<CreatorDashboardProps> = ({
                 Retention: <strong className="text-emerald-400">{hoveredPoint.retention_pct}%</strong>
               </span>
               <span className="text-welele-muted">
-                Active Viewers: <strong className="text-white font-mono">{hoveredPoint.viewer_count.toLocaleString()}</strong>
+                Active Viewers: <strong className="text-white font-mono">{(hoveredPoint.viewer_count || 0).toLocaleString()}</strong>
               </span>
             </div>
           )}
@@ -351,13 +351,13 @@ export const CreatorDashboard: React.FC<CreatorDashboardProps> = ({
               Audience Geographic Distribution
             </h4>
             <div className="space-y-2">
-              {telemetry?.geo_distribution.map((geo) => (
+              {(telemetry?.geo_distribution || []).map((geo) => (
                 <div key={geo.country} className="space-y-1">
                   <div className="flex justify-between text-xs text-white">
                     <span>
                       {geo.flag} {geo.country}
                     </span>
-                    <span className="text-welele-muted font-mono">{geo.share_pct}% ({geo.views.toLocaleString()} views)</span>
+                    <span className="text-welele-muted font-mono">{geo.share_pct}% ({(geo.views || 0).toLocaleString()} views)</span>
                   </div>
                   <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
                     <div className="h-full bg-welele-gold rounded-full" style={{ width: `${geo.share_pct}%` }} />
@@ -374,7 +374,7 @@ export const CreatorDashboard: React.FC<CreatorDashboardProps> = ({
               Telco Airtime & Mobile Money Revenue Mix
             </h4>
             <div className="space-y-2">
-              {telemetry?.telco_payment_mix.map((t) => (
+              {(telemetry?.telco_payment_mix || []).map((t) => (
                 <div key={t.provider} className="space-y-1">
                   <div className="flex justify-between text-xs text-white">
                     <span className="flex items-center gap-1.5">
@@ -431,7 +431,7 @@ export const CreatorDashboard: React.FC<CreatorDashboardProps> = ({
                   <div className="flex items-center gap-3 text-[11px] text-welele-gold mt-1 font-semibold">
                     <span>{item.total_episodes} Episodes</span>
                     <span>🪙 {item.coin_price_per_episode || 5} coins/ep</span>
-                    <span>{item.total_views.toLocaleString()} views</span>
+                    <span>{(item.total_views || 0).toLocaleString()} views</span>
                   </div>
                 </div>
               </div>

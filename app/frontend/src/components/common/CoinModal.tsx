@@ -468,7 +468,7 @@ export const CoinModal: React.FC = () => {
                   )}
                   <div className="mt-2 pt-2 border-t border-white/5 flex items-center justify-between text-xs">
                     <span className="font-extrabold text-white">
-                      {pack.currency === 'ZAR' ? `R${pack.price_local.toFixed(2)}` : `${pack.currency} ${pack.price_local.toLocaleString()}`}
+                      {pack.currency === 'ZAR' ? `R${(pack.price_local || 0).toFixed(2)}` : `${pack.currency} ${(pack.price_local || 0).toLocaleString()}`}
                     </span>
                     {currency === 'ZAR' && (
                       <span className="text-[10px] text-emerald-400 font-semibold">Airtime</span>

@@ -547,7 +547,7 @@ export const VerticalPlayer: React.FC = () => {
             <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
           </div>
           <span className="text-[10px] font-bold text-white mt-1 shadow-sm">
-            {(currentStory.total_likes + (isLiked ? 1 : 0)).toLocaleString()}
+            {((currentStory?.total_likes || 0) + (isLiked ? 1 : 0)).toLocaleString()}
           </span>
         </button>
 
