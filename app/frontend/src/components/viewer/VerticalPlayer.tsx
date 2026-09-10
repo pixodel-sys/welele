@@ -24,7 +24,6 @@ import {
   Signal,
   CheckCircle2,
   SlidersHorizontal,
-  ShieldAlert,
   ShieldCheck,
   Maximize,
   Minimize,
@@ -404,11 +403,10 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
         </div>
       )}
 
-      {/* DRM Security Violation Banner */}
+      {/* Content Protection Padlock Indicator */}
       {isSecurityAlertActive && (
-        <div className="absolute top-4 left-4 right-4 z-50 bg-red-950/95 border border-red-500/60 p-3 rounded-[7px] shadow-2xl backdrop-blur-md flex items-center gap-2.5 text-red-200 text-xs font-bold animate-pulse">
-          <ShieldAlert className="w-5 h-5 text-red-400 shrink-0" />
-          <span className="leading-tight">{securityMessage}</span>
+        <div className="absolute top-5 left-1/2 -translate-x-1/2 z-50 p-3.5 rounded-full bg-black/85 backdrop-blur-md border border-white/20 shadow-2xl text-amber-400 flex items-center justify-center animate-fade-in pointer-events-none transition-all">
+          <Lock className="w-6 h-6 stroke-[2.2]" />
         </div>
       )}
 

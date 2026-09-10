@@ -31,7 +31,7 @@ export const useContentProtection = ({
 
       setTimeout(() => {
         setIsSecurityAlertActive(false);
-      }, 3500);
+      }, 1200);
     };
 
     // 1. Block Context Menu (Right Click / Save Video As)

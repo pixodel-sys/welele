@@ -17,7 +17,7 @@ import { CreatorStudioGate } from './components/creator/CreatorStudioGate';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { AdminGate } from './components/admin/AdminGate';
 import { Story, Episode } from './types';
-import { Bookmark, Play, Star, ShieldAlert } from 'lucide-react';
+import { Bookmark, Play, Star, Lock } from 'lucide-react';
 import { useContentProtection } from './hooks/useContentProtection';
 
 export const App: React.FC = () => {
@@ -86,11 +86,10 @@ export const App: React.FC = () => {
       {/* Animated Brand Splash Screen on Initial App Load */}
       {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} durationMs={2400} />}
 
-      {/* Global DRM Security Alert Toast */}
+      {/* Content Protection Padlock Indicator */}
       {isSecurityAlertActive && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] max-w-md w-[92%] bg-red-950/95 border border-red-500/60 p-3.5 rounded-[7px] shadow-2xl backdrop-blur-md flex items-center gap-3 text-red-200 text-xs font-bold animate-fade-in pointer-events-none">
-          <ShieldAlert className="w-5 h-5 text-red-400 shrink-0" />
-          <span className="leading-snug">{securityMessage}</span>
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[9999] p-3.5 rounded-full bg-black/85 backdrop-blur-md border border-white/20 shadow-2xl text-amber-400 flex items-center justify-center animate-fade-in pointer-events-none transition-all">
+          <Lock className="w-6 h-6 stroke-[2.2]" />
         </div>
       )}
 
