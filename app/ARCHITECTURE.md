@@ -18,6 +18,39 @@ Technical decisions are strictly evaluated by their ability to reduce friction, 
 
 ---
 
+## 1.1 The Creator Experience & UX Charter (The 4 Laws)
+
+```
++-------------------------------------------------------------------------------+
+|                       THE 4 CREATOR UX LAWS                                   |
++-------------------------------------------------------------------------------+
+|  Law #1: Creators create. Welele operates the machine.                        |
+|  Law #2: Never expose an architectural concept when a human concept will do.  |
+|  Law #3: If Welele can do it for the creator, Welele should do it.            |
+|  Law #4: Complexity may exist underneath the experience, but it must not      |
+|          become cognitive load.                                               |
++-------------------------------------------------------------------------------+
+```
+
+### Creator UX Law #1: Creators create. Welele operates the machine.
+The creator's mental model is simple: *"I have a show. I have an episode. I have a video. I want to publish it."* The platform abstracts ingestion, encoding, storage keys, rights lineage, and delivery behind intuitive human touchpoints.
+
+### Creator UX Law #2: Never expose an architectural concept when a human concept will do.
+Internal domain architecture (`SeriesRepository`, `DigitalIP`, `MediaAsset`, `PreflightHealthCheck`, `Ledger`) remains strictly intact in the backend, but surfaces human terminology to creators:
+- `Series Command Rooms` $\rightarrow$ **My Shows / Show Workspace**
+- `Episode Ingestion Pipeline` $\rightarrow$ **Add Episode**
+- `Media Assets / Presigned Storage URLs` $\rightarrow$ **Video (Drag & Drop)**
+- `Preflight & Safety Checks` $\rightarrow$ **Welele Quality Check**
+- `Telemetry & Analytics DAL` $\rightarrow$ **Insights**
+
+### Creator UX Law #3: If Welele can do it for the creator, Welele should do it.
+Don't make creators perform manual math or technical steps (calculating runtimes in seconds, typing aspect ratios, generating thumbnails, or formatting storage keys). The browser and backend automatically inspect files, extract metadata, generate posters, and run quality checks.
+
+### Creator UX Law #4: Complexity may exist underneath the experience, but it must not become cognitive load.
+Welele is an institutional-grade Digital IP & Commerce Engine underneath, but presents a simple, clean, and elegant surface. The depth of the machine is our moat; the simplicity of the experience is our product.
+
+---
+
 ## 2. The 8 Frozen Architectural Pillars
 
 ```
