@@ -114,7 +114,10 @@ export const StoryDetailModal: React.FC<StoryDetailModalProps> = ({
             <span>•</span>
             <span>1 Season</span>
             <span>•</span>
-            <span>{story.total_episodes} Episodes</span>
+            <span>
+              {story.episodes?.length || story.total_episodes || 0}{' '}
+              {(story.episodes?.length || story.total_episodes || 0) === 1 ? 'Episode' : 'Episodes'}
+            </span>
             <span>•</span>
             <span className="px-1.5 py-0.2 rounded-[7px] bg-white/10 text-[10px] font-bold text-white">16+</span>
           </div>
@@ -198,7 +201,13 @@ export const StoryDetailModal: React.FC<StoryDetailModalProps> = ({
             <div className="space-y-2.5">
               <div className="flex items-center justify-between text-xs text-welele-muted mb-1">
                 <span className="font-bold text-white">Season 1</span>
-                <span>{story.free_episodes_count} Free Episodes</span>
+                <span>
+                  {story.free_episodes_count || story.episodes?.filter((e) => e.is_free).length || 0}{' '}
+                  Free{' '}
+                  {(story.free_episodes_count || story.episodes?.filter((e) => e.is_free).length || 0) === 1
+                    ? 'Episode'
+                    : 'Episodes'}
+                </span>
               </div>
 
               {story.episodes.map((ep) => {

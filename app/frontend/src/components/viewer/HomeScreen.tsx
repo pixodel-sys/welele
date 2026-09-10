@@ -161,7 +161,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onOpenPlayer }) => {
                       {story.title}
                     </h3>
                     <span className="text-[10px] text-welele-muted block">
-                      S1 • E{story.total_episodes} • {story.genre.split('•')[0].trim()}
+                      S1 • E{story.episodes?.length || story.total_episodes || 1} • {story.genre.split('•')[0].trim()}
                     </span>
                   </div>
                 </div>

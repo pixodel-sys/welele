@@ -189,10 +189,10 @@ export const HeroCarouselSection: React.FC<HeroCarouselSectionProps> = ({
               {badgeText}
             </span>
             <span className="text-[11px] font-bold text-welele-orange flex items-center gap-1 bg-black/40 px-2 py-0.5 rounded-[7px] backdrop-blur-md border border-white/5">
-              <Star className="w-3.5 h-3.5 fill-current text-welele-gold" /> {story.rating || 4.98}
+              <Star className="w-3.5 h-3.5 fill-current text-welele-gold" /> {story.rating ? story.rating.toFixed(2) : '5.00'}
             </span>
             <span className="text-[10px] text-white/70 font-semibold hidden sm:inline-flex items-center gap-1 bg-white/5 px-2 py-0.5 rounded-[7px]">
-              <Eye className="w-3 h-3 text-welele-orange" /> {((story.total_views || 3800000) / 1000000).toFixed(1)}M Views
+              <Eye className="w-3 h-3 text-welele-orange" /> {story.total_views ? (story.total_views >= 1000000 ? `${(story.total_views / 1000000).toFixed(1)}M` : story.total_views.toLocaleString()) : '0'} Views
             </span>
           </div>
 
@@ -203,14 +203,14 @@ export const HeroCarouselSection: React.FC<HeroCarouselSectionProps> = ({
 
           {/* Metadata Subtitle */}
           <div className="flex items-center gap-2 text-xs font-semibold text-welele-muted mt-2">
-            <span>{story.genre || 'Drama'}</span>
+            <span>{story.genre}</span>
             <span>•</span>
             <span>
               {story.episodes?.length || story.total_episodes || 1}{' '}
               {(story.episodes?.length || story.total_episodes || 1) === 1 ? 'Episode' : 'Episodes'}
             </span>
             <span>•</span>
-            <span className="text-white/80">{story.language?.split('/')[0].trim() || 'isiZulu'}</span>
+            <span className="text-white/80">{story.language?.split('/')[0].trim() || story.language}</span>
           </div>
 
           {/* Full Rich Story Synopsis / Description */}
@@ -297,7 +297,7 @@ export const HeroCarouselSection: React.FC<HeroCarouselSectionProps> = ({
                     {s.title}
                   </span>
                   <span className="text-[9px] sm:text-[10px] text-welele-muted block truncate mt-0.5">
-                    ★ {s.rating} • {s.genre?.split('•')[0].trim() || 'Drama'}
+                    ★ {s.rating} • {s.genre?.split('•')[0].trim() || s.genre}
                   </span>
                 </div>
               </button>

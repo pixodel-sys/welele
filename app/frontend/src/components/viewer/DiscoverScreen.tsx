@@ -223,7 +223,7 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ onOpenPlayer }) 
                   <p className="text-[10px] text-welele-muted truncate">{story.creator_name}</p>
                   <div className="flex items-center justify-between mt-1 text-[9px] text-welele-gold font-bold">
                     <span>★ {story.rating}</span>
-                    <span>{story.total_episodes} eps</span>
+                    <span>{story.episodes?.length || story.total_episodes || 1} eps</span>
                   </div>
                 </div>
               </div>

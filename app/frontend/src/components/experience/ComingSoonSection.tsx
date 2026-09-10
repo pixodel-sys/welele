@@ -79,7 +79,9 @@ export const ComingSoonSection: React.FC<ComingSoonSectionProps> = ({
                   <span className="text-[10px] text-welele-orange font-bold flex items-center gap-1">
                     <Clock className="w-3 h-3" /> Dropping Friday
                   </span>
-                  <span className="text-[10px] text-welele-muted">• {story.language || 'English'}</span>
+                  {story.language && (
+                    <span className="text-[10px] text-welele-muted">• {story.language}</span>
+                  )}
                 </div>
 
                 <h4 className="text-sm sm:text-base font-bold text-white group-hover:text-welele-orange transition-colors truncate">

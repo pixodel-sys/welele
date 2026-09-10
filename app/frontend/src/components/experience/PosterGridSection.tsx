@@ -83,7 +83,7 @@ export const PosterGridSection: React.FC<PosterGridSectionProps> = ({
                     {headline}
                   </h4>
                   <p className="text-[10px] text-welele-muted line-clamp-1">
-                    {story.genre?.split('•')[0] || 'Drama'}
+                    {story.genre?.split('•')[0].trim() || story.genre}
                   </p>
                 </div>
               </div>

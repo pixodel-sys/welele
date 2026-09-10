@@ -437,7 +437,7 @@ export const VerticalPlayer: React.FC = () => {
             <h4 className="text-xs font-bold text-white leading-tight flex items-center gap-1">
               {currentStory.title}
               <span className="text-[9px] px-1.5 py-0.2 rounded bg-welele-orange/20 text-welele-orange border border-welele-orange/30">
-                EP {currentEpisode.episode_number}/{currentStory.total_episodes}
+                EP {currentEpisode.episode_number}/{currentStory.episodes?.length || currentStory.total_episodes || 1}
               </span>
             </h4>
             <p className="text-[10px] text-welele-muted truncate max-w-[150px]">

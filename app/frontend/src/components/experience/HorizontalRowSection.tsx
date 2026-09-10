@@ -141,7 +141,7 @@ export const HorizontalRowSection: React.FC<HorizontalRowSectionProps> = ({
                     {headline}
                   </h4>
                   <p className="text-[10px] text-welele-muted line-clamp-1">
-                    {story.total_episodes || 10} Eps • {story.genre?.split('•')[0] || 'Drama'}
+                    {story.episodes?.length || story.total_episodes || 0} Eps • {story.genre?.split('•')[0].trim() || story.genre}
                   </p>
                 </div>
               </div>
