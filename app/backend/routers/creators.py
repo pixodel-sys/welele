@@ -205,7 +205,7 @@ def add_episode(req: CreateEpisodeRequest, auth_user: dict = Depends(get_current
 
     enforce_tenant_access(auth_user, series.get("creator_id"), domain="CONTENT", action="add episode")
 
-    status_target = req.status or "under_review"
+    status_target = req.status or "published"
     ep_payload = {
         "series_id": req.series_id,
         "episode_number": req.episode_number,
@@ -216,10 +216,11 @@ def add_episode(req: CreateEpisodeRequest, auth_user: dict = Depends(get_current
         "coin_price": req.coin_price,
         "cliffhanger_time": req.cliffhanger_time,
         "cliffhanger_hook": req.cliffhanger_hook,
+        "status": status_target,
         "preflight_health": req.preflight_health
     }
 
-    # 1. Create Episode Draft via Repository
+    # 1. Create Episode via Repository
     created_ep = series_repository.create_episode_draft(
         series_id=req.series_id,
         story_package_id=None,
@@ -236,6 +237,17 @@ def add_episode(req: CreateEpisodeRequest, auth_user: dict = Depends(get_current
         duration_seconds=req.duration_seconds
     )
 
+    # If published directly, ensure status and series episode count are updated
+    if status_target == "published":
+        series_repository.local_update("episodes", "id", created_ep["id"], {"status": "published"})
+        created_ep["status"] = "published"
+        all_series = series_repository.local_get("series")
+        target_s = next((s for s in all_series if s["id"] == req.series_id), None)
+        if target_s:
+            curr_count = target_s.get("total_episodes", 0)
+            if req.episode_number > curr_count:
+                series_repository.local_update("series", "id", req.series_id, {"total_episodes": req.episode_number})
+
     audit_service.record_trust_event(
         domain="CONTENT",
         event_type="content.episode_created",
@@ -243,11 +255,11 @@ def add_episode(req: CreateEpisodeRequest, auth_user: dict = Depends(get_current
         actor_role=auth_user.get("role", "creator"),
         target_type="episode",
         target_id=created_ep["id"],
-        after_state={"title": req.title, "series_id": req.series_id, "duration": req.duration_seconds},
+        after_state={"title": req.title, "series_id": req.series_id, "duration": req.duration_seconds, "status": status_target},
         metadata={"preflight_checks": req.preflight_health}
     )
 
-    # 3. Submit for Moderation
+    # 3. Submit for Moderation if requested
     if status_target in ["under_review", "submitted", "pending_review"]:
         series_repository.submit_for_moderation(created_ep["id"])
         created_ep["status"] = "under_review"

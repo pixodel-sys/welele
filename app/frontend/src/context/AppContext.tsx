@@ -386,12 +386,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const data = await storyApi.getFeed();
       if (data && data.stories && data.stories.length > 0) {
         setStories(data.stories);
-        if (!currentStory) {
-          setCurrentStory(data.stories[0]);
-          if (data.stories[0].episodes?.length > 0) {
-            setCurrentEpisode(data.stories[0].episodes[0]);
+        
+        setCurrentStory((prev) => {
+          if (!prev) return data.stories[0];
+          const updated = data.stories.find((s) => s.id === prev.id) || data.stories[0];
+          return updated;
+        });
+
+        setCurrentEpisode((prevEp) => {
+          if (!prevEp) {
+            return data.stories[0]?.episodes?.[0] || null;
           }
-        }
+          for (const s of data.stories) {
+            const found = s.episodes?.find((e) => e.id === prevEp.id || (e.series_id === prevEp.series_id && e.episode_number === prevEp.episode_number));
+            if (found) return found;
+          }
+          return data.stories[0]?.episodes?.[0] || prevEp;
+        });
       }
     } catch (err) {
       console.warn('Using authentic embedded catalog:', err);
