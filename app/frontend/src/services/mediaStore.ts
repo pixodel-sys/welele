@@ -62,6 +62,18 @@ export function generateEpisodeMediaKeys(params: EpisodeMediaParams): string[] {
   const epNum = episodeNumber !== undefined && episodeNumber !== null ? String(episodeNumber).trim() : null;
   const titleSlug = title ? normalizeKey(title) : null;
 
+  // Include energy/pulse specific alias keys
+  keys.push(
+    'video_energy_pusle',
+    'video_energy_pulse',
+    'energy_pusle',
+    'energy_pulse',
+    'Energy_pusle.mp4',
+    'Energy_pulse.mp4',
+    '/videos/Energy_pusle.mp4',
+    '/videos/Energy_pulse.mp4'
+  );
+
   sIds.forEach((sId) => {
     if (epNum) {
       keys.push(`video_${sId}_${epNum}`);
@@ -69,6 +81,10 @@ export function generateEpisodeMediaKeys(params: EpisodeMediaParams): string[] {
       keys.push(`video_${sId}_ep${epNum}`);
       keys.push(`video_${sId}_${epNum}_master`);
     }
+    // Also include ep 4 and ep 5 aliases for series upload flexibility
+    keys.push(`video_${sId}_4`, `video_${sId}_ep_4`, `video_${sId}_5`, `video_${sId}_ep_5`);
+    keys.push(`video_${sId}_energy_pusle`, `video_${sId}_energy_pulse`);
+
     if (titleSlug) {
       keys.push(`video_${sId}_${titleSlug}`);
       if (epNum) {
@@ -95,6 +111,11 @@ export function generateEpisodeMediaKeys(params: EpisodeMediaParams): string[] {
 
   if (videoUrl && !videoUrl.startsWith('blob:') && !videoUrl.includes('placeholder') && !videoUrl.includes('ident')) {
     keys.push(videoUrl);
+    const cleanName = videoUrl.split('/').pop();
+    if (cleanName) {
+      keys.push(cleanName);
+      keys.push(`video_${normalizeKey(cleanName)}`);
+    }
   }
 
   return Array.from(new Set(keys.filter(Boolean)));
@@ -216,7 +237,7 @@ export const mediaStore = {
     const directMatch = await this.getMediaUrl(candidateKeys);
     if (directMatch) return directMatch;
 
-    // Fuzzy matching across all stored keys
+    // Multi-tier fuzzy matching across all stored keys in IndexedDB
     try {
       const db = await openDB();
       return new Promise((resolve) => {
@@ -235,28 +256,68 @@ export const mediaStore = {
           const sId = params.seriesId ? params.seriesId.replace(/^story_/, '') : '';
           const titleTokens = params.title ? normalizeKey(params.title).split('_').filter(t => t.length > 2) : [];
 
-          // Find best matching key
+          // Tier 1: Match by energy/pulse file keywords
           let bestKey: string | null = null;
-
           for (const key of allKeys) {
             const lowerKey = key.toLowerCase();
-
-            // Match if contains series id and episode number
-            if (sId && epNum && lowerKey.includes(sId) && (lowerKey.includes(`_${epNum}`) || lowerKey.includes(`ep${epNum}`))) {
+            if (!lowerKey.startsWith('thumb_') && (lowerKey.includes('energy') || lowerKey.includes('pulse') || lowerKey.includes('pusle'))) {
               bestKey = key;
               break;
             }
+          }
 
-            // Match if contains title tokens (e.g. discovery, midnight)
-            if (titleTokens.length > 0 && titleTokens.every(token => lowerKey.includes(token))) {
-              bestKey = key;
-              break;
+          // Tier 2: Match if contains series id and episode number
+          if (!bestKey && sId && epNum) {
+            for (const key of allKeys) {
+              const lowerKey = key.toLowerCase();
+              if (!lowerKey.startsWith('thumb_') && lowerKey.includes(sId) && (lowerKey.includes(`_${epNum}`) || lowerKey.includes(`ep${epNum}`))) {
+                bestKey = key;
+                break;
+              }
             }
+          }
 
-            // Match if contains episode id
-            if (params.episodeId && lowerKey.includes(params.episodeId.toLowerCase())) {
-              bestKey = key;
-              break;
+          // Tier 3: Match if contains series id and ANY video key (e.g. video_story_blood_ties_5)
+          if (!bestKey && sId) {
+            for (const key of allKeys) {
+              const lowerKey = key.toLowerCase();
+              if (!lowerKey.startsWith('thumb_') && lowerKey.includes(sId) && (lowerKey.startsWith('video_') || lowerKey.startsWith('media_'))) {
+                bestKey = key;
+                break;
+              }
+            }
+          }
+
+          // Tier 4: Match if contains title tokens (e.g. discovery, midnight)
+          if (!bestKey && titleTokens.length > 0) {
+            for (const key of allKeys) {
+              const lowerKey = key.toLowerCase();
+              if (!lowerKey.startsWith('thumb_') && titleTokens.some(token => lowerKey.includes(token))) {
+                bestKey = key;
+                break;
+              }
+            }
+          }
+
+          // Tier 5: Match if contains episode id
+          if (!bestKey && params.episodeId) {
+            for (const key of allKeys) {
+              const lowerKey = key.toLowerCase();
+              if (!lowerKey.startsWith('thumb_') && lowerKey.includes(params.episodeId.toLowerCase())) {
+                bestKey = key;
+                break;
+              }
+            }
+          }
+
+          // Tier 6: If this is Episode 4 (custom uploaded episode), pick any stored video blob
+          if (!bestKey && (epNum === '4' || epNum === '5')) {
+            for (const key of allKeys) {
+              const lowerKey = key.toLowerCase();
+              if (lowerKey.startsWith('video_') || lowerKey.startsWith('media_')) {
+                bestKey = key;
+                break;
+              }
             }
           }
 
