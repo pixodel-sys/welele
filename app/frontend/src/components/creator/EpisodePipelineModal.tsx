@@ -111,13 +111,13 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
     setIsUploading(true);
     setUploadProgress(20);
 
-    // Save to persistent IndexedDB under multiple candidate keys
-    const candidateKeys = [
-      `video_${seriesId}_${episodeNumber}`,
-      `video_${seriesId}_ep_${episodeNumber}`,
-      `video_${seriesId}_${episodeNumber}_master`
-    ];
-    const persistentUrl = await mediaStore.saveMedia(candidateKeys, file);
+    // Save to persistent IndexedDB under all canonical & alias candidate keys
+    const persistentUrl = await mediaStore.saveEpisodeMedia({
+      seriesId,
+      seriesTitle: selectedStory?.title,
+      episodeNumber,
+      title,
+    }, file);
     setVideoUrl(persistentUrl);
 
     // Extract metadata & auto-generate thumbnail from frame
@@ -231,13 +231,14 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
         captions_present: true,
       };
 
-      // Ensure the video file is indexed under the final seriesId and episodeNumber
+      // Ensure the video file is indexed under the final seriesId, episodeNumber, title, and aliases
       if (videoFile) {
-        const finalKeys = [
-          `video_${seriesId}_${episodeNumber}`,
-          `video_${seriesId}_ep_${episodeNumber}`
-        ];
-        await mediaStore.saveMedia(finalKeys, videoFile);
+        await mediaStore.saveEpisodeMedia({
+          seriesId,
+          seriesTitle: selectedStory?.title,
+          episodeNumber: Number(episodeNumber),
+          title: title.trim(),
+        }, videoFile);
       }
 
       const res = await creatorApi.addEpisode({
@@ -257,14 +258,15 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
         preflight_health: preflightHealth,
       });
 
-      // Also index under the created episode's server ID
+      // Also index under the created episode's server ID and all variations
       if (videoFile && res?.episode?.id) {
-        await mediaStore.saveMedia([
-          `video_${res.episode.id}`,
-          `media_${res.episode.id}`,
-          `video_${seriesId}_${res.episode.id}`,
-          `video_${seriesId}_${res.episode.episode_number || episodeNumber}`
-        ], videoFile);
+        await mediaStore.saveEpisodeMedia({
+          seriesId,
+          seriesTitle: selectedStory?.title,
+          episodeNumber: Number(res.episode.episode_number || episodeNumber),
+          episodeId: res.episode.id,
+          title: title.trim(),
+        }, videoFile);
       }
 
       await refreshStories();

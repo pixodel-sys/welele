@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { creatorApi, aiApi, storageApi } from '../../services/api';
+import { mediaStore } from '../../services/mediaStore';
 import {
   UploadCloud,
   Sparkles,
@@ -86,11 +87,35 @@ export const EpisodeUploader: React.FC<EpisodeUploaderProps> = ({ onBack, onSucc
     }
   };
 
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+
+  const handleVideoFileChange = async (file: File) => {
+    setVideoFile(file);
+    const targetStory = stories.find((s) => s.id === selectedSeriesId);
+    const blobUrl = await mediaStore.saveEpisodeMedia({
+      seriesId: selectedSeriesId,
+      seriesTitle: targetStory?.title,
+      episodeNumber: Number(episodeNumber),
+      title: title.trim(),
+    }, file);
+    setVideoUrl(blobUrl);
+  };
+
   const handleUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      await creatorApi.addEpisode({
+      const targetStory = stories.find((s) => s.id === selectedSeriesId);
+      if (videoFile) {
+        await mediaStore.saveEpisodeMedia({
+          seriesId: selectedSeriesId,
+          seriesTitle: targetStory?.title,
+          episodeNumber: Number(episodeNumber),
+          title: title.trim(),
+        }, videoFile);
+      }
+
+      const res = await creatorApi.addEpisode({
         series_id: selectedSeriesId,
         episode_number: Number(episodeNumber),
         title,
@@ -102,6 +127,16 @@ export const EpisodeUploader: React.FC<EpisodeUploaderProps> = ({ onBack, onSucc
         coin_price: isFree ? 0 : Number(coinPrice),
         cliffhanger_time: Number(cliffhangerTime),
       });
+
+      if (videoFile && res?.episode?.id) {
+        await mediaStore.saveEpisodeMedia({
+          seriesId: selectedSeriesId,
+          seriesTitle: targetStory?.title,
+          episodeNumber: Number(res.episode.episode_number || episodeNumber),
+          episodeId: res.episode.id,
+          title: title.trim(),
+        }, videoFile);
+      }
 
       await refreshStories();
       setSuccessMessage('Episode successfully published to Welele™!');
@@ -226,6 +261,31 @@ export const EpisodeUploader: React.FC<EpisodeUploaderProps> = ({ onBack, onSucc
               </div>
             </div>
           )}
+
+          <div>
+            <label className="text-xs text-welele-muted block mb-1">Upload Local Video Master (MP4 9:16)</label>
+            <div className="flex items-center gap-3">
+              <label className="cursor-pointer px-4 py-2.5 rounded-[7px] bg-welele-orange/20 hover:bg-welele-orange/30 border border-welele-orange/40 text-welele-orange text-xs font-bold flex items-center gap-2 transition-all">
+                <UploadCloud className="w-4 h-4" />
+                <span>{videoFile ? videoFile.name : 'Select Video File'}</span>
+                <input
+                  type="file"
+                  accept="video/mp4,video/quicktime,video/webm"
+                  className="hidden"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      handleVideoFileChange(e.target.files[0]);
+                    }
+                  }}
+                />
+              </label>
+              {videoFile && (
+                <span className="text-[11px] text-emerald-400 font-bold flex items-center gap-1">
+                  <CheckCircle className="w-3.5 h-3.5" /> Indexed & Ready
+                </span>
+              )}
+            </div>
+          </div>
 
           <div>
             <label className="text-xs text-welele-muted block mb-1">Video Stream Pointer URL</label>

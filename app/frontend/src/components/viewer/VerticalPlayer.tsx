@@ -207,32 +207,26 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
     if (!currentEpisode) return;
     let isCancelled = false;
 
-    const candidateKeys = [
-      currentEpisode.series_id && currentEpisode.episode_number !== undefined
-        ? `video_${currentEpisode.series_id}_${currentEpisode.episode_number}`
-        : null,
-      currentEpisode.series_id && currentEpisode.episode_number !== undefined
-        ? `video_${currentEpisode.series_id}_ep_${currentEpisode.episode_number}`
-        : null,
-      currentStory?.id && currentEpisode.episode_number !== undefined
-        ? `video_${currentStory.id}_${currentEpisode.episode_number}`
-        : null,
-      currentStory?.id && currentEpisode.episode_number !== undefined
-        ? `video_${currentStory.id}_ep_${currentEpisode.episode_number}`
-        : null,
-      currentEpisode.id ? `video_${currentEpisode.id}` : null,
-      currentEpisode.id ? `media_${currentEpisode.id}` : null,
-      currentEpisode.id && currentEpisode.series_id
-        ? `video_${currentEpisode.series_id}_${currentEpisode.id}`
-        : null,
-      currentEpisode.video_url,
-    ].filter(Boolean) as string[];
-
     const resolveMedia = async () => {
       try {
-        const cached = await mediaStore.getMediaUrl(candidateKeys);
+        const cached = await mediaStore.findEpisodeMedia({
+          seriesId: currentEpisode.series_id || currentStory?.id,
+          seriesTitle: currentStory?.title,
+          episodeNumber: currentEpisode.episode_number,
+          episodeId: currentEpisode.id,
+          title: currentEpisode.title,
+          videoUrl: currentEpisode.video_url,
+        });
+
         if (!isCancelled && cached) {
           setResolvedVideoUrl(cached);
+          if (videoRef.current && videoRef.current.src !== cached) {
+            videoRef.current.src = cached;
+            videoRef.current.load();
+            if (isPlaying && !isIdentPlaying) {
+              videoRef.current.play().catch(() => {});
+            }
+          }
           return;
         }
       } catch (e) {
@@ -241,13 +235,14 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
 
       if (!isCancelled) {
         const rawUrl = currentEpisode.video_url;
-        if (rawUrl && !rawUrl.startsWith('blob:')) {
-          setResolvedVideoUrl(rawUrl);
-        } else if (rawUrl && rawUrl.startsWith('blob:')) {
-          // If in the same runtime session where blob is still alive
-          setResolvedVideoUrl(rawUrl);
-        } else {
-          setResolvedVideoUrl(rawUrl || '/videos/welele_placeholder.mp4');
+        const finalUrl = (rawUrl && !rawUrl.startsWith('blob:')) ? rawUrl : '/videos/welele_placeholder.mp4';
+        setResolvedVideoUrl(finalUrl);
+        if (videoRef.current && videoRef.current.src !== finalUrl && !videoRef.current.src.endsWith(finalUrl)) {
+          videoRef.current.src = finalUrl;
+          videoRef.current.load();
+          if (isPlaying && !isIdentPlaying) {
+            videoRef.current.play().catch(() => {});
+          }
         }
       }
     };
@@ -257,7 +252,7 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
     return () => {
       isCancelled = true;
     };
-  }, [currentEpisode, currentStory]);
+  }, [currentEpisode, currentStory, isIdentPlaying]);
 
   // Synchronize video element when resolvedVideoUrl updates from IndexedDB
   useEffect(() => {
@@ -265,12 +260,12 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
       if (videoRef.current.src !== resolvedVideoUrl && !videoRef.current.src.endsWith(resolvedVideoUrl)) {
         videoRef.current.src = resolvedVideoUrl;
         videoRef.current.load();
-        if (isPlaying) {
+        if (isPlaying && !isIdentPlaying) {
           videoRef.current.play().catch(() => {});
         }
       }
     }
-  }, [resolvedVideoUrl]);
+  }, [resolvedVideoUrl, isPlaying, isIdentPlaying]);
 
   // Next episode calculation for chunked buffer preloading (Pillar 4 / Sec 4.2)
   const currentIndex = currentStory?.episodes.findIndex((e) => e.id === currentEpisode?.id) ?? -1;
