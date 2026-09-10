@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { creatorApi } from '../../services/api';
-import { X, Sparkles, Check, PlusCircle } from 'lucide-react';
+import { mediaStore } from '../../services/mediaStore';
+import { X, Sparkles, Check, PlusCircle, UploadCloud, Image as ImageIcon } from 'lucide-react';
 
 interface CreateShowModalProps {
   isOpen: boolean;
@@ -21,13 +22,20 @@ export const CreateShowModal: React.FC<CreateShowModalProps> = ({
   const [synopsis, setSynopsis] = useState<string>('');
   const [genre, setGenre] = useState<string>('Crime & Dynasty');
   const [language, setLanguage] = useState<string>('English / isiZulu');
+  
+  // 9:16 Vertical Poster
   const [verticalPoster, setVerticalPoster] = useState<string>(
     'https://images.unsplash.com/photo-1509967419530-da38b4704bc6?auto=format&fit=crop&w=600&q=80'
   );
+  
+  // 16:9 Hero Banner
   const [coverBanner, setCoverBanner] = useState<string>(
     'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=1200&q=80'
   );
+
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const posterInputRef = useRef<HTMLInputElement | null>(null);
+  const bannerInputRef = useRef<HTMLInputElement | null>(null);
 
   if (!isOpen) return null;
 
@@ -56,6 +64,24 @@ export const CreateShowModal: React.FC<CreateShowModalProps> = ({
     'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=600&q=80',
     'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=600&q=80'
   ];
+
+  const sampleBanners = [
+    'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1514306191717-452ec28c7814?auto=format&fit=crop&w=1200&q=80'
+  ];
+
+  const handleCustomPoster = async (file: File) => {
+    const key = `poster_${Date.now()}`;
+    const url = await mediaStore.saveMedia(key, file);
+    setVerticalPoster(url);
+  };
+
+  const handleCustomBanner = async (file: File) => {
+    const key = `banner_${Date.now()}`;
+    const url = await mediaStore.saveMedia(key, file);
+    setCoverBanner(url);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,7 +116,7 @@ export const CreateShowModal: React.FC<CreateShowModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
-      <div className="bg-[#0F1014] border border-white/10 rounded-[7px] max-w-xl w-full p-6 shadow-2xl overflow-hidden animate-fade-in text-white space-y-5">
+      <div className="bg-[#0F1014] border border-white/10 rounded-[7px] max-w-2xl w-full p-6 shadow-2xl overflow-hidden animate-fade-in text-white space-y-5">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/10 pb-4">
           <div className="flex items-center gap-2.5">
@@ -102,7 +128,7 @@ export const CreateShowModal: React.FC<CreateShowModalProps> = ({
                 Create New Show
               </h2>
               <p className="text-xs text-welele-muted">
-                Establish the title, genre, and look for your new microdrama series.
+                Set title, story premise, and upload your custom 9:16 vertical poster & 16:9 hero banner.
               </p>
             </div>
           </div>
@@ -117,7 +143,7 @@ export const CreateShowModal: React.FC<CreateShowModalProps> = ({
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 max-h-[75vh] overflow-y-auto pr-1">
           {/* Show Title */}
           <div>
             <label className="text-xs font-bold text-white block mb-1">
@@ -194,31 +220,142 @@ export const CreateShowModal: React.FC<CreateShowModalProps> = ({
             </div>
           </div>
 
-          {/* Vertical Poster Selection */}
-          <div>
-            <label className="text-xs font-bold text-white block mb-1.5">
-              9:16 Vertical Poster (Cover)
-            </label>
-            <div className="flex items-center gap-2.5 overflow-x-auto pb-1">
-              {samplePosters.map((poster, idx) => (
-                <button
-                  type="button"
-                  key={idx}
-                  onClick={() => setVerticalPoster(poster)}
-                  className={`w-14 h-20 rounded-[7px] overflow-hidden border-2 transition-all shrink-0 relative ${
-                    verticalPoster === poster
-                      ? 'border-[#E6007A] scale-105 shadow-md shadow-pink-500/30'
-                      : 'border-white/10 opacity-60 hover:opacity-100'
-                  }`}
-                >
-                  <img src={poster} alt="Poster Sample" className="w-full h-full object-cover" />
-                  {verticalPoster === poster && (
-                    <div className="absolute inset-0 bg-pink-600/30 flex items-center justify-center text-white">
-                      <Check className="w-4 h-4" />
+          {/* DUAL ARTWORK UPLOAD ZONES */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-white/10">
+            {/* 1. 9:16 Vertical Key Art Dropzone */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-white flex items-center justify-between">
+                <span>9:16 Vertical Poster (Cover)</span>
+                <span className="text-[10px] text-pink-400 font-mono">1080 × 1920</span>
+              </label>
+
+              <div
+                onClick={() => posterInputRef.current?.click()}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                    handleCustomPoster(e.dataTransfer.files[0]);
+                  }
+                }}
+                className="w-full aspect-[9/16] max-h-56 rounded-[7px] border-2 border-dashed border-white/20 hover:border-pink-500 bg-[#14151B] relative overflow-hidden cursor-pointer group flex flex-col items-center justify-center text-center p-3 transition-all"
+              >
+                <input
+                  type="file"
+                  ref={posterInputRef}
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      handleCustomPoster(e.target.files[0]);
+                    }
+                  }}
+                  accept="image/*"
+                  className="hidden"
+                />
+
+                {verticalPoster ? (
+                  <>
+                    <img
+                      src={verticalPoster}
+                      alt="Vertical Poster Preview"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                    />
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-2 text-xs font-bold text-white">
+                      <UploadCloud className="w-5 h-5 mb-1 text-pink-400" />
+                      <span>Click or Drop to Replace</span>
                     </div>
-                  )}
-                </button>
-              ))}
+                  </>
+                ) : (
+                  <div className="space-y-1">
+                    <UploadCloud className="w-6 h-6 mx-auto text-pink-400" />
+                    <p className="text-xs font-bold text-white">Drop Portrait Poster</p>
+                    <p className="text-[10px] text-welele-muted">or click to browse</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Sample Quick Pick */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pt-1">
+                {samplePosters.map((poster, idx) => (
+                  <button
+                    type="button"
+                    key={idx}
+                    onClick={() => setVerticalPoster(poster)}
+                    className={`w-10 h-14 rounded-[5px] overflow-hidden border transition-all shrink-0 ${
+                      verticalPoster === poster ? 'border-pink-500 scale-105' : 'border-white/10 opacity-50 hover:opacity-100'
+                    }`}
+                  >
+                    <img src={poster} alt="Sample" className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 2. 16:9 Horizontal Hero Banner Dropzone */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-white flex items-center justify-between">
+                <span>16:9 Hero Banner (Backdrop)</span>
+                <span className="text-[10px] text-welele-gold font-mono">1920 × 1080</span>
+              </label>
+
+              <div
+                onClick={() => bannerInputRef.current?.click()}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                    handleCustomBanner(e.dataTransfer.files[0]);
+                  }
+                }}
+                className="w-full aspect-video max-h-56 rounded-[7px] border-2 border-dashed border-white/20 hover:border-welele-gold bg-[#14151B] relative overflow-hidden cursor-pointer group flex flex-col items-center justify-center text-center p-3 transition-all"
+              >
+                <input
+                  type="file"
+                  ref={bannerInputRef}
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      handleCustomBanner(e.target.files[0]);
+                    }
+                  }}
+                  accept="image/*"
+                  className="hidden"
+                />
+
+                {coverBanner ? (
+                  <>
+                    <img
+                      src={coverBanner}
+                      alt="Hero Banner Preview"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                    />
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-2 text-xs font-bold text-white">
+                      <UploadCloud className="w-5 h-5 mb-1 text-welele-gold" />
+                      <span>Click or Drop to Replace</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="space-y-1">
+                    <UploadCloud className="w-6 h-6 mx-auto text-welele-gold" />
+                    <p className="text-xs font-bold text-white">Drop Landscape Banner</p>
+                    <p className="text-[10px] text-welele-muted">or click to browse</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Sample Quick Pick */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pt-1">
+                {sampleBanners.map((banner, idx) => (
+                  <button
+                    type="button"
+                    key={idx}
+                    onClick={() => setCoverBanner(banner)}
+                    className={`w-16 h-10 rounded-[5px] overflow-hidden border transition-all shrink-0 ${
+                      coverBanner === banner ? 'border-welele-gold scale-105' : 'border-white/10 opacity-50 hover:opacity-100'
+                    }`}
+                  >
+                    <img src={banner} alt="Sample Banner" className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 

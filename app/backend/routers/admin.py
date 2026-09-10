@@ -42,42 +42,6 @@ def get_metrics():
 @router.get("/moderation-queue")
 def get_moderation_queue():
     queue = series_repository.get_moderation_queue()
-    if not queue:
-        # Default high production review item for instant demonstration
-        queue = [
-            {
-                "id": "mod_ep_bt_4",
-                "episode_id": "ep_bt_4",
-                "series_id": "story_blood_ties",
-                "series_title": "Blood Ties",
-                "episode_number": 4,
-                "episode_title": "The Betrayal at Midnight",
-                "creator_name": "Zola Dlamini",
-                "creator_id": "creator_zola",
-                "submitted_at": "2026-09-08T14:30:00Z",
-                "aspect_ratio": "9:16 (1080x1920)",
-                "duration": "64s",
-                "duration_seconds": 64,
-                "video_url": "/videos/welele_placeholder.mp4",
-                "thumbnail_url": "/posters/blood_ties.jpg",
-                "cliffhanger_time": 56,
-                "cliffhanger_hook": "The security camera shows who stole the diamond ledger.",
-                "ai_safety_score": 99.0,
-                "status": "pending_review",
-                "preflight_health": {
-                    "aspect_ratio_ok": True,
-                    "aspect_ratio_label": "1080 × 1920 (9:16)",
-                    "duration_ok": True,
-                    "duration_seconds": 64,
-                    "audio_detected": True,
-                    "thumbnail_present": True,
-                    "cliffhanger_marker_ok": True,
-                    "cliffhanger_time_seconds": 56,
-                    "cliffhanger_hook_copy": "The security camera shows who stole the diamond ledger.",
-                    "captions_present": True
-                }
-            }
-        ]
     return {"queue": queue}
 
 @router.post("/moderation/{item_id}/approve")

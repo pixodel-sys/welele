@@ -25,6 +25,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { useContentProtection } from '../../hooks/useContentProtection';
+import { mediaStore } from '../../services/mediaStore';
 
 export const VerticalPlayer: React.FC = () => {
   const {
@@ -72,10 +73,28 @@ export const VerticalPlayer: React.FC = () => {
   const [qualityMode, setQualityMode] = useState<'AUTO' | '1080P' | '720P' | '480P_DATA_SAVER'>('AUTO');
   const [activeSubtitleText, setActiveSubtitleText] = useState<string>('');
   const [airtimeToast, setAirtimeToast] = useState<string | null>(null);
+  const [resolvedVideoUrl, setResolvedVideoUrl] = useState<string>(currentEpisode?.video_url || '/videos/welele_placeholder.mp4');
 
   const episodeId = currentEpisode?.id;
   const isUnlocked =
     currentEpisode?.is_free || (episodeId ? unlockedEpisodes.has(episodeId) : true);
+
+  // Resolve media from persistent IndexedDB mediaStore if custom uploaded
+  useEffect(() => {
+    if (!currentEpisode) return;
+    const rawUrl = currentEpisode.video_url;
+    const mediaKey = `video_${currentStory?.id}_${currentEpisode.episode_number}`;
+
+    mediaStore.getMediaUrl(mediaKey).then((cached) => {
+      if (cached) {
+        setResolvedVideoUrl(cached);
+      } else {
+        setResolvedVideoUrl(rawUrl || '/videos/welele_placeholder.mp4');
+      }
+    }).catch(() => {
+      setResolvedVideoUrl(rawUrl || '/videos/welele_placeholder.mp4');
+    });
+  }, [currentEpisode, currentStory]);
 
   // Next episode calculation for chunked buffer preloading (Pillar 4 / Sec 4.2)
   const currentIndex = currentStory?.episodes.findIndex((e) => e.id === currentEpisode?.id) ?? -1;
@@ -290,7 +309,7 @@ export const VerticalPlayer: React.FC = () => {
         <div className="relative w-full h-full">
           <video
             ref={videoRef}
-            src={currentEpisode.video_url}
+            src={resolvedVideoUrl}
             className="w-full h-full object-cover pointer-events-none"
             playsInline
             autoPlay

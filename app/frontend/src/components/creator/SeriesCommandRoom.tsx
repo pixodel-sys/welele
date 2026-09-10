@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Story, Episode } from '../../types';
 import { creatorApi } from '../../services/api';
+import { mediaStore } from '../../services/mediaStore';
 import {
   ArrowLeft,
   PlusCircle,
@@ -11,8 +12,9 @@ import {
   AlertTriangle,
   BookOpen,
   BarChart3,
-  Flame,
-  DollarSign
+  UploadCloud,
+  Image as ImageIcon,
+  Check
 } from 'lucide-react';
 
 interface SeriesCommandRoomProps {
@@ -31,6 +33,11 @@ export const SeriesCommandRoom: React.FC<SeriesCommandRoomProps> = ({
   const [activeTab, setActiveTab] = useState<ShowTab>('episodes');
   const [workspaceData, setWorkspaceData] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [customPoster, setCustomPoster] = useState<string | null>(null);
+  const [customBanner, setCustomBanner] = useState<string | null>(null);
+
+  const posterInputRef = useRef<HTMLInputElement | null>(null);
+  const bannerInputRef = useRef<HTMLInputElement | null>(null);
 
   const fetchWorkspace = () => {
     creatorApi
@@ -48,6 +55,18 @@ export const SeriesCommandRoom: React.FC<SeriesCommandRoomProps> = ({
     fetchWorkspace();
   }, [seriesId]);
 
+  const handleUpdatePoster = async (file: File) => {
+    const key = `series_poster_${seriesId}`;
+    const url = await mediaStore.saveMedia(key, file);
+    setCustomPoster(url);
+  };
+
+  const handleUpdateBanner = async (file: File) => {
+    const key = `series_banner_${seriesId}`;
+    const url = await mediaStore.saveMedia(key, file);
+    setCustomBanner(url);
+  };
+
   if (loading || !workspaceData) {
     return (
       <div className="py-20 text-center text-welele-muted">
@@ -60,6 +79,8 @@ export const SeriesCommandRoom: React.FC<SeriesCommandRoomProps> = ({
   const series: Story = workspaceData.series;
   const metrics = workspaceData.metrics;
   const episodes: Episode[] = series.episodes || [];
+  const displayPoster = customPoster || series.vertical_poster;
+  const displayBanner = customBanner || series.cover_image || series.vertical_poster;
 
   const getStatusBadge = (status?: string, isFree?: boolean) => {
     switch (status) {
@@ -137,7 +158,7 @@ export const SeriesCommandRoom: React.FC<SeriesCommandRoomProps> = ({
       <div className="border-b border-white/10 flex items-center gap-2 overflow-x-auto pb-1">
         {[
           { id: 'episodes', label: `Episodes (${episodes.length})`, icon: Video },
-          { id: 'story', label: 'Story & Bible', icon: BookOpen },
+          { id: 'story', label: 'Story & Artwork', icon: BookOpen },
           { id: 'insights', label: 'Insights', icon: BarChart3 },
           { id: 'earnings', label: 'Earnings', icon: Coins },
         ].map((tab) => {
@@ -235,13 +256,14 @@ export const SeriesCommandRoom: React.FC<SeriesCommandRoomProps> = ({
         </div>
       )}
 
-      {/* TAB CONTENT: STORY & BIBLE */}
+      {/* TAB CONTENT: STORY & ARTWORK */}
       {activeTab === 'story' && (
-        <div className="space-y-4">
+        <div className="space-y-6">
+          {/* Show Premise Card */}
           <div className="p-5 rounded-[7px] bg-[#14151B] border border-white/5 space-y-4">
             <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
               <BookOpen className="w-4 h-4 text-pink-400" />
-              Story & World
+              Story Premise
             </h3>
 
             <div className="space-y-1.5">
@@ -262,6 +284,74 @@ export const SeriesCommandRoom: React.FC<SeriesCommandRoomProps> = ({
                     {lang}
                   </span>
                 ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Show Artwork Controls */}
+          <div className="p-5 rounded-[7px] bg-[#14151B] border border-white/5 space-y-4">
+            <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+              <ImageIcon className="w-4 h-4 text-welele-gold" />
+              Show Artwork & Key Art
+            </h3>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {/* Vertical Poster Box */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-white">9:16 Vertical Poster</span>
+                  <button
+                    type="button"
+                    onClick={() => posterInputRef.current?.click()}
+                    className="text-xs text-pink-400 hover:text-pink-300 font-bold"
+                  >
+                    Replace Poster
+                  </button>
+                  <input
+                    type="file"
+                    ref={posterInputRef}
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        handleUpdatePoster(e.target.files[0]);
+                      }
+                    }}
+                    accept="image/*"
+                    className="hidden"
+                  />
+                </div>
+
+                <div className="w-36 aspect-[9/16] rounded-[7px] overflow-hidden border border-white/20 bg-black relative shadow-lg">
+                  <img src={displayPoster} alt="Poster" className="w-full h-full object-cover" />
+                </div>
+              </div>
+
+              {/* Horizontal Banner Box */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-white">16:9 Hero Banner</span>
+                  <button
+                    type="button"
+                    onClick={() => bannerInputRef.current?.click()}
+                    className="text-xs text-welele-gold hover:text-yellow-300 font-bold"
+                  >
+                    Replace Banner
+                  </button>
+                  <input
+                    type="file"
+                    ref={bannerInputRef}
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        handleUpdateBanner(e.target.files[0]);
+                      }
+                    }}
+                    accept="image/*"
+                    className="hidden"
+                  />
+                </div>
+
+                <div className="w-full aspect-video rounded-[7px] overflow-hidden border border-white/20 bg-black relative shadow-lg">
+                  <img src={displayBanner} alt="Hero Banner" className="w-full h-full object-cover" />
+                </div>
               </div>
             </div>
           </div>

@@ -1,23 +1,20 @@
 import React, { useState, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { creatorApi, aiApi } from '../../services/api';
+import { mediaStore } from '../../services/mediaStore';
 import { Story, PreflightHealth } from '../../types';
 import {
   CheckCircle2,
-  AlertCircle,
   Video as VideoIcon,
   Sparkles,
   Play,
   UploadCloud,
-  Clock,
-  Coins,
   ChevronRight,
   ChevronLeft,
   X,
   PlusCircle,
-  FileVideo,
   Check,
-  Film
+  Image as ImageIcon
 } from 'lucide-react';
 import { CreateShowModal } from './CreateShowModal';
 
@@ -53,7 +50,7 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
     'The surveillance logs from the penthouse reveal an unexpected visitor right before the will was executed.'
   );
 
-  // STEP 2: VIDEO
+  // STEP 2: VIDEO & ARTWORK
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoUrl, setVideoUrl] = useState<string>('/videos/welele_placeholder.mp4');
   const [thumbnailUrl, setThumbnailUrl] = useState<string>('/posters/blood_ties.jpg');
@@ -64,6 +61,7 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [isPreviewPlaying, setIsPreviewPlaying] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const thumbInputRef = useRef<HTMLInputElement | null>(null);
 
   // STEP 3: STORY & CLIFFHANGER
   const [cliffhangerHook, setCliffhangerHook] = useState<string>(
@@ -88,18 +86,20 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
   const selectedStory = stories.find((s) => s.id === seriesId) || stories[0];
 
   // Handle Video File Selection / Drag & Drop
-  const processVideoFile = (file: File) => {
+  const processVideoFile = async (file: File) => {
     setVideoFile(file);
     setIsUploading(true);
-    setUploadProgress(15);
+    setUploadProgress(20);
 
-    const blobUrl = URL.createObjectURL(file);
-    setVideoUrl(blobUrl);
+    // Save to persistent IndexedDB
+    const mediaKey = `video_${seriesId}_${episodeNumber}`;
+    const persistentUrl = await mediaStore.saveMedia(mediaKey, file);
+    setVideoUrl(persistentUrl);
 
-    // Create an off-screen HTML5 video to extract metadata
+    // Extract metadata & auto-generate thumbnail from frame
     const tempVideo = document.createElement('video');
     tempVideo.preload = 'metadata';
-    tempVideo.src = blobUrl;
+    tempVideo.src = persistentUrl;
 
     tempVideo.onloadedmetadata = () => {
       const dur = Math.round(tempVideo.duration) || 64;
@@ -112,17 +112,43 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
       setIsAspectRatioOk(is916);
       setAspectRatioLabel(`${w} × ${h} (${is916 ? '9:16 Vertical' : 'Landscape'})`);
 
-      // Fast upload progress simulation
-      let prog = 25;
-      const interval = setInterval(() => {
-        prog += 25;
-        setUploadProgress(prog);
-        if (prog >= 100) {
-          clearInterval(interval);
-          setIsUploading(false);
-        }
-      }, 150);
+      // Attempt canvas thumbnail grab at 1s
+      tempVideo.currentTime = Math.min(1.0, dur / 2);
     };
+
+    tempVideo.onseeked = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = tempVideo.videoWidth || 540;
+        canvas.height = tempVideo.videoHeight || 960;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(tempVideo, 0, 0, canvas.width, canvas.height);
+          const frameDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          if (frameDataUrl && frameDataUrl.length > 50) {
+            setThumbnailUrl(frameDataUrl);
+          }
+        }
+      } catch (e) {
+        console.warn('Could not extract canvas frame:', e);
+      }
+    };
+
+    let prog = 35;
+    const interval = setInterval(() => {
+      prog += 25;
+      setUploadProgress(prog);
+      if (prog >= 100) {
+        clearInterval(interval);
+        setIsUploading(false);
+      }
+    }, 120);
+  };
+
+  const handleCustomThumbnail = async (file: File) => {
+    const thumbKey = `thumb_${seriesId}_${episodeNumber}`;
+    const url = await mediaStore.saveMedia(thumbKey, file);
+    setThumbnailUrl(url);
   };
 
   const handleFileDrop = (e: React.DragEvent<HTMLDivElement>) => {
@@ -205,7 +231,7 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
 
   const stepTabs = [
     { num: 1, label: 'Episode' },
-    { num: 2, label: 'Video' },
+    { num: 2, label: 'Video & Art' },
     { num: 3, label: 'Story' },
     { num: 4, label: 'Release' },
     { num: 5, label: 'Ready' },
@@ -340,7 +366,7 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g. The Queen's Ultimatum, The Midnight Call"
+                  placeholder="e.g. The Queen's Ultimatum, The Discovery at Midnight"
                   className="w-full bg-[#14151B] px-3.5 py-2.5 rounded-[7px] border border-white/10 text-xs text-white focus:outline-none focus:border-pink-500 placeholder:text-welele-muted"
                 />
               </div>
@@ -361,24 +387,24 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
             </div>
           )}
 
-          {/* STEP 2: VIDEO DRAG & DROP */}
+          {/* STEP 2: VIDEO & ARTWORK DRAG & DROP */}
           {step === 2 && (
-            <div className="space-y-4 animate-fade-in">
+            <div className="space-y-5 animate-fade-in">
               <div>
                 <h3 className="text-sm font-bold text-white uppercase tracking-wider">
-                  2. Drop Your Video
+                  2. Drop Your Video & Artwork
                 </h3>
                 <p className="text-xs text-welele-muted">
-                  Drag and drop your 9:16 vertical episode or choose a video file.
+                  Drag and drop your 9:16 episode video. We'll automatically calculate duration and extract thumbnail artwork.
                 </p>
               </div>
 
-              {/* Drag & Drop Target Box */}
+              {/* Video Dropzone */}
               <div
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={handleFileDrop}
                 onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-white/20 hover:border-pink-500/60 bg-[#14151B] hover:bg-pink-950/10 rounded-[7px] p-8 text-center cursor-pointer transition-all flex flex-col items-center justify-center space-y-3 group"
+                className="border-2 border-dashed border-white/20 hover:border-pink-500/60 bg-[#14151B] hover:bg-pink-950/10 rounded-[7px] p-6 text-center cursor-pointer transition-all flex flex-col items-center justify-center space-y-2.5 group"
               >
                 <input
                   type="file"
@@ -388,30 +414,30 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
                   className="hidden"
                 />
 
-                <div className="w-14 h-14 rounded-full bg-pink-500/10 text-pink-400 group-hover:scale-110 transition-transform flex items-center justify-center">
-                  <UploadCloud className="w-7 h-7" />
+                <div className="w-12 h-12 rounded-full bg-pink-500/10 text-pink-400 group-hover:scale-110 transition-transform flex items-center justify-center">
+                  <UploadCloud className="w-6 h-6" />
                 </div>
 
                 <div>
                   <p className="text-sm font-bold text-white">
-                    🎬 Drop your episode here
+                    🎬 Drop your episode video here
                   </p>
                   <p className="text-xs text-welele-muted mt-0.5">
                     or click to <span className="text-pink-400 font-bold underline">Choose Video</span>
                   </p>
-                  <p className="text-[10px] text-white/40 mt-2 font-mono">
+                  <p className="text-[10px] text-white/40 mt-1.5 font-mono">
                     MP4 • MOV • WebM (Optimal: 1080 × 1920)
                   </p>
                 </div>
               </div>
 
-              {/* Upload Status & Auto-Metadata Card */}
+              {/* Video Status & Metadata Card */}
               {isUploading ? (
-                <div className="p-4 rounded-[7px] bg-white/5 border border-white/10 space-y-2">
+                <div className="p-3.5 rounded-[7px] bg-white/5 border border-white/10 space-y-2">
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-bold text-white flex items-center gap-2">
                       <div className="w-3 h-3 border-2 border-pink-400 border-t-transparent rounded-full animate-spin" />
-                      Uploading video...
+                      Saving and processing video...
                     </span>
                     <span className="font-mono text-pink-400 font-bold">{uploadProgress}%</span>
                   </div>
@@ -422,11 +448,11 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
                     />
                   </div>
                 </div>
-              ) : videoUrl ? (
-                <div className="p-4 rounded-[7px] bg-emerald-950/30 border border-emerald-500/30 flex items-center justify-between">
+              ) : (
+                <div className="p-3.5 rounded-[7px] bg-emerald-950/30 border border-emerald-500/30 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-[7px] bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
-                      <CheckCircle2 className="w-5 h-5" />
+                    <div className="w-8 h-8 rounded-[7px] bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                      <CheckCircle2 className="w-4 h-4" />
                     </div>
                     <div>
                       <h4 className="text-xs font-bold text-white">Video Ready</h4>
@@ -445,12 +471,12 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
                     <span>{isPreviewPlaying ? 'Hide Preview' : '▶ Preview'}</span>
                   </button>
                 </div>
-              ) : null}
+              )}
 
-              {/* Inline Preview Player */}
+              {/* Video Preview Viewport */}
               {isPreviewPlaying && videoUrl && (
                 <div className="p-4 rounded-[7px] bg-[#14151B] border border-white/10 flex flex-col items-center animate-fade-in">
-                  <div className="w-48 aspect-[9/16] rounded-[7px] overflow-hidden bg-black shadow-lg border border-white/10 relative">
+                  <div className="w-44 aspect-[9/16] rounded-[7px] overflow-hidden bg-black shadow-lg border border-white/10 relative">
                     <video
                       src={videoUrl}
                       controls
@@ -461,6 +487,56 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
                   </div>
                 </div>
               )}
+
+              {/* CUSTOM EPISODE ARTWORK / THUMBNAIL DROPZONE */}
+              <div className="p-4 rounded-[7px] bg-[#14151B] border border-white/10 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
+                      <ImageIcon className="w-3.5 h-3.5 text-pink-400" />
+                      Episode Thumbnail Artwork
+                    </h4>
+                    <p className="text-[11px] text-welele-muted">
+                      Auto-captured from video frame, or drop a custom cover below.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => thumbInputRef.current?.click()}
+                    className="px-3 py-1 rounded-[7px] bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-white transition-colors"
+                  >
+                    Upload Custom Art
+                  </button>
+                  <input
+                    type="file"
+                    ref={thumbInputRef}
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        handleCustomThumbnail(e.target.files[0]);
+                      }
+                    }}
+                    accept="image/*"
+                    className="hidden"
+                  />
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <div className="w-20 aspect-[9/16] rounded-[7px] overflow-hidden border border-white/20 bg-black relative shrink-0">
+                    <img
+                      src={thumbnailUrl}
+                      alt="Episode Thumbnail"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="text-xs space-y-1">
+                    <p className="text-white font-bold">Active Episode Cover</p>
+                    <p className="text-welele-muted text-[11px]">
+                      Displayed on episode list, notifications, and viewer swipe cards.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
@@ -645,7 +721,7 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
                       Upload Complete
                     </h3>
                     <p className="text-xs text-emerald-200 mt-1">
-                      Episode {episodeNumber} is safely received.
+                      "{title}" (EP {episodeNumber}) is safely received.
                     </p>
                     <p className="text-xs text-welele-muted mt-0.5">
                       We're checking your video and preparing it for publishing.
@@ -654,13 +730,13 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
 
                   <div className="p-3 bg-black/40 rounded-[7px] text-xs text-left max-w-sm mx-auto space-y-1.5 text-white/90">
                     <div className="flex items-center gap-2 text-emerald-400">
-                      <Check className="w-3.5 h-3.5" /> Video received
+                      <Check className="w-3.5 h-3.5" /> Video received & saved
                     </div>
                     <div className="flex items-center gap-2 text-emerald-400">
                       <Check className="w-3.5 h-3.5" /> Quality check started
                     </div>
                     <div className="flex items-center gap-2 text-emerald-400">
-                      <Check className="w-3.5 h-3.5" /> Thumbnail generated
+                      <Check className="w-3.5 h-3.5" /> Thumbnail artwork attached
                     </div>
                     <div className="flex items-center gap-2 text-emerald-400">
                       <Check className="w-3.5 h-3.5" /> Episode queued
