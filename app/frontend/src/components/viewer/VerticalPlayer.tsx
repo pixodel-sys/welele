@@ -644,10 +644,10 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
         </div>
       </div>
 
-      {/* Subtitles Overlay (Dialogue remains unobtrusive and persistent when dialogue line active) */}
+      {/* Subtitles Overlay (Cinematic Bottom-Center with Comfortable Padding above Progress Bar) */}
       {isUnlocked && activeSubtitleText && (
-        <div className="absolute bottom-16 left-4 right-16 z-20 pointer-events-none text-center">
-          <span className="inline-block px-3 py-1.5 rounded-[7px] bg-black/80 backdrop-blur-md text-white text-xs font-medium border border-white/10 shadow-lg">
+        <div className="absolute bottom-5 left-4 right-4 z-20 pointer-events-none flex justify-center text-center">
+          <span className="inline-block max-w-[92%] px-3.5 py-1.5 rounded-[7px] bg-black/85 backdrop-blur-md text-white text-xs font-medium leading-relaxed border border-white/10 shadow-2xl drop-shadow-md">
             {activeSubtitleText}
           </span>
         </div>
