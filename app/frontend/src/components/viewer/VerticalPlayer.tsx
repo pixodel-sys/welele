@@ -248,17 +248,25 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
 
       if (!isCancelled) {
         const rawUrl = currentEpisode.video_url || '';
-        console.log('[VerticalPlayer] Using raw episode video URL:', rawUrl);
-        setResolvedVideoUrl(rawUrl);
-        setResolvedSourceKey(rawUrl ? 'Raw Video URL' : 'None');
-        if (videoRef.current && rawUrl) {
-          videoRef.current.src = rawUrl;
-          videoRef.current.load();
-          if (isPlaying) {
-            videoRef.current.play().catch((err) => {
-              console.warn('[VerticalPlayer] Autoplay error:', err);
-            });
+        if (rawUrl && !rawUrl.startsWith('blob:')) {
+          console.log('[VerticalPlayer] Using raw episode video URL:', rawUrl);
+          setResolvedVideoUrl(rawUrl);
+          setResolvedSourceKey('Raw Remote URL');
+          if (videoRef.current) {
+            videoRef.current.src = rawUrl;
+            videoRef.current.load();
+            if (isPlaying) {
+              videoRef.current.play().catch((err) => {
+                console.warn('[VerticalPlayer] Autoplay error:', err);
+              });
+            }
           }
+        } else {
+          // If raw URL is an expired blob: or empty, mark as un-cached so user can attach
+          console.warn('[VerticalPlayer] Expired blob URL from previous session, awaiting IndexedDB cache.');
+          setResolvedVideoUrl('');
+          setResolvedSourceKey('Expired Session URL');
+          setMediaError('Expired session blob URL. Click below to attach your local video master for permanent IndexedDB playback.');
         }
       }
     };
@@ -608,6 +616,8 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
                       }, file);
                       setResolvedVideoUrl(newUrl);
                       setMediaError(null);
+                      const updatedKeys = await mediaStore.getAllStoredKeys();
+                      setStoredDbKeys(updatedKeys);
                       if (videoRef.current) {
                         videoRef.current.src = newUrl;
                         videoRef.current.load();
