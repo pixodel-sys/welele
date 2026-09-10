@@ -185,19 +185,72 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
   // Resolve media from persistent IndexedDB mediaStore if custom uploaded
   useEffect(() => {
     if (!currentEpisode) return;
-    const rawUrl = currentEpisode.video_url;
-    const mediaKey = `video_${currentStory?.id}_${currentEpisode.episode_number}`;
+    let isCancelled = false;
 
-    mediaStore.getMediaUrl(mediaKey).then((cached) => {
-      if (cached) {
-        setResolvedVideoUrl(cached);
-      } else {
-        setResolvedVideoUrl(rawUrl || '/videos/welele_placeholder.mp4');
+    const candidateKeys = [
+      currentEpisode.series_id && currentEpisode.episode_number !== undefined
+        ? `video_${currentEpisode.series_id}_${currentEpisode.episode_number}`
+        : null,
+      currentEpisode.series_id && currentEpisode.episode_number !== undefined
+        ? `video_${currentEpisode.series_id}_ep_${currentEpisode.episode_number}`
+        : null,
+      currentStory?.id && currentEpisode.episode_number !== undefined
+        ? `video_${currentStory.id}_${currentEpisode.episode_number}`
+        : null,
+      currentStory?.id && currentEpisode.episode_number !== undefined
+        ? `video_${currentStory.id}_ep_${currentEpisode.episode_number}`
+        : null,
+      currentEpisode.id ? `video_${currentEpisode.id}` : null,
+      currentEpisode.id ? `media_${currentEpisode.id}` : null,
+      currentEpisode.id && currentEpisode.series_id
+        ? `video_${currentEpisode.series_id}_${currentEpisode.id}`
+        : null,
+      currentEpisode.video_url,
+    ].filter(Boolean) as string[];
+
+    const resolveMedia = async () => {
+      try {
+        const cached = await mediaStore.getMediaUrl(candidateKeys);
+        if (!isCancelled && cached) {
+          setResolvedVideoUrl(cached);
+          return;
+        }
+      } catch (e) {
+        console.warn('[VerticalPlayer] Error retrieving cached media:', e);
       }
-    }).catch(() => {
-      setResolvedVideoUrl(rawUrl || '/videos/welele_placeholder.mp4');
-    });
+
+      if (!isCancelled) {
+        const rawUrl = currentEpisode.video_url;
+        if (rawUrl && !rawUrl.startsWith('blob:')) {
+          setResolvedVideoUrl(rawUrl);
+        } else if (rawUrl && rawUrl.startsWith('blob:')) {
+          // If in the same runtime session where blob is still alive
+          setResolvedVideoUrl(rawUrl);
+        } else {
+          setResolvedVideoUrl(rawUrl || '/videos/welele_placeholder.mp4');
+        }
+      }
+    };
+
+    resolveMedia();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [currentEpisode, currentStory]);
+
+  // Synchronize video element when resolvedVideoUrl updates from IndexedDB
+  useEffect(() => {
+    if (videoRef.current && resolvedVideoUrl) {
+      if (videoRef.current.src !== resolvedVideoUrl && !videoRef.current.src.endsWith(resolvedVideoUrl)) {
+        videoRef.current.src = resolvedVideoUrl;
+        videoRef.current.load();
+        if (isPlaying) {
+          videoRef.current.play().catch(() => {});
+        }
+      }
+    }
+  }, [resolvedVideoUrl]);
 
   // Next episode calculation for chunked buffer preloading (Pillar 4 / Sec 4.2)
   const currentIndex = currentStory?.episodes.findIndex((e) => e.id === currentEpisode?.id) ?? -1;
@@ -429,8 +482,11 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
             onTimeUpdate={handleTimeUpdate}
             onError={(e) => {
               const target = e.currentTarget;
-              if (target.src !== window.location.origin + '/videos/welele_placeholder.mp4') {
+              const placeholderUrl = window.location.origin + '/videos/welele_placeholder.mp4';
+              if (target.src !== placeholderUrl && !target.src.endsWith('/videos/welele_placeholder.mp4')) {
+                console.warn('[VerticalPlayer] Video playback error for source:', target.src);
                 target.src = '/videos/welele_placeholder.mp4';
+                target.load();
                 target.play().catch(() => {});
               }
             }}

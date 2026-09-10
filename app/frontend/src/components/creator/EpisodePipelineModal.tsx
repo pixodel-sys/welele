@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { creatorApi, aiApi } from '../../services/api';
 import { mediaStore } from '../../services/mediaStore';
@@ -52,6 +52,24 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
     'The surveillance logs from the penthouse reveal an unexpected visitor right before the will was executed.'
   );
 
+  // Sync props when opening modal or selecting different series/episode from parent
+  useEffect(() => {
+    if (isOpen) {
+      if (initialSeriesId) {
+        setSeriesId(initialSeriesId);
+      }
+      if (initialEpisodeNumber) {
+        setEpisodeNumber(initialEpisodeNumber);
+      } else {
+        const targetId = initialSeriesId || seriesId;
+        const sel = stories.find((s) => s.id === targetId);
+        if (sel) {
+          setEpisodeNumber((sel.episodes?.length || 0) + 1);
+        }
+      }
+    }
+  }, [isOpen, initialSeriesId, initialEpisodeNumber]);
+
   // STEP 2: VIDEO & ARTWORK
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoUrl, setVideoUrl] = useState<string>('/videos/welele_placeholder.mp4');
@@ -93,9 +111,13 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
     setIsUploading(true);
     setUploadProgress(20);
 
-    // Save to persistent IndexedDB
-    const mediaKey = `video_${seriesId}_${episodeNumber}`;
-    const persistentUrl = await mediaStore.saveMedia(mediaKey, file);
+    // Save to persistent IndexedDB under multiple candidate keys
+    const candidateKeys = [
+      `video_${seriesId}_${episodeNumber}`,
+      `video_${seriesId}_ep_${episodeNumber}`,
+      `video_${seriesId}_${episodeNumber}_master`
+    ];
+    const persistentUrl = await mediaStore.saveMedia(candidateKeys, file);
     setVideoUrl(persistentUrl);
 
     // Extract metadata & auto-generate thumbnail from frame
@@ -148,8 +170,11 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
   };
 
   const handleCustomThumbnail = async (file: File) => {
-    const thumbKey = `thumb_${seriesId}_${episodeNumber}`;
-    const url = await mediaStore.saveMedia(thumbKey, file);
+    const thumbKeys = [
+      `thumb_${seriesId}_${episodeNumber}`,
+      `thumb_${seriesId}_ep_${episodeNumber}`
+    ];
+    const url = await mediaStore.saveMedia(thumbKeys, file);
     setThumbnailUrl(url);
   };
 
@@ -206,7 +231,16 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
         captions_present: true,
       };
 
-      await creatorApi.addEpisode({
+      // Ensure the video file is indexed under the final seriesId and episodeNumber
+      if (videoFile) {
+        const finalKeys = [
+          `video_${seriesId}_${episodeNumber}`,
+          `video_${seriesId}_ep_${episodeNumber}`
+        ];
+        await mediaStore.saveMedia(finalKeys, videoFile);
+      }
+
+      const res = await creatorApi.addEpisode({
         series_id: seriesId,
         episode_number: Number(episodeNumber),
         title: title.trim(),
@@ -222,6 +256,16 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
         scheduled_at: releaseSchedule === 'scheduled' ? scheduledDateTime : undefined,
         preflight_health: preflightHealth,
       });
+
+      // Also index under the created episode's server ID
+      if (videoFile && res?.episode?.id) {
+        await mediaStore.saveMedia([
+          `video_${res.episode.id}`,
+          `media_${res.episode.id}`,
+          `video_${seriesId}_${res.episode.id}`,
+          `video_${seriesId}_${res.episode.episode_number || episodeNumber}`
+        ], videoFile);
+      }
 
       await refreshStories();
       setSubmittedReceipt(true);

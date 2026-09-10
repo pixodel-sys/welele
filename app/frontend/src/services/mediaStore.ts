@@ -28,52 +28,101 @@ function openDB(): Promise<IDBDatabase> {
 const activeBlobUrls = new Map<string, string>();
 
 export const mediaStore = {
-  async saveMedia(key: string, file: Blob | File): Promise<string> {
+  async saveMedia(keyOrKeys: string | string[], file: Blob | File): Promise<string> {
+    const keys = Array.isArray(keyOrKeys) ? keyOrKeys : [keyOrKeys];
+    const validKeys = keys.filter((k): k is string => Boolean(k && k.trim()));
+    if (validKeys.length === 0) {
+      return URL.createObjectURL(file);
+    }
+
     try {
       const db = await openDB();
       return new Promise((resolve, reject) => {
         const tx = db.transaction(STORE_NAME, 'readwrite');
         const store = tx.objectStore(STORE_NAME);
-        const req = store.put(file, key);
-        req.onsuccess = () => {
-          // Release previous object url if any
-          if (activeBlobUrls.has(key)) {
-            URL.revokeObjectURL(activeBlobUrls.get(key)!);
-          }
+
+        validKeys.forEach((key) => {
+          store.put(file, key);
+        });
+
+        tx.oncomplete = () => {
           const url = URL.createObjectURL(file);
-          activeBlobUrls.set(key, url);
+          validKeys.forEach((key) => {
+            if (activeBlobUrls.has(key)) {
+              try {
+                URL.revokeObjectURL(activeBlobUrls.get(key)!);
+              } catch (e) {
+                // ignore
+              }
+            }
+            activeBlobUrls.set(key, url);
+          });
           resolve(url);
         };
-        req.onerror = () => reject(req.error);
+
+        tx.onerror = () => {
+          // Fallback to in-memory URL
+          const url = URL.createObjectURL(file);
+          validKeys.forEach((key) => activeBlobUrls.set(key, url));
+          resolve(url);
+        };
       });
     } catch (e) {
       console.warn('Failed to save media in IndexedDB, fallback to in-memory URL:', e);
       const url = URL.createObjectURL(file);
-      activeBlobUrls.set(key, url);
+      validKeys.forEach((key) => activeBlobUrls.set(key, url));
       return url;
     }
   },
 
-  async getMediaUrl(key: string): Promise<string | null> {
-    if (activeBlobUrls.has(key)) {
-      return activeBlobUrls.get(key)!;
+  async getMediaUrl(keyOrKeys: string | string[]): Promise<string | null> {
+    const keys = Array.isArray(keyOrKeys) ? keyOrKeys : [keyOrKeys];
+    const validKeys = keys.filter((k): k is string => Boolean(k && k.trim()));
+    if (validKeys.length === 0) return null;
+
+    // Check in-memory cache first
+    for (const key of validKeys) {
+      if (activeBlobUrls.has(key)) {
+        return activeBlobUrls.get(key)!;
+      }
     }
+
     try {
       const db = await openDB();
       return new Promise((resolve) => {
         const tx = db.transaction(STORE_NAME, 'readonly');
         const store = tx.objectStore(STORE_NAME);
-        const req = store.get(key);
-        req.onsuccess = () => {
-          if (req.result) {
-            const url = URL.createObjectURL(req.result);
-            activeBlobUrls.set(key, url);
-            resolve(url);
-          } else {
-            resolve(null);
-          }
-        };
-        req.onerror = () => resolve(null);
+
+        let resolved = false;
+        let checksRemaining = validKeys.length;
+
+        for (const key of validKeys) {
+          const req = store.get(key);
+          req.onsuccess = () => {
+            if (resolved) return;
+            if (req.result) {
+              resolved = true;
+              try {
+                const url = URL.createObjectURL(req.result);
+                validKeys.forEach((k) => activeBlobUrls.set(k, url));
+                resolve(url);
+              } catch (err) {
+                resolve(null);
+              }
+            } else {
+              checksRemaining--;
+              if (checksRemaining === 0 && !resolved) {
+                resolve(null);
+              }
+            }
+          };
+          req.onerror = () => {
+            checksRemaining--;
+            if (checksRemaining === 0 && !resolved) {
+              resolve(null);
+            }
+          };
+        }
       });
     } catch {
       return null;
