@@ -5,6 +5,7 @@
   "start_url": "/",
   "id": "/",
   "display": "standalone",
+  "display_override": ["fullscreen", "standalone", "window-controls-overlay"],
   "orientation": "portrait-primary",
   "background_color": "#0B0C0E",
   "theme_color": "#0B0C0E",

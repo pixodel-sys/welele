@@ -26,6 +26,8 @@ import {
   SlidersHorizontal,
   ShieldAlert,
   ShieldCheck,
+  Maximize,
+  Minimize,
 } from 'lucide-react';
 import { useContentProtection } from '../../hooks/useContentProtection';
 import { mediaStore } from '../../services/mediaStore';
@@ -85,8 +87,33 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
   // Welele Immersive Viewing Law: 5-second auto-hide timer for unencumbered story watching
   const [showControls, setShowControls] = useState<boolean>(true);
   const [showPlayStateFlash, setShowPlayStateFlash] = useState<boolean>(false);
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(Boolean(document.fullscreenElement));
   const controlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  const toggleBrowserFullscreen = async () => {
+    try {
+      if (!document.fullscreenElement) {
+        if (document.documentElement.requestFullscreen) {
+          await document.documentElement.requestFullscreen();
+        }
+      } else {
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        }
+      }
+    } catch (e) {
+      console.warn('[VerticalPlayer] Fullscreen toggle error:', e);
+    }
+  };
 
   const episodeId = currentEpisode?.id;
   const isUnlocked =
@@ -637,9 +664,19 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
           {/* Mute Toggle */}
           <button
             onClick={() => setIsMuted(!isMuted)}
-            className="w-7 h-7 rounded-[7px] bg-black/60 backdrop-blur-md flex items-center justify-center text-white/80 hover:text-white border border-white/10"
+            className="w-7 h-7 rounded-[7px] bg-black/60 backdrop-blur-md flex items-center justify-center text-white/80 hover:text-white border border-white/10 cursor-pointer"
+            title={isMuted ? "Unmute Audio" : "Mute Audio"}
           >
             {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+          </button>
+
+          {/* Immersive Browser Fullscreen Toggle (Hides Address Bar & Chrome on Mobile) */}
+          <button
+            onClick={toggleBrowserFullscreen}
+            className="w-7 h-7 rounded-[7px] bg-black/60 backdrop-blur-md flex items-center justify-center text-white/80 hover:text-white border border-white/10 cursor-pointer"
+            title={isFullscreen ? "Exit Fullscreen" : "Immersive Fullscreen (Hide Browser Bar)"}
+          >
+            {isFullscreen ? <Minimize className="w-3.5 h-3.5 text-welele-orange" /> : <Maximize className="w-3.5 h-3.5" />}
           </button>
         </div>
       </div>
