@@ -7,7 +7,7 @@
 # Python
 __pycache__/
 *.py[cod]
-*$py.class
+*.class
 *.so
 .Python
 env/
@@ -30,3 +30,16 @@ dist-ssr/
 Thumbs.db
 .vscode/
 .idea/
+
+# Documentation & Non-App Root Assets (Exclude doc, docs, documentation, root markdown)
+/documentation/
+/docs/
+/doc/
+/documentation
+/docs
+/doc
+/*.md
+/*.pdf
+/*.jfif
+/*.docx
+/RBAC Implementation*

@@ -1,13 +1,15 @@
-const CACHE_NAME = 'welele-pwa-v1';
+const CACHE_NAME = 'welele-pwa-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
   '/welele_logo_mark.jpg',
-  '/splash_story_bg.jpg'
+  '/splash_story_bg.jpg',
+  '/videos/welele_ident.mp4',
+  '/brand/welele-ident-v1.mp4'
 ];
 
-// Install: Cache critical shell assets
+// Install: Cache critical shell assets and global brand ident
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
@@ -35,12 +37,13 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch: Stale-while-revalidate for static shell; Network-first for API
+// Fetch: Aggressive cache for brand ident & static shell; Network-first for dynamic API and large story streams
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
+  const isBrandIdent = url.pathname.includes('welele_ident') || url.pathname.includes('welele-ident');
 
-  // For API and video requests, let network handle directly (don't buffer GBs of video in worker cache)
-  if (url.pathname.startsWith('/api') || url.pathname.endsWith('.mp4') || url.pathname.endsWith('.m3u8') || url.pathname.endsWith('.ts')) {
+  // For API and large non-ident video requests, let network handle directly
+  if (!isBrandIdent && (url.pathname.startsWith('/api') || url.pathname.endsWith('.mp4') || url.pathname.endsWith('.m3u8') || url.pathname.endsWith('.ts'))) {
     return;
   }
 

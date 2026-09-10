@@ -77,6 +77,23 @@ class ExperienceSection(BaseModel):
     start_at: Optional[str] = None
     end_at: Optional[str] = None
 
+class BrandAsset(BaseModel):
+    id: str = "welele-brand-ident"
+    asset_type: Literal["sonic_visual_ident", "originals_ident", "welcome_ident", "campaign_ident"] = "sonic_visual_ident"
+    name: str = "Welele Sonic Visual Ident"
+    url: str = "/videos/welele_ident.mp4"
+    version: int = 1
+    active: bool = True
+    duration: float = 5.2
+
+class BrandIdentConfig(BaseModel):
+    play_brand_ident: bool = True
+    brand_ident_url: str = "/videos/welele_ident.mp4"
+    brand_ident_duration: float = 5.2
+    frequency_capping_minutes: int = 15
+    experience_rule: Literal["standard", "first_visit", "originals", "special_event", "creator_premiere"] = "standard"
+    asset: Optional[BrandAsset] = None
+
 class PageMeta(BaseModel):
     title: str = "Welele™ | Short African Dramas"
     theme: str = "dark_gold_glow"
@@ -89,11 +106,14 @@ class ExperienceManifest(BaseModel):
     published_at: Optional[str] = None
     updated_at: Optional[str] = None
     meta: PageMeta = Field(default_factory=PageMeta)
+    brand_config: BrandIdentConfig = Field(default_factory=BrandIdentConfig)
     sections: List[ExperienceSection] = Field(default_factory=list)
 
 class SaveDraftRequest(BaseModel):
     meta: Optional[PageMeta] = None
+    brand_config: Optional[BrandIdentConfig] = None
     sections: List[ExperienceSection]
 
 class PublishRequest(BaseModel):
     scheduled_for: Optional[str] = None
+

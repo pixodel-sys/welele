@@ -19,7 +19,27 @@ class ExperienceEngine:
     """Intelligent layout resolver and merchandising manager."""
 
     @staticmethod
-    def get_default_home_manifest() -> Dict[str, Any]:
+    def get_default_brand_config() -> Dict[str, Any]:
+        """Canonical Global Platform Brand Ident configuration."""
+        return {
+            "play_brand_ident": True,
+            "brand_ident_url": "/videos/welele_ident.mp4",
+            "brand_ident_duration": 5.2,
+            "frequency_capping_minutes": 15,
+            "experience_rule": "standard",
+            "asset": {
+                "id": "welele-brand-ident",
+                "asset_type": "sonic_visual_ident",
+                "name": "Welele Sonic Visual Ident",
+                "url": "/videos/welele_ident.mp4",
+                "version": 1,
+                "active": True,
+                "duration": 5.2
+            }
+        }
+
+    @classmethod
+    def get_default_home_manifest(cls) -> Dict[str, Any]:
         """Canonical default layout for the Welele home experience."""
         return {
             "page_id": "home",
@@ -32,6 +52,7 @@ class ExperienceEngine:
                 "theme": "dark_gold_glow",
                 "description": "Stream high-octane 9:16 vertical micro-dramas produced across South Africa, Nigeria, and Ghana."
             },
+            "brand_config": cls.get_default_brand_config(),
             "sections": [
                 {
                     "section_id": "sec_hero_home",
@@ -221,8 +242,8 @@ class ExperienceEngine:
             ]
         }
 
-    @staticmethod
-    def get_default_discover_manifest() -> Dict[str, Any]:
+    @classmethod
+    def get_default_discover_manifest(cls) -> Dict[str, Any]:
         """Default layout for Discover page."""
         return {
             "page_id": "discover",
@@ -235,6 +256,7 @@ class ExperienceEngine:
                 "theme": "dark_gold_glow",
                 "description": "Explore African short dramas by genre, country, and creator."
             },
+            "brand_config": cls.get_default_brand_config(),
             "sections": [
                 {
                     "section_id": "sec_genre_pills",
@@ -427,4 +449,7 @@ class ExperienceEngine:
             resolved_sections.append(sec_copy)
 
         raw_manifest["sections"] = resolved_sections
+        if "brand_config" not in raw_manifest or not raw_manifest["brand_config"]:
+            raw_manifest["brand_config"] = cls.get_default_brand_config()
         return raw_manifest
+

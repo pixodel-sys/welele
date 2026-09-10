@@ -27,9 +27,25 @@ import {
   ShieldCheck,
   Maximize,
   Minimize,
+  ChevronRight,
 } from 'lucide-react';
 import { useContentProtection } from '../../hooks/useContentProtection';
 import { mediaStore } from '../../services/mediaStore';
+
+const IDENT_STORAGE_KEY = 'welele_last_brand_ident_time';
+const IDENT_FREQ_MS = 15 * 60 * 1000; // 15-minute frequency cap across binge session
+const BRAND_IDENT_URL = '/videos/welele_ident.mp4';
+
+const checkShouldPlayIdent = () => {
+  try {
+    const lastPlayed = sessionStorage.getItem(IDENT_STORAGE_KEY);
+    if (!lastPlayed) return true;
+    const diff = Date.now() - parseInt(lastPlayed, 10);
+    return isNaN(diff) || diff > IDENT_FREQ_MS;
+  } catch {
+    return true;
+  }
+};
 
 interface VerticalPlayerProps {
   onBack?: () => void;
@@ -64,7 +80,11 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
   const { triggerReaction, loadEpisodeComments, comments, addComment } = useChat();
 
   const videoRef = useRef<HTMLVideoElement>(null);
+  const identVideoRef = useRef<HTMLVideoElement>(null);
+  const identTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const nextVideoPreloadRef = useRef<HTMLVideoElement>(null);
+
+  const [isIdentPlaying, setIsIdentPlaying] = useState<boolean>(() => checkShouldPlayIdent());
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [progress, setProgress] = useState<number>(0);
@@ -258,6 +278,42 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
     ? currentStory.episodes[currentIndex + 1]
     : null;
 
+  // Brand Ident completion handler & seamless handoff to episode video
+  const handleIdentFinished = () => {
+    if (identTimeoutRef.current) {
+      clearTimeout(identTimeoutRef.current);
+      identTimeoutRef.current = null;
+    }
+    setIsIdentPlaying(false);
+    try {
+      sessionStorage.setItem(IDENT_STORAGE_KEY, Date.now().toString());
+    } catch (e) {
+      console.warn('[VerticalPlayer] Ident storage write error:', e);
+    }
+    if (videoRef.current) {
+      videoRef.current.currentTime = 0;
+      videoRef.current.play().catch((err) => {
+        console.warn('[VerticalPlayer] Autoplay episode transition error:', err);
+      });
+    }
+    resetControlsTimer();
+  };
+
+  // Failsafe timer for Brand Ident (max ~5.8s)
+  useEffect(() => {
+    if (isIdentPlaying) {
+      identTimeoutRef.current = setTimeout(() => {
+        handleIdentFinished();
+      }, 5800);
+      return () => {
+        if (identTimeoutRef.current) {
+          clearTimeout(identTimeoutRef.current);
+          identTimeoutRef.current = null;
+        }
+      };
+    }
+  }, [isIdentPlaying]);
+
   // Load comments & reset playback whenever episode changes
   useEffect(() => {
     if (episodeId) {
@@ -266,9 +322,15 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
       setCurrentTime(0);
       setShowCliffhangerPrompt(false);
       setIsPlaying(true);
+
+      const shouldPlayIdent = checkShouldPlayIdent();
+      setIsIdentPlaying(shouldPlayIdent);
+
       if (videoRef.current) {
         videoRef.current.currentTime = 0;
-        videoRef.current.play().catch(() => {});
+        if (!shouldPlayIdent) {
+          videoRef.current.play().catch(() => {});
+        }
       }
     }
   }, [episodeId]);
@@ -465,15 +527,19 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
 
       {/* Video Element & DRM Transparent Protective Shield */}
       {isUnlocked ? (
-        <div className="relative w-full h-full">
+        <div className="relative w-full h-full bg-black overflow-hidden">
+          {/* Episode Video (Preloads buffer in background while brand ident plays) */}
           <video
             ref={videoRef}
             src={resolvedVideoUrl}
-            className="w-full h-full object-cover pointer-events-none"
+            className={`w-full h-full object-cover pointer-events-none transition-opacity duration-300 ${
+              isIdentPlaying ? 'opacity-0' : 'opacity-100'
+            }`}
             playsInline
-            autoPlay
+            autoPlay={!isIdentPlaying}
             loop
             muted={isMuted}
+            preload="auto"
             controlsList="nodownload noplaybackrate noremoteplayback"
             disablePictureInPicture
             disableRemotePlayback
@@ -482,26 +548,60 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
             onTimeUpdate={handleTimeUpdate}
             onError={(e) => {
               const target = e.currentTarget;
-              const placeholderUrl = window.location.origin + '/videos/welele_placeholder.mp4';
-              if (target.src !== placeholderUrl && !target.src.endsWith('/videos/welele_placeholder.mp4')) {
+              const placeholderUrl = window.location.origin + '/videos/welele_ident.mp4';
+              if (target.src !== placeholderUrl && !target.src.endsWith('/videos/welele_ident.mp4') && !target.src.endsWith('/videos/welele_placeholder.mp4')) {
                 console.warn('[VerticalPlayer] Video playback error for source:', target.src);
-                target.src = '/videos/welele_placeholder.mp4';
+                target.src = '/videos/welele_ident.mp4';
                 target.load();
-                target.play().catch(() => {});
+                if (!isIdentPlaying) target.play().catch(() => {});
               }
             }}
           />
 
+          {/* Global Platform Brand Ident Stage (Preloader & Sonic-Visual Intro) */}
+          {isIdentPlaying && (
+            <div className="absolute inset-0 z-30 bg-black flex items-center justify-center overflow-hidden animate-fade-in">
+              <video
+                ref={identVideoRef}
+                src={BRAND_IDENT_URL}
+                className="w-full h-full object-cover"
+                playsInline
+                autoPlay
+                muted={isMuted}
+                onEnded={handleIdentFinished}
+                onError={handleIdentFinished}
+              />
+
+              {/* Discreet Skip Action (Immersive Viewing Law) */}
+              <div className="absolute top-4 right-4 z-40">
+                <button
+                  onClick={handleIdentFinished}
+                  className="px-3 py-1 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-md text-[11px] font-bold text-white/80 hover:text-white border border-white/10 transition-all flex items-center gap-1 active:scale-95 shadow-xl cursor-pointer"
+                >
+                  <span>Skip Ident</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* Subtle brand watermark during ident */}
+              <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-40 text-[10px] tracking-widest font-mono text-white/40 uppercase pointer-events-none">
+                Welele Original
+              </div>
+            </div>
+          )}
+
           {/* Transparent DRM Gesture Shield: Tap to reveal controls / toggle play state */}
-          <div
-            className="absolute inset-0 z-10 cursor-pointer"
-            onContextMenu={(e) => e.preventDefault()}
-            onDragStart={(e) => e.preventDefault()}
-            onClick={handleScreenTap}
-          />
+          {!isIdentPlaying && (
+            <div
+              className="absolute inset-0 z-10 cursor-pointer"
+              onContextMenu={(e) => e.preventDefault()}
+              onDragStart={(e) => e.preventDefault()}
+              onClick={handleScreenTap}
+            />
+          )}
 
           {/* Brief Play / Pause State Flash Indicator */}
-          {showPlayStateFlash && (
+          {!isIdentPlaying && showPlayStateFlash && (
             <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none animate-fade-in">
               <div className="w-14 h-14 rounded-full bg-black/75 backdrop-blur-md border border-white/20 flex items-center justify-center text-white shadow-2xl">
                 {isPlaying ? <Play className="w-7 h-7 fill-current ml-0.5" /> : <Pause className="w-7 h-7 fill-current" />}
@@ -510,19 +610,23 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
           )}
 
           {/* Dynamic Floating Forensic DRM Watermark */}
-          <div className="absolute z-20 pointer-events-none select-none text-[10px] font-mono tracking-widest text-white/30 px-2 py-0.5 rounded-[7px] bg-black/20 backdrop-blur-[1px] animate-drm-watermark border border-white/5">
-            🔒 WELELE DRM • {userId || 'USER_ZA'} • {currentEpisode.id}
-          </div>
+          {!isIdentPlaying && (
+            <div className="absolute z-20 pointer-events-none select-none text-[10px] font-mono tracking-widest text-white/30 px-2 py-0.5 rounded-[7px] bg-black/20 backdrop-blur-[1px] animate-drm-watermark border border-white/5">
+              🔒 WELELE DRM • {userId || 'USER_ZA'} • {currentEpisode.id}
+            </div>
+          )}
 
           {/* Persistent DRM Protection Badge */}
-          <div
-            className={`absolute top-3 left-3 z-20 flex items-center gap-1 text-[9px] font-mono text-white/40 pointer-events-none bg-black/40 backdrop-blur-sm px-2 py-0.5 rounded-[7px] transition-opacity duration-500 ${
-              showControls ? 'opacity-100' : 'opacity-0'
-            }`}
-          >
-            <ShieldCheck className="w-3 h-3 text-emerald-400" />
-            <span>DRM ENCRYPTED</span>
-          </div>
+          {!isIdentPlaying && (
+            <div
+              className={`absolute top-3 left-3 z-20 flex items-center gap-1 text-[9px] font-mono text-white/40 pointer-events-none bg-black/40 backdrop-blur-sm px-2 py-0.5 rounded-[7px] transition-opacity duration-500 ${
+                showControls ? 'opacity-100' : 'opacity-0'
+              }`}
+            >
+              <ShieldCheck className="w-3 h-3 text-emerald-400" />
+              <span>DRM ENCRYPTED</span>
+            </div>
+          )}
         </div>
       ) : (
         /* Locked Episode Paywall Overlay with South African Airtime Customisation */
@@ -595,148 +699,150 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
       )}
 
       {/* Top Gradient Overlay & Controls (Immersive 5s Auto-Fade) */}
-      <div
-        className={`absolute top-0 left-0 right-0 p-3 sm:p-4 bg-gradient-to-b from-black/90 via-black/40 to-transparent z-20 flex items-center justify-between transition-all duration-500 ease-in-out ${
-          showControls
-            ? 'opacity-100 pointer-events-auto translate-y-0'
-            : 'opacity-0 pointer-events-none -translate-y-2'
-        }`}
-      >
-        <div className="flex items-center gap-2 pointer-events-auto min-w-0 pr-2">
-          {onBack && (
+      {!isIdentPlaying && (
+        <div
+          className={`absolute top-0 left-0 right-0 p-3 sm:p-4 bg-gradient-to-b from-black/90 via-black/40 to-transparent z-20 flex items-center justify-between transition-all duration-500 ease-in-out ${
+            showControls
+              ? 'opacity-100 pointer-events-auto translate-y-0'
+              : 'opacity-0 pointer-events-none -translate-y-2'
+          }`}
+        >
+          <div className="flex items-center gap-2 pointer-events-auto min-w-0 pr-2">
+            {onBack && (
+              <button
+                onClick={onBack}
+                className="w-7 h-7 rounded-[7px] bg-black/60 hover:bg-black/90 backdrop-blur-md flex items-center justify-center text-white border border-white/10 transition-transform active:scale-95 shrink-0"
+                title="Back to Feed"
+                aria-label="Back to Feed"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+            )}
+            <img
+              src={currentStory.creator_avatar}
+              alt={currentStory.creator_name}
+              className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-welele-orange object-cover shrink-0"
+            />
+            <div className="min-w-0">
+              <h4 className="text-xs font-bold text-white leading-tight flex items-center gap-1.5 truncate">
+                <span className="truncate">{currentStory.title}</span>
+                <span className="text-[9px] px-1.5 py-0.2 rounded bg-welele-orange/20 text-welele-orange border border-welele-orange/30 shrink-0">
+                  EP {currentEpisode.episode_number}/{currentStory.episodes?.length || currentStory.total_episodes || 1}
+                </span>
+              </h4>
+              <p className="text-[10px] text-welele-muted truncate max-w-[130px] sm:max-w-[150px]">
+                by {currentStory.creator_name}
+              </p>
+            </div>
+          </div>
+
+          {/* Top Controls: Adaptive Bitrate, Subtitles, Sound */}
+          <div className="flex items-center gap-1.5 sm:gap-2 pointer-events-auto shrink-0">
+            {/* Adaptive Bitrate Selector (Pillar 4 / Sec 4.2) */}
+            <div className="relative">
+              <button
+                onClick={() => {
+                  setShowQualityMenu(!showQualityMenu);
+                  setShowSubtitleMenu(false);
+                }}
+                className="px-2 py-1 rounded-[7px] bg-black/60 backdrop-blur-md flex items-center gap-1 text-[10px] font-bold text-white/90 hover:text-white border border-white/10"
+                title="Adaptive Bitrate Quality"
+              >
+                <SlidersHorizontal className="w-3 h-3 text-emerald-400" />
+                <span>{qualityMode === '480P_DATA_SAVER' ? 'Data-Saver' : qualityMode}</span>
+              </button>
+
+              {showQualityMenu && (
+                <div className="absolute right-0 top-9 w-40 bg-welele-surface border border-white/10 rounded-[7px] p-1.5 shadow-2xl z-40 text-xs">
+                  <div className="text-[9px] font-extrabold text-welele-muted px-2 py-1 uppercase tracking-wider">
+                    Adaptive Streaming
+                  </div>
+                  {[
+                    { id: 'AUTO', label: 'Auto (Network Adaptive)' },
+                    { id: '1080P', label: '1080p HD (Wi-Fi/5G)' },
+                    { id: '720P', label: '720p Mobile Standard' },
+                    { id: '480P_DATA_SAVER', label: '480p Data-Saver (3G)' },
+                  ].map((q) => (
+                    <button
+                      key={q.id}
+                      onClick={() => {
+                        setQualityMode(q.id as any);
+                        setShowQualityMenu(false);
+                      }}
+                      className={`w-full text-left px-2.5 py-1.5 rounded-[7px] text-[11px] font-semibold transition-colors ${
+                        qualityMode === q.id
+                          ? 'bg-emerald-500 text-black font-bold'
+                          : 'text-white hover:bg-white/5'
+                      }`}
+                    >
+                      {q.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Subtitle Selector */}
+            <div className="relative">
+              <button
+                onClick={() => {
+                  setShowSubtitleMenu(!showSubtitleMenu);
+                  setShowQualityMenu(false);
+                }}
+                className="w-7 h-7 rounded-[7px] bg-black/60 backdrop-blur-md flex items-center justify-center text-white/80 hover:text-white border border-white/10"
+                title="Subtitles & Language"
+              >
+                <Subtitles className="w-3.5 h-3.5 text-welele-orange" />
+              </button>
+
+              {showSubtitleMenu && (
+                <div className="absolute right-0 top-9 w-36 bg-welele-surface border border-white/10 rounded-[7px] p-1.5 shadow-2xl z-40 text-xs">
+                  <div className="text-[9px] font-extrabold text-welele-muted px-2 py-1 uppercase tracking-wider">
+                    Mzansi Subtitles
+                  </div>
+                  {saLanguages.map((lang) => (
+                    <button
+                      key={lang}
+                      onClick={() => {
+                        setActiveLanguage(lang);
+                        setShowSubtitleMenu(false);
+                      }}
+                      className={`w-full text-left px-2.5 py-1.5 rounded-[7px] text-[11px] font-semibold transition-colors ${
+                        activeLanguage === lang
+                          ? 'bg-welele-orange text-black font-bold'
+                          : 'text-white hover:bg-white/5'
+                      }`}
+                    >
+                      {lang}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Mute Toggle */}
             <button
-              onClick={onBack}
-              className="w-7 h-7 rounded-[7px] bg-black/60 hover:bg-black/90 backdrop-blur-md flex items-center justify-center text-white border border-white/10 transition-transform active:scale-95 shrink-0"
-              title="Back to Feed"
-              aria-label="Back to Feed"
+              onClick={() => setIsMuted(!isMuted)}
+              className="w-7 h-7 rounded-[7px] bg-black/60 backdrop-blur-md flex items-center justify-center text-white/80 hover:text-white border border-white/10 cursor-pointer"
+              title={isMuted ? "Unmute Audio" : "Mute Audio"}
             >
-              <ChevronLeft className="w-4 h-4" />
+              {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
             </button>
-          )}
-          <img
-            src={currentStory.creator_avatar}
-            alt={currentStory.creator_name}
-            className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-welele-orange object-cover shrink-0"
-          />
-          <div className="min-w-0">
-            <h4 className="text-xs font-bold text-white leading-tight flex items-center gap-1.5 truncate">
-              <span className="truncate">{currentStory.title}</span>
-              <span className="text-[9px] px-1.5 py-0.2 rounded bg-welele-orange/20 text-welele-orange border border-welele-orange/30 shrink-0">
-                EP {currentEpisode.episode_number}/{currentStory.episodes?.length || currentStory.total_episodes || 1}
-              </span>
-            </h4>
-            <p className="text-[10px] text-welele-muted truncate max-w-[130px] sm:max-w-[150px]">
-              by {currentStory.creator_name}
-            </p>
+
+            {/* Immersive Browser Fullscreen Toggle (Hides Address Bar & Chrome on Mobile) */}
+            <button
+              onClick={toggleBrowserFullscreen}
+              className="w-7 h-7 rounded-[7px] bg-black/60 backdrop-blur-md flex items-center justify-center text-white/80 hover:text-white border border-white/10 cursor-pointer"
+              title={isFullscreen ? "Exit Fullscreen" : "Immersive Fullscreen (Hide Browser Bar)"}
+            >
+              {isFullscreen ? <Minimize className="w-3.5 h-3.5 text-welele-orange" /> : <Maximize className="w-3.5 h-3.5" />}
+            </button>
           </div>
         </div>
-
-        {/* Top Controls: Adaptive Bitrate, Subtitles, Sound */}
-        <div className="flex items-center gap-1.5 sm:gap-2 pointer-events-auto shrink-0">
-          {/* Adaptive Bitrate Selector (Pillar 4 / Sec 4.2) */}
-          <div className="relative">
-            <button
-              onClick={() => {
-                setShowQualityMenu(!showQualityMenu);
-                setShowSubtitleMenu(false);
-              }}
-              className="px-2 py-1 rounded-[7px] bg-black/60 backdrop-blur-md flex items-center gap-1 text-[10px] font-bold text-white/90 hover:text-white border border-white/10"
-              title="Adaptive Bitrate Quality"
-            >
-              <SlidersHorizontal className="w-3 h-3 text-emerald-400" />
-              <span>{qualityMode === '480P_DATA_SAVER' ? 'Data-Saver' : qualityMode}</span>
-            </button>
-
-            {showQualityMenu && (
-              <div className="absolute right-0 top-9 w-40 bg-welele-surface border border-white/10 rounded-[7px] p-1.5 shadow-2xl z-40 text-xs">
-                <div className="text-[9px] font-extrabold text-welele-muted px-2 py-1 uppercase tracking-wider">
-                  Adaptive Streaming
-                </div>
-                {[
-                  { id: 'AUTO', label: 'Auto (Network Adaptive)' },
-                  { id: '1080P', label: '1080p HD (Wi-Fi/5G)' },
-                  { id: '720P', label: '720p Mobile Standard' },
-                  { id: '480P_DATA_SAVER', label: '480p Data-Saver (3G)' },
-                ].map((q) => (
-                  <button
-                    key={q.id}
-                    onClick={() => {
-                      setQualityMode(q.id as any);
-                      setShowQualityMenu(false);
-                    }}
-                    className={`w-full text-left px-2.5 py-1.5 rounded-[7px] text-[11px] font-semibold transition-colors ${
-                      qualityMode === q.id
-                        ? 'bg-emerald-500 text-black font-bold'
-                        : 'text-white hover:bg-white/5'
-                    }`}
-                  >
-                    {q.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Subtitle Selector */}
-          <div className="relative">
-            <button
-              onClick={() => {
-                setShowSubtitleMenu(!showSubtitleMenu);
-                setShowQualityMenu(false);
-              }}
-              className="w-7 h-7 rounded-[7px] bg-black/60 backdrop-blur-md flex items-center justify-center text-white/80 hover:text-white border border-white/10"
-              title="Subtitles & Language"
-            >
-              <Subtitles className="w-3.5 h-3.5 text-welele-orange" />
-            </button>
-
-            {showSubtitleMenu && (
-              <div className="absolute right-0 top-9 w-36 bg-welele-surface border border-white/10 rounded-[7px] p-1.5 shadow-2xl z-40 text-xs">
-                <div className="text-[9px] font-extrabold text-welele-muted px-2 py-1 uppercase tracking-wider">
-                  Mzansi Subtitles
-                </div>
-                {saLanguages.map((lang) => (
-                  <button
-                    key={lang}
-                    onClick={() => {
-                      setActiveLanguage(lang);
-                      setShowSubtitleMenu(false);
-                    }}
-                    className={`w-full text-left px-2.5 py-1.5 rounded-[7px] text-[11px] font-semibold transition-colors ${
-                      activeLanguage === lang
-                        ? 'bg-welele-orange text-black font-bold'
-                        : 'text-white hover:bg-white/5'
-                    }`}
-                  >
-                    {lang}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Mute Toggle */}
-          <button
-            onClick={() => setIsMuted(!isMuted)}
-            className="w-7 h-7 rounded-[7px] bg-black/60 backdrop-blur-md flex items-center justify-center text-white/80 hover:text-white border border-white/10 cursor-pointer"
-            title={isMuted ? "Unmute Audio" : "Mute Audio"}
-          >
-            {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
-          </button>
-
-          {/* Immersive Browser Fullscreen Toggle (Hides Address Bar & Chrome on Mobile) */}
-          <button
-            onClick={toggleBrowserFullscreen}
-            className="w-7 h-7 rounded-[7px] bg-black/60 backdrop-blur-md flex items-center justify-center text-white/80 hover:text-white border border-white/10 cursor-pointer"
-            title={isFullscreen ? "Exit Fullscreen" : "Immersive Fullscreen (Hide Browser Bar)"}
-          >
-            {isFullscreen ? <Minimize className="w-3.5 h-3.5 text-welele-orange" /> : <Maximize className="w-3.5 h-3.5" />}
-          </button>
-        </div>
-      </div>
+      )}
 
       {/* Subtitles Overlay (Cinematic Bottom-Center with Comfortable Padding above Progress Bar) */}
-      {isUnlocked && activeSubtitleText && (
+      {!isIdentPlaying && isUnlocked && activeSubtitleText && (
         <div className="absolute bottom-5 left-4 right-4 z-20 pointer-events-none flex justify-center text-center">
           <span className="inline-block max-w-[92%] px-3.5 py-1.5 rounded-[7px] bg-black/85 backdrop-blur-md text-white text-xs font-medium leading-relaxed border border-white/10 shadow-2xl drop-shadow-md">
             {activeSubtitleText}
@@ -745,135 +851,143 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
       )}
 
       {/* Right Sidebar Floating Interaction Buttons (Immersive 5s Auto-Fade) */}
-      <div
-        className={`absolute right-3 bottom-16 z-20 flex flex-col items-center gap-3.5 pointer-events-auto transition-all duration-500 ease-in-out ${
-          showControls
-            ? 'opacity-100 pointer-events-auto translate-x-0'
-            : 'opacity-0 pointer-events-none translate-x-3'
-        }`}
-      >
-        {/* Like Button */}
-        <button
-          onClick={() => toggleLikeStory(currentStory.id)}
-          className="flex flex-col items-center group cursor-pointer"
+      {!isIdentPlaying && (
+        <div
+          className={`absolute right-3 bottom-16 z-20 flex flex-col items-center gap-3.5 pointer-events-auto transition-all duration-500 ease-in-out ${
+            showControls
+              ? 'opacity-100 pointer-events-auto translate-x-0'
+              : 'opacity-0 pointer-events-none translate-x-3'
+          }`}
         >
-          <div
-            className={`w-10 h-10 rounded-circle flex items-center justify-center backdrop-blur-md border transition-all ${
-              isLiked
-                ? 'bg-welele-red/30 border-welele-red text-welele-red scale-110'
-                : 'bg-black/50 border-white/10 text-white hover:bg-black/80'
-            }`}
+          {/* Like Button */}
+          <button
+            onClick={() => toggleLikeStory(currentStory.id)}
+            className="flex flex-col items-center group cursor-pointer"
           >
-            <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
-          </div>
-          <span className="text-[10px] font-bold text-white mt-1 shadow-sm">
-            {((currentStory?.total_likes || 0) + (isLiked ? 1 : 0)).toLocaleString()}
-          </span>
-        </button>
+            <div
+              className={`w-10 h-10 rounded-circle flex items-center justify-center backdrop-blur-md border transition-all ${
+                isLiked
+                  ? 'bg-welele-red/30 border-welele-red text-welele-red scale-110'
+                  : 'bg-black/50 border-white/10 text-white hover:bg-black/80'
+              }`}
+            >
+              <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
+            </div>
+            <span className="text-[10px] font-bold text-white mt-1 shadow-sm">
+              {((currentStory?.total_likes || 0) + (isLiked ? 1 : 0)).toLocaleString()}
+            </span>
+          </button>
 
-        {/* Welele Chat Comments */}
-        <button
-          onClick={() => setIsChatDrawerOpen(true)}
-          className="flex flex-col items-center group cursor-pointer"
-        >
-          <div className="w-10 h-10 rounded-circle bg-black/50 hover:bg-black/80 border border-white/10 flex items-center justify-center text-white backdrop-blur-md transition-transform group-hover:scale-105">
-            <MessageCircle className="w-5 h-5" />
-          </div>
-          <span className="text-[10px] font-bold text-white mt-1">
-            {comments.length}
-          </span>
-        </button>
-
-        {/* Gift Creator Button */}
-        <button
-          onClick={() => setIsGiftModalOpen(true)}
-          className="flex flex-col items-center group cursor-pointer"
-        >
-          <div className="w-10 h-10 rounded-circle bg-gradient-welele flex items-center justify-center text-white shadow-lg shadow-orange-500/30 transition-transform group-hover:scale-110">
-            <Flame className="w-5 h-5" />
-          </div>
-          <span className="text-[10px] font-bold text-welele-orange mt-1">Gift</span>
-        </button>
-
-        {/* Bookmark */}
-        <button
-          onClick={() => toggleBookmark(currentStory.id)}
-          className="flex flex-col items-center group cursor-pointer"
-        >
-          <div
-            className={`w-10 h-10 rounded-circle flex items-center justify-center backdrop-blur-md border transition-all ${
-              isBookmarked
-                ? 'bg-welele-gold/30 border-welele-gold text-welele-gold'
-                : 'bg-black/50 border-white/10 text-white hover:bg-black/80'
-            }`}
+          {/* Welele Chat Comments */}
+          <button
+            onClick={() => setIsChatDrawerOpen(true)}
+            className="flex flex-col items-center group cursor-pointer"
           >
-            <Bookmark className={`w-5 h-5 ${isBookmarked ? 'fill-current' : ''}`} />
-          </div>
-          <span className="text-[10px] font-bold text-white mt-1">Save</span>
-        </button>
+            <div className="w-10 h-10 rounded-circle bg-black/50 hover:bg-black/80 border border-white/10 flex items-center justify-center text-white backdrop-blur-md transition-transform group-hover:scale-105">
+              <MessageCircle className="w-5 h-5" />
+            </div>
+            <span className="text-[10px] font-bold text-white mt-1">
+              {comments.length}
+            </span>
+          </button>
 
-        {/* Episodes Drawer Toggle */}
-        <button
-          onClick={() => setIsDrawerOpen(true)}
-          className="flex flex-col items-center group cursor-pointer"
-        >
-          <div className="w-10 h-10 rounded-circle bg-black/50 hover:bg-black/80 border border-white/10 flex items-center justify-center text-white backdrop-blur-md transition-transform group-hover:scale-105">
-            <List className="w-5 h-5" />
-          </div>
-          <span className="text-[10px] font-bold text-white mt-1">Episodes</span>
-        </button>
-      </div>
+          {/* Gift Creator Button */}
+          <button
+            onClick={() => setIsGiftModalOpen(true)}
+            className="flex flex-col items-center group cursor-pointer"
+          >
+            <div className="w-10 h-10 rounded-circle bg-gradient-welele flex items-center justify-center text-white shadow-lg shadow-orange-500/30 transition-transform group-hover:scale-110">
+              <Flame className="w-5 h-5" />
+            </div>
+            <span className="text-[10px] font-bold text-welele-orange mt-1">Gift</span>
+          </button>
+
+          {/* Bookmark */}
+          <button
+            onClick={() => toggleBookmark(currentStory.id)}
+            className="flex flex-col items-center group cursor-pointer"
+          >
+            <div
+              className={`w-10 h-10 rounded-circle flex items-center justify-center backdrop-blur-md border transition-all ${
+                isBookmarked
+                  ? 'bg-welele-gold/30 border-welele-gold text-welele-gold'
+                  : 'bg-black/50 border-white/10 text-white hover:bg-black/80'
+              }`}
+            >
+              <Bookmark className={`w-5 h-5 ${isBookmarked ? 'fill-current' : ''}`} />
+            </div>
+            <span className="text-[10px] font-bold text-white mt-1">Save</span>
+          </button>
+
+          {/* Episodes Drawer Toggle */}
+          <button
+            onClick={() => setIsDrawerOpen(true)}
+            className="flex flex-col items-center group cursor-pointer"
+          >
+            <div className="w-10 h-10 rounded-circle bg-black/50 hover:bg-black/80 border border-white/10 flex items-center justify-center text-white backdrop-blur-md transition-transform group-hover:scale-105">
+              <List className="w-5 h-5" />
+            </div>
+            <span className="text-[10px] font-bold text-white mt-1">Episodes</span>
+          </button>
+        </div>
+      )}
 
       {/* Floating Reaction Quick Bar (Immersive 5s Auto-Fade) */}
-      <div
-        className={`absolute left-4 bottom-10 z-20 flex items-center gap-1.5 bg-black/60 backdrop-blur-md p-1.5 rounded-[7px] border border-white/10 pointer-events-auto transition-all duration-500 ease-in-out ${
-          showControls
-            ? 'opacity-100 pointer-events-auto translate-y-0'
-            : 'opacity-0 pointer-events-none translate-y-3'
-        }`}
-      >
-        {['🔥', '👑', '😱', '👏', '⚡'].map((emoji) => (
-          <button
-            key={emoji}
-            onClick={() => triggerReaction(currentEpisode.id, emoji)}
-            className="w-7 h-7 rounded-[7px] hover:bg-white/20 flex items-center justify-center text-base transition-transform active:scale-130 cursor-pointer"
-          >
-            {emoji}
-          </button>
-        ))}
-      </div>
+      {!isIdentPlaying && (
+        <div
+          className={`absolute left-4 bottom-10 z-20 flex items-center gap-1.5 bg-black/60 backdrop-blur-md p-1.5 rounded-[7px] border border-white/10 pointer-events-auto transition-all duration-500 ease-in-out ${
+            showControls
+              ? 'opacity-100 pointer-events-auto translate-y-0'
+              : 'opacity-0 pointer-events-none translate-y-3'
+          }`}
+        >
+          {['🔥', '👑', '😱', '👏', '⚡'].map((emoji) => (
+            <button
+              key={emoji}
+              onClick={() => triggerReaction(currentEpisode.id, emoji)}
+              className="w-7 h-7 rounded-[7px] hover:bg-white/20 flex items-center justify-center text-base transition-transform active:scale-130 cursor-pointer"
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Up/Down Episode Switchers (Immersive 5s Auto-Fade) */}
-      <div
-        className={`absolute right-3 top-18 z-20 flex flex-col gap-2 pointer-events-auto transition-all duration-500 ease-in-out ${
-          showControls
-            ? 'opacity-100 pointer-events-auto translate-x-0'
-            : 'opacity-0 pointer-events-none translate-x-3'
-        }`}
-      >
-        <button
-          onClick={handlePrevEpisode}
-          aria-label="Previous Episode"
-          className="w-7 h-7 rounded-[7px] bg-black/60 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/80 hover:text-white cursor-pointer"
+      {!isIdentPlaying && (
+        <div
+          className={`absolute right-3 top-18 z-20 flex flex-col gap-2 pointer-events-auto transition-all duration-500 ease-in-out ${
+            showControls
+              ? 'opacity-100 pointer-events-auto translate-x-0'
+              : 'opacity-0 pointer-events-none translate-x-3'
+          }`}
         >
-          <ChevronUp className="w-4 h-4" />
-        </button>
-        <button
-          onClick={handleNextEpisode}
-          aria-label="Next Episode"
-          className="w-7 h-7 rounded-[7px] bg-black/60 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/80 hover:text-white cursor-pointer"
-        >
-          <ChevronDown className="w-4 h-4" />
-        </button>
-      </div>
+          <button
+            onClick={handlePrevEpisode}
+            aria-label="Previous Episode"
+            className="w-7 h-7 rounded-[7px] bg-black/60 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/80 hover:text-white cursor-pointer"
+          >
+            <ChevronUp className="w-4 h-4" />
+          </button>
+          <button
+            onClick={handleNextEpisode}
+            aria-label="Next Episode"
+            className="w-7 h-7 rounded-[7px] bg-black/60 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/80 hover:text-white cursor-pointer"
+          >
+            <ChevronDown className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* Subtle Bottom Playback Progress Bar (Subtle & Restrained) */}
-      <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/15 z-30 pointer-events-none">
-        <div
-          className="h-full bg-gradient-welele transition-all duration-200"
-          style={{ width: `${progress}%` }}
-        />
-      </div>
+      {!isIdentPlaying && (
+        <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/15 z-30 pointer-events-none">
+          <div
+            className="h-full bg-gradient-welele transition-all duration-200"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      )}
 
       {/* Episode Drawer */}
       <EpisodeDrawer
