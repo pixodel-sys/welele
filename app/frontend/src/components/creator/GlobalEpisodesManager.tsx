@@ -22,24 +22,50 @@ interface GlobalEpisodesManagerProps {
 export const GlobalEpisodesManager: React.FC<GlobalEpisodesManagerProps> = ({
   onOpenEpisodePipeline,
 }) => {
-  const { stories } = useApp();
+  const { stories, user } = useApp();
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [episodesList, setEpisodesList] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
 
-  // Extract all episodes across stories
-  const allEpisodes = stories.flatMap((s) =>
-    (s.episodes || []).map((ep, idx) => ({
-      ...ep,
-      series_id: s.id,
-      series_title: s.title,
-      series_cover: s.vertical_poster || s.cover_image,
-      genre: s.genre,
-      calculated_number: ep.episode_number || idx + 1,
-      effective_status: ep.status || (idx < 3 ? 'published' : 'published'),
-    }))
-  );
+  const fetchEpisodes = async () => {
+    try {
+      const creatorId = user?.creator_id || 'creator_zola';
+      const res = await creatorApi.getEpisodes(creatorId);
+      if (res && res.episodes && res.episodes.length > 0) {
+        setEpisodesList(
+          res.episodes.map((ep: any) => ({
+            ...ep,
+            effective_status: ep.status || 'published',
+            calculated_number: ep.episode_number || 1,
+          }))
+        );
+        return;
+      }
+    } catch (e) {
+      console.warn('[GlobalEpisodesManager] Could not fetch creator episodes:', e);
+    }
 
-  const filteredEpisodes = allEpisodes.filter((ep) => {
+    // Fallback mapping from stories feed
+    const fallback = stories.flatMap((s) =>
+      (s.episodes || []).map((ep, idx) => ({
+        ...ep,
+        series_id: s.id,
+        series_title: s.title,
+        series_cover: s.vertical_poster || s.cover_image,
+        genre: s.genre,
+        calculated_number: ep.episode_number || idx + 1,
+        effective_status: ep.status || 'published',
+      }))
+    );
+    setEpisodesList(fallback);
+  };
+
+  useEffect(() => {
+    fetchEpisodes().finally(() => setLoading(false));
+  }, [stories, user?.creator_id]);
+
+  const filteredEpisodes = episodesList.filter((ep) => {
     if (selectedFilter === 'published' && ep.effective_status !== 'published') return false;
     if (selectedFilter === 'under_review' && !['under_review', 'submitted', 'pending_review'].includes(ep.effective_status)) return false;
     if (selectedFilter === 'draft' && ep.effective_status !== 'draft') return false;
@@ -48,8 +74,8 @@ export const GlobalEpisodesManager: React.FC<GlobalEpisodesManagerProps> = ({
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       return (
-        ep.title.toLowerCase().includes(q) ||
-        ep.series_title.toLowerCase().includes(q) ||
+        ep.title?.toLowerCase().includes(q) ||
+        ep.series_title?.toLowerCase().includes(q) ||
         (ep.cliffhanger_hook && ep.cliffhanger_hook.toLowerCase().includes(q))
       );
     }
@@ -121,7 +147,7 @@ export const GlobalEpisodesManager: React.FC<GlobalEpisodesManagerProps> = ({
       <div className="p-4 rounded-[7px] bg-[#14151B] border border-white/5 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
         <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0">
           {[
-            { id: 'all', label: `All Episodes (${allEpisodes.length})` },
+            { id: 'all', label: `All Episodes (${episodesList.length})` },
             { id: 'published', label: 'Published' },
             { id: 'under_review', label: 'In Review' },
             { id: 'draft', label: 'Drafts' },

@@ -62,6 +62,17 @@ def approve_moderation_item(item_id: str, user: dict = Depends(get_current_user)
             reviewer_id=reviewer_id
         )
 
+    if updated:
+        series_id = updated.get("series_id")
+        if series_id:
+            all_series = series_repository.local_get("series")
+            target_s = next((s for s in all_series if s["id"] == series_id), None)
+            if target_s:
+                ep_num = updated.get("episode_number", 1)
+                curr_count = target_s.get("total_episodes", 0)
+                if ep_num > curr_count:
+                    series_repository.local_update("series", "id", series_id, {"total_episodes": ep_num})
+
     # Record institutional trust audit events
     audit_service.record_trust_event(
         domain="CONTENT",

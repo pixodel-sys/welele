@@ -22,7 +22,7 @@ import {
 export type SimpleCreatorTab = 'shows' | 'story_forge' | 'insights' | 'earnings';
 
 export const CreatorStudioShell: React.FC = () => {
-  const { stories, user } = useApp();
+  const { stories, user, refreshStories } = useApp();
 
   const [activeNavTab, setActiveNavTab] = useState<SimpleCreatorTab>('shows');
   const [selectedSeriesId, setSelectedSeriesId] = useState<string | null>(null);
@@ -245,7 +245,13 @@ export const CreatorStudioShell: React.FC = () => {
       <EpisodePipelineModal
         isOpen={isPipelineOpen}
         onClose={() => setIsPipelineOpen(false)}
-        onSuccess={() => {}}
+        onSuccess={() => {
+          refreshStories();
+          if (pipelineSeriesId) {
+            setSelectedSeriesId(pipelineSeriesId);
+          }
+          setActiveNavTab('shows');
+        }}
         initialSeriesId={pipelineSeriesId}
         initialEpisodeNumber={pipelineEpisodeNumber}
       />
