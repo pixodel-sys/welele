@@ -16,6 +16,9 @@ import {
   Lock,
   ChevronUp,
   ChevronDown,
+  ChevronLeft,
+  Play,
+  Pause,
   Subtitles,
   Zap,
   Signal,
@@ -27,7 +30,11 @@ import {
 import { useContentProtection } from '../../hooks/useContentProtection';
 import { mediaStore } from '../../services/mediaStore';
 
-export const VerticalPlayer: React.FC = () => {
+interface VerticalPlayerProps {
+  onBack?: () => void;
+}
+
+export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
   const {
     currentStory,
     currentEpisode,
@@ -75,9 +82,79 @@ export const VerticalPlayer: React.FC = () => {
   const [airtimeToast, setAirtimeToast] = useState<string | null>(null);
   const [resolvedVideoUrl, setResolvedVideoUrl] = useState<string>(currentEpisode?.video_url || '/videos/welele_placeholder.mp4');
 
+  // Welele Immersive Viewing Law: 5-second auto-hide timer for unencumbered story watching
+  const [showControls, setShowControls] = useState<boolean>(true);
+  const [showPlayStateFlash, setShowPlayStateFlash] = useState<boolean>(false);
+  const controlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const episodeId = currentEpisode?.id;
   const isUnlocked =
     currentEpisode?.is_free || (episodeId ? unlockedEpisodes.has(episodeId) : true);
+
+  // Active interaction gate: Keeps controls alive when user actively interacts with drawers/menus
+  const isUserActivelyInteracting =
+    isDrawerOpen ||
+    isChatDrawerOpen ||
+    showQualityMenu ||
+    showSubtitleMenu ||
+    showCliffhangerPrompt ||
+    !isUnlocked ||
+    !isPlaying;
+
+  const resetControlsTimer = () => {
+    if (controlsTimerRef.current) {
+      clearTimeout(controlsTimerRef.current);
+      controlsTimerRef.current = null;
+    }
+    setShowControls(true);
+
+    if (!isUserActivelyInteracting) {
+      controlsTimerRef.current = setTimeout(() => {
+        setShowControls(false);
+      }, 5000);
+    }
+  };
+
+  // Sync controls visibility whenever interaction states change
+  useEffect(() => {
+    if (isUserActivelyInteracting) {
+      if (controlsTimerRef.current) {
+        clearTimeout(controlsTimerRef.current);
+        controlsTimerRef.current = null;
+      }
+      setShowControls(true);
+    } else {
+      resetControlsTimer();
+    }
+    return () => {
+      if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
+    };
+  }, [isUserActivelyInteracting, episodeId]);
+
+  const handleScreenTap = () => {
+    if (!showControls) {
+      // Tap reveals the controls without pausing playback
+      resetControlsTimer();
+    } else {
+      // Controls already visible: toggle play/pause with visual flash indicator
+      if (videoRef.current) {
+        if (isPlaying) {
+          videoRef.current.pause();
+          setIsPlaying(false);
+        } else {
+          videoRef.current.play().catch(() => {});
+          setIsPlaying(true);
+        }
+        setShowPlayStateFlash(true);
+        if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+        flashTimerRef.current = setTimeout(() => {
+          setShowPlayStateFlash(false);
+        }, 700);
+      }
+      resetControlsTimer();
+    }
+  };
 
   // Resolve media from persistent IndexedDB mediaStore if custom uploaded
   useEffect(() => {
@@ -273,7 +350,11 @@ export const VerticalPlayer: React.FC = () => {
   ];
 
   return (
-    <div className="relative w-full max-w-sm md:max-w-md mx-auto aspect-[9/16] max-h-[82vh] sm:max-h-[86vh] bg-black rounded-[7px] overflow-hidden shadow-2xl border border-white/10 select-none">
+    <div
+      onMouseMove={resetControlsTimer}
+      onTouchStart={resetControlsTimer}
+      className="relative w-full max-w-sm md:max-w-md mx-auto aspect-[9/16] max-h-[82vh] sm:max-h-[86vh] bg-black rounded-[7px] overflow-hidden shadow-2xl border border-white/10 select-none group"
+    >
       {/* Background Preload of next episode for zero-latency auto-advancement (Pillar 4 / Sec 4.2) */}
       {nextEpisode && (
         <video
@@ -330,19 +411,22 @@ export const VerticalPlayer: React.FC = () => {
             }}
           />
 
-          {/* Transparent DRM Gesture Shield - completely intercepts clicks, right clicks, and drag-and-drop */}
+          {/* Transparent DRM Gesture Shield: Tap to reveal controls / toggle play state */}
           <div
             className="absolute inset-0 z-10 cursor-pointer"
             onContextMenu={(e) => e.preventDefault()}
             onDragStart={(e) => e.preventDefault()}
-            onClick={() => {
-              if (videoRef.current) {
-                if (isPlaying) videoRef.current.pause();
-                else videoRef.current.play();
-                setIsPlaying(!isPlaying);
-              }
-            }}
+            onClick={handleScreenTap}
           />
+
+          {/* Brief Play / Pause State Flash Indicator */}
+          {showPlayStateFlash && (
+            <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none animate-fade-in">
+              <div className="w-14 h-14 rounded-full bg-black/75 backdrop-blur-md border border-white/20 flex items-center justify-center text-white shadow-2xl">
+                {isPlaying ? <Play className="w-7 h-7 fill-current ml-0.5" /> : <Pause className="w-7 h-7 fill-current" />}
+              </div>
+            </div>
+          )}
 
           {/* Dynamic Floating Forensic DRM Watermark */}
           <div className="absolute z-20 pointer-events-none select-none text-[10px] font-mono tracking-widest text-white/30 px-2 py-0.5 rounded-[7px] bg-black/20 backdrop-blur-[1px] animate-drm-watermark border border-white/5">
@@ -350,7 +434,11 @@ export const VerticalPlayer: React.FC = () => {
           </div>
 
           {/* Persistent DRM Protection Badge */}
-          <div className="absolute top-3 left-3 z-20 flex items-center gap-1 text-[9px] font-mono text-white/40 pointer-events-none bg-black/40 backdrop-blur-sm px-2 py-0.5 rounded-[7px]">
+          <div
+            className={`absolute top-3 left-3 z-20 flex items-center gap-1 text-[9px] font-mono text-white/40 pointer-events-none bg-black/40 backdrop-blur-sm px-2 py-0.5 rounded-[7px] transition-opacity duration-500 ${
+              showControls ? 'opacity-100' : 'opacity-0'
+            }`}
+          >
             <ShieldCheck className="w-3 h-3 text-emerald-400" />
             <span>DRM ENCRYPTED</span>
           </div>
@@ -425,29 +513,45 @@ export const VerticalPlayer: React.FC = () => {
         </div>
       )}
 
-      {/* Top Gradient Overlay */}
-      <div className="absolute top-0 left-0 right-0 p-4 bg-gradient-to-b from-black/80 via-black/40 to-transparent z-20 pointer-events-none flex items-center justify-between">
-        <div className="flex items-center gap-2 pointer-events-auto">
+      {/* Top Gradient Overlay & Controls (Immersive 5s Auto-Fade) */}
+      <div
+        className={`absolute top-0 left-0 right-0 p-3 sm:p-4 bg-gradient-to-b from-black/90 via-black/40 to-transparent z-20 flex items-center justify-between transition-all duration-500 ease-in-out ${
+          showControls
+            ? 'opacity-100 pointer-events-auto translate-y-0'
+            : 'opacity-0 pointer-events-none -translate-y-2'
+        }`}
+      >
+        <div className="flex items-center gap-2 pointer-events-auto min-w-0 pr-2">
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="w-7 h-7 rounded-[7px] bg-black/60 hover:bg-black/90 backdrop-blur-md flex items-center justify-center text-white border border-white/10 transition-transform active:scale-95 shrink-0"
+              title="Back to Feed"
+              aria-label="Back to Feed"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+          )}
           <img
             src={currentStory.creator_avatar}
             alt={currentStory.creator_name}
-            className="w-8 h-8 rounded-full border border-welele-orange object-cover"
+            className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-welele-orange object-cover shrink-0"
           />
-          <div>
-            <h4 className="text-xs font-bold text-white leading-tight flex items-center gap-1">
-              {currentStory.title}
-              <span className="text-[9px] px-1.5 py-0.2 rounded bg-welele-orange/20 text-welele-orange border border-welele-orange/30">
+          <div className="min-w-0">
+            <h4 className="text-xs font-bold text-white leading-tight flex items-center gap-1.5 truncate">
+              <span className="truncate">{currentStory.title}</span>
+              <span className="text-[9px] px-1.5 py-0.2 rounded bg-welele-orange/20 text-welele-orange border border-welele-orange/30 shrink-0">
                 EP {currentEpisode.episode_number}/{currentStory.episodes?.length || currentStory.total_episodes || 1}
               </span>
             </h4>
-            <p className="text-[10px] text-welele-muted truncate max-w-[150px]">
+            <p className="text-[10px] text-welele-muted truncate max-w-[130px] sm:max-w-[150px]">
               by {currentStory.creator_name}
             </p>
           </div>
         </div>
 
         {/* Top Controls: Adaptive Bitrate, Subtitles, Sound */}
-        <div className="flex items-center gap-2 pointer-events-auto">
+        <div className="flex items-center gap-1.5 sm:gap-2 pointer-events-auto shrink-0">
           {/* Adaptive Bitrate Selector (Pillar 4 / Sec 4.2) */}
           <div className="relative">
             <button
@@ -540,21 +644,27 @@ export const VerticalPlayer: React.FC = () => {
         </div>
       </div>
 
-      {/* Subtitles Overlay */}
+      {/* Subtitles Overlay (Dialogue remains unobtrusive and persistent when dialogue line active) */}
       {isUnlocked && activeSubtitleText && (
-        <div className="absolute bottom-24 left-4 right-16 z-20 pointer-events-none text-center">
+        <div className="absolute bottom-16 left-4 right-16 z-20 pointer-events-none text-center">
           <span className="inline-block px-3 py-1.5 rounded-[7px] bg-black/80 backdrop-blur-md text-white text-xs font-medium border border-white/10 shadow-lg">
             {activeSubtitleText}
           </span>
         </div>
       )}
 
-      {/* Right Sidebar Floating Interaction Buttons */}
-      <div className="absolute right-3 bottom-20 z-20 flex flex-col items-center gap-3.5 pointer-events-auto">
+      {/* Right Sidebar Floating Interaction Buttons (Immersive 5s Auto-Fade) */}
+      <div
+        className={`absolute right-3 bottom-16 z-20 flex flex-col items-center gap-3.5 pointer-events-auto transition-all duration-500 ease-in-out ${
+          showControls
+            ? 'opacity-100 pointer-events-auto translate-x-0'
+            : 'opacity-0 pointer-events-none translate-x-3'
+        }`}
+      >
         {/* Like Button */}
         <button
           onClick={() => toggleLikeStory(currentStory.id)}
-          className="flex flex-col items-center group"
+          className="flex flex-col items-center group cursor-pointer"
         >
           <div
             className={`w-10 h-10 rounded-circle flex items-center justify-center backdrop-blur-md border transition-all ${
@@ -573,7 +683,7 @@ export const VerticalPlayer: React.FC = () => {
         {/* Welele Chat Comments */}
         <button
           onClick={() => setIsChatDrawerOpen(true)}
-          className="flex flex-col items-center group"
+          className="flex flex-col items-center group cursor-pointer"
         >
           <div className="w-10 h-10 rounded-circle bg-black/50 hover:bg-black/80 border border-white/10 flex items-center justify-center text-white backdrop-blur-md transition-transform group-hover:scale-105">
             <MessageCircle className="w-5 h-5" />
@@ -586,7 +696,7 @@ export const VerticalPlayer: React.FC = () => {
         {/* Gift Creator Button */}
         <button
           onClick={() => setIsGiftModalOpen(true)}
-          className="flex flex-col items-center group"
+          className="flex flex-col items-center group cursor-pointer"
         >
           <div className="w-10 h-10 rounded-circle bg-gradient-welele flex items-center justify-center text-white shadow-lg shadow-orange-500/30 transition-transform group-hover:scale-110">
             <Flame className="w-5 h-5" />
@@ -597,7 +707,7 @@ export const VerticalPlayer: React.FC = () => {
         {/* Bookmark */}
         <button
           onClick={() => toggleBookmark(currentStory.id)}
-          className="flex flex-col items-center group"
+          className="flex flex-col items-center group cursor-pointer"
         >
           <div
             className={`w-10 h-10 rounded-circle flex items-center justify-center backdrop-blur-md border transition-all ${
@@ -614,7 +724,7 @@ export const VerticalPlayer: React.FC = () => {
         {/* Episodes Drawer Toggle */}
         <button
           onClick={() => setIsDrawerOpen(true)}
-          className="flex flex-col items-center group"
+          className="flex flex-col items-center group cursor-pointer"
         >
           <div className="w-10 h-10 rounded-circle bg-black/50 hover:bg-black/80 border border-white/10 flex items-center justify-center text-white backdrop-blur-md transition-transform group-hover:scale-105">
             <List className="w-5 h-5" />
@@ -623,39 +733,51 @@ export const VerticalPlayer: React.FC = () => {
         </button>
       </div>
 
-      {/* Floating Reaction Quick Bar */}
-      <div className="absolute left-4 bottom-14 z-20 flex items-center gap-1.5 bg-black/60 backdrop-blur-md p-1.5 rounded-[7px] border border-white/10 pointer-events-auto">
+      {/* Floating Reaction Quick Bar (Immersive 5s Auto-Fade) */}
+      <div
+        className={`absolute left-4 bottom-10 z-20 flex items-center gap-1.5 bg-black/60 backdrop-blur-md p-1.5 rounded-[7px] border border-white/10 pointer-events-auto transition-all duration-500 ease-in-out ${
+          showControls
+            ? 'opacity-100 pointer-events-auto translate-y-0'
+            : 'opacity-0 pointer-events-none translate-y-3'
+        }`}
+      >
         {['🔥', '👑', '😱', '👏', '⚡'].map((emoji) => (
           <button
             key={emoji}
             onClick={() => triggerReaction(currentEpisode.id, emoji)}
-            className="w-7 h-7 rounded-[7px] hover:bg-white/20 flex items-center justify-center text-base transition-transform active:scale-130"
+            className="w-7 h-7 rounded-[7px] hover:bg-white/20 flex items-center justify-center text-base transition-transform active:scale-130 cursor-pointer"
           >
             {emoji}
           </button>
         ))}
       </div>
 
-      {/* Bottom Episode Navigation Gestures (Prev / Next Buttons) */}
-      <div className="absolute right-3 top-16 z-20 flex flex-col gap-2 pointer-events-auto">
+      {/* Up/Down Episode Switchers (Immersive 5s Auto-Fade) */}
+      <div
+        className={`absolute right-3 top-18 z-20 flex flex-col gap-2 pointer-events-auto transition-all duration-500 ease-in-out ${
+          showControls
+            ? 'opacity-100 pointer-events-auto translate-x-0'
+            : 'opacity-0 pointer-events-none translate-x-3'
+        }`}
+      >
         <button
           onClick={handlePrevEpisode}
           aria-label="Previous Episode"
-          className="w-7 h-7 rounded-[7px] bg-black/60 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/80 hover:text-white"
+          className="w-7 h-7 rounded-[7px] bg-black/60 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/80 hover:text-white cursor-pointer"
         >
           <ChevronUp className="w-4 h-4" />
         </button>
         <button
           onClick={handleNextEpisode}
           aria-label="Next Episode"
-          className="w-7 h-7 rounded-[7px] bg-black/60 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/80 hover:text-white"
+          className="w-7 h-7 rounded-[7px] bg-black/60 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/80 hover:text-white cursor-pointer"
         >
           <ChevronDown className="w-4 h-4" />
         </button>
       </div>
 
-      {/* Timeline Progress Bar */}
-      <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-white/20 z-30">
+      {/* Subtle Bottom Playback Progress Bar (Subtle & Restrained) */}
+      <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/15 z-30 pointer-events-none">
         <div
           className="h-full bg-gradient-welele transition-all duration-200"
           style={{ width: `${progress}%` }}

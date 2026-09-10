@@ -103,22 +103,13 @@ export const App: React.FC = () => {
         {mode === 'viewer' && (
           <div className="w-full">
             {isWatchingFullscreen || activeViewerTab === 'foryou' ? (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between max-w-md mx-auto px-1">
-                  <button
-                    onClick={() => {
-                      setIsWatchingFullscreen(false);
-                      if (activeViewerTab === 'foryou') setActiveViewerTab('home');
-                    }}
-                    className="text-xs font-bold text-welele-orange hover:underline flex items-center gap-1"
-                  >
-                    ← Back to Story Feed
-                  </button>
-                  <span className="text-[10px] text-welele-muted">
-                    9:16 Canonical Vertical Player
-                  </span>
-                </div>
-                <VerticalPlayer />
+              <div className="w-full">
+                <VerticalPlayer
+                  onBack={() => {
+                    setIsWatchingFullscreen(false);
+                    if (activeViewerTab === 'foryou') setActiveViewerTab('home');
+                  }}
+                />
               </div>
             ) : (
               <div>
