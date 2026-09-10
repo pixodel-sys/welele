@@ -81,7 +81,7 @@ export function generateEpisodeMediaKeys(params: EpisodeMediaParams): string[] {
       keys.push(`video_${sId}_ep${epNum}`);
       keys.push(`video_${sId}_${epNum}_master`);
     }
-    // Also include ep 4 and ep 5 aliases for series upload flexibility
+    // Cross-episode alias flexibility (e.g. ep 4 vs 5)
     keys.push(`video_${sId}_4`, `video_${sId}_ep_4`, `video_${sId}_5`, `video_${sId}_ep_5`);
     keys.push(`video_${sId}_energy_pusle`, `video_${sId}_energy_pulse`);
 
@@ -121,6 +121,30 @@ export function generateEpisodeMediaKeys(params: EpisodeMediaParams): string[] {
   return Array.from(new Set(keys.filter(Boolean)));
 }
 
+function resultToBlobUrl(result: any): string | null {
+  if (!result) return null;
+  try {
+    if (result instanceof Blob) {
+      return URL.createObjectURL(result);
+    }
+    if (result instanceof ArrayBuffer) {
+      return URL.createObjectURL(new Blob([result], { type: 'video/mp4' }));
+    }
+    if (result && result.buffer instanceof ArrayBuffer) {
+      return URL.createObjectURL(new Blob([result.buffer], { type: 'video/mp4' }));
+    }
+    if (typeof result === 'string') {
+      if (result.startsWith('blob:') || result.startsWith('http') || result.startsWith('/')) {
+        return result;
+      }
+    }
+    return null;
+  } catch (e) {
+    console.warn('[mediaStore] Error converting store result to blob URL:', e);
+    return null;
+  }
+}
+
 export const mediaStore = {
   async saveMedia(keyOrKeys: string | string[], file: Blob | File): Promise<string> {
     const keys = Array.isArray(keyOrKeys) ? keyOrKeys : [keyOrKeys];
@@ -129,43 +153,40 @@ export const mediaStore = {
       return URL.createObjectURL(file);
     }
 
+    let blobToStore: Blob = file;
+    try {
+      if (file instanceof File) {
+        const buffer = await file.arrayBuffer();
+        blobToStore = new Blob([buffer], { type: file.type || 'video/mp4' });
+      }
+    } catch {
+      blobToStore = file;
+    }
+
+    const immediateUrl = URL.createObjectURL(blobToStore);
+    validKeys.forEach((key) => activeBlobUrls.set(key, immediateUrl));
+
     try {
       const db = await openDB();
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve) => {
         const tx = db.transaction(STORE_NAME, 'readwrite');
         const store = tx.objectStore(STORE_NAME);
 
         validKeys.forEach((key) => {
-          store.put(file, key);
+          store.put(blobToStore, key);
         });
 
         tx.oncomplete = () => {
-          const url = URL.createObjectURL(file);
-          validKeys.forEach((key) => {
-            if (activeBlobUrls.has(key)) {
-              try {
-                URL.revokeObjectURL(activeBlobUrls.get(key)!);
-              } catch (e) {
-                // ignore
-              }
-            }
-            activeBlobUrls.set(key, url);
-          });
-          resolve(url);
+          resolve(immediateUrl);
         };
 
         tx.onerror = () => {
-          // Fallback to in-memory URL
-          const url = URL.createObjectURL(file);
-          validKeys.forEach((key) => activeBlobUrls.set(key, url));
-          resolve(url);
+          resolve(immediateUrl);
         };
       });
     } catch (e) {
       console.warn('Failed to save media in IndexedDB, fallback to in-memory URL:', e);
-      const url = URL.createObjectURL(file);
-      validKeys.forEach((key) => activeBlobUrls.set(key, url));
-      return url;
+      return immediateUrl;
     }
   },
 
@@ -199,15 +220,11 @@ export const mediaStore = {
           const req = store.get(key);
           req.onsuccess = () => {
             if (resolved) return;
-            if (req.result) {
+            const url = resultToBlobUrl(req.result);
+            if (url) {
               resolved = true;
-              try {
-                const url = URL.createObjectURL(req.result);
-                validKeys.forEach((k) => activeBlobUrls.set(k, url));
-                resolve(url);
-              } catch (err) {
-                resolve(null);
-              }
+              validKeys.forEach((k) => activeBlobUrls.set(k, url));
+              resolve(url);
             } else {
               checksRemaining--;
               if (checksRemaining === 0 && !resolved) {
@@ -230,7 +247,7 @@ export const mediaStore = {
 
   /**
    * Intelligently resolves episode media by checking exact candidate keys first,
-   * and if not found, scanning all IndexedDB keys for fuzzy matching.
+   * and if not found, scanning all IndexedDB keys for multi-tier fuzzy matching.
    */
   async findEpisodeMedia(params: EpisodeMediaParams): Promise<string | null> {
     const candidateKeys = generateEpisodeMediaKeys(params);
@@ -256,18 +273,10 @@ export const mediaStore = {
           const sId = params.seriesId ? params.seriesId.replace(/^story_/, '') : '';
           const titleTokens = params.title ? normalizeKey(params.title).split('_').filter(t => t.length > 2) : [];
 
-          // Tier 1: Match by energy/pulse file keywords
           let bestKey: string | null = null;
-          for (const key of allKeys) {
-            const lowerKey = key.toLowerCase();
-            if (!lowerKey.startsWith('thumb_') && (lowerKey.includes('energy') || lowerKey.includes('pulse') || lowerKey.includes('pusle'))) {
-              bestKey = key;
-              break;
-            }
-          }
 
-          // Tier 2: Match if contains series id and episode number
-          if (!bestKey && sId && epNum) {
+          // Tier 1: Match series ID + episode number (e.g. queen_of_jozi + 5)
+          if (sId && epNum) {
             for (const key of allKeys) {
               const lowerKey = key.toLowerCase();
               if (!lowerKey.startsWith('thumb_') && lowerKey.includes(sId) && (lowerKey.includes(`_${epNum}`) || lowerKey.includes(`ep${epNum}`))) {
@@ -277,7 +286,18 @@ export const mediaStore = {
             }
           }
 
-          // Tier 3: Match if contains series id and ANY video key (e.g. video_story_blood_ties_5)
+          // Tier 2: Match by energy/pulse keywords if applicable
+          if (!bestKey) {
+            for (const key of allKeys) {
+              const lowerKey = key.toLowerCase();
+              if (!lowerKey.startsWith('thumb_') && (lowerKey.includes('energy') || lowerKey.includes('pulse') || lowerKey.includes('pusle'))) {
+                bestKey = key;
+                break;
+              }
+            }
+          }
+
+          // Tier 3: Match series ID with ANY video key (e.g. video_story_queen_of_jozi_*)
           if (!bestKey && sId) {
             for (const key of allKeys) {
               const lowerKey = key.toLowerCase();
@@ -288,7 +308,7 @@ export const mediaStore = {
             }
           }
 
-          // Tier 4: Match if contains title tokens (e.g. discovery, midnight)
+          // Tier 4: Match title tokens
           if (!bestKey && titleTokens.length > 0) {
             for (const key of allKeys) {
               const lowerKey = key.toLowerCase();
@@ -299,7 +319,7 @@ export const mediaStore = {
             }
           }
 
-          // Tier 5: Match if contains episode id
+          // Tier 5: Match episode ID
           if (!bestKey && params.episodeId) {
             for (const key of allKeys) {
               const lowerKey = key.toLowerCase();
@@ -310,8 +330,8 @@ export const mediaStore = {
             }
           }
 
-          // Tier 6: If this is Episode 4 (custom uploaded episode), pick any stored video blob
-          if (!bestKey && (epNum === '4' || epNum === '5')) {
+          // Tier 6: For custom episodes (>=4), pick any video key in store
+          if (!bestKey && epNum && Number(epNum) >= 4) {
             for (const key of allKeys) {
               const lowerKey = key.toLowerCase();
               if (lowerKey.startsWith('video_') || lowerKey.startsWith('media_')) {
@@ -324,15 +344,11 @@ export const mediaStore = {
           if (bestKey) {
             const getReq = store.get(bestKey);
             getReq.onsuccess = () => {
-              if (getReq.result) {
-                try {
-                  const url = URL.createObjectURL(getReq.result);
-                  candidateKeys.forEach((k) => activeBlobUrls.set(k, url));
-                  activeBlobUrls.set(bestKey!, url);
-                  resolve(url);
-                } catch {
-                  resolve(null);
-                }
+              const url = resultToBlobUrl(getReq.result);
+              if (url) {
+                candidateKeys.forEach((k) => activeBlobUrls.set(k, url));
+                activeBlobUrls.set(bestKey!, url);
+                resolve(url);
               } else {
                 resolve(null);
               }

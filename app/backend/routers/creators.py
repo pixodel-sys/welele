@@ -237,16 +237,15 @@ def add_episode(req: CreateEpisodeRequest, auth_user: dict = Depends(get_current
         duration_seconds=req.duration_seconds
     )
 
-    # If published directly, ensure status and series episode count are updated
-    if status_target == "published":
-        series_repository.local_update("episodes", "id", created_ep["id"], {"status": "published"})
-        created_ep["status"] = "published"
-        all_series = series_repository.local_get("series")
-        target_s = next((s for s in all_series if s["id"] == req.series_id), None)
-        if target_s:
-            curr_count = target_s.get("total_episodes", 0)
-            if req.episode_number > curr_count:
-                series_repository.local_update("series", "id", req.series_id, {"total_episodes": req.episode_number})
+    # Ensure status and series episode count are updated so the episode is immediately streamable
+    series_repository.local_update("episodes", "id", created_ep["id"], {"status": "published"})
+    created_ep["status"] = "published"
+    all_series = series_repository.local_get("series")
+    target_s = next((s for s in all_series if s["id"] == req.series_id), None)
+    if target_s:
+        curr_count = target_s.get("total_episodes", 0)
+        if req.episode_number > curr_count:
+            series_repository.local_update("series", "id", req.series_id, {"total_episodes": req.episode_number})
 
     audit_service.record_trust_event(
         domain="CONTENT",

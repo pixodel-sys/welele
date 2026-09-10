@@ -915,26 +915,17 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
                       type="button"
                       disabled={isSubmitting}
                       onClick={() => handleSubmit('published')}
-                      className="px-4 py-2.5 rounded-[7px] text-xs font-bold bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 transition-colors cursor-pointer"
-                      title="Direct Live bypass"
-                    >
-                      Instant Publish (Live)
-                    </button>
-                    <button
-                      type="button"
-                      disabled={isSubmitting}
-                      onClick={() => handleSubmit('under_review')}
-                      className="px-6 py-2.5 rounded-[7px] text-xs font-bold bg-gradient-to-r from-[#E6007A] to-[#FF2A6D] text-white hover:opacity-95 shadow-lg shadow-pink-500/20 disabled:opacity-50 flex items-center gap-2 transition-all cursor-pointer"
+                      className="px-6 py-2.5 rounded-[7px] text-xs font-bold bg-gradient-to-r from-[#E6007A] to-[#FF2A6D] text-white hover:opacity-95 shadow-lg shadow-pink-500/20 disabled:opacity-50 flex items-center gap-2 transition-all cursor-pointer font-cinematic uppercase tracking-wider"
                     >
                       {isSubmitting ? (
                         <>
                           <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          <span>Submitting...</span>
+                          <span>Publishing...</span>
                         </>
                       ) : (
                         <>
-                          <ShieldCheck className="w-4 h-4" />
-                          <span>Submit for Review (Awaiting Approval)</span>
+                          <CheckCircle2 className="w-4 h-4" />
+                          <span>Publish Episode Live</span>
                         </>
                       )}
                     </button>
