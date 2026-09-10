@@ -251,8 +251,13 @@ export const mediaStore = {
    */
   async findEpisodeMedia(params: EpisodeMediaParams): Promise<string | null> {
     const candidateKeys = generateEpisodeMediaKeys(params);
+    console.log('[mediaStore] Searching media for candidate keys:', candidateKeys);
+    
     const directMatch = await this.getMediaUrl(candidateKeys);
-    if (directMatch) return directMatch;
+    if (directMatch) {
+      console.log('[mediaStore] Direct candidate match found in cache/DB:', directMatch);
+      return directMatch;
+    }
 
     // Multi-tier fuzzy matching across all stored keys in IndexedDB
     try {
@@ -264,7 +269,9 @@ export const mediaStore = {
 
         req.onsuccess = () => {
           const allKeys = (req.result || []).map((k) => String(k));
+          console.log('[mediaStore] All stored keys in IndexedDB:', allKeys);
           if (allKeys.length === 0) {
+            console.warn('[mediaStore] IndexedDB is currently empty (no video blobs saved).');
             resolve(null);
             return;
           }
@@ -341,10 +348,13 @@ export const mediaStore = {
             }
           }
 
+          console.log('[mediaStore] Best fuzzy matched key:', bestKey);
+
           if (bestKey) {
             const getReq = store.get(bestKey);
             getReq.onsuccess = () => {
               const url = resultToBlobUrl(getReq.result);
+              console.log('[mediaStore] Unpacked blob URL for', bestKey, '=>', url);
               if (url) {
                 candidateKeys.forEach((k) => activeBlobUrls.set(k, url));
                 activeBlobUrls.set(bestKey!, url);
@@ -363,6 +373,21 @@ export const mediaStore = {
       });
     } catch {
       return null;
+    }
+  },
+
+  async getAllStoredKeys(): Promise<string[]> {
+    try {
+      const db = await openDB();
+      return new Promise((resolve) => {
+        const tx = db.transaction(STORE_NAME, 'readonly');
+        const store = tx.objectStore(STORE_NAME);
+        const req = store.getAllKeys();
+        req.onsuccess = () => resolve((req.result || []).map(String));
+        req.onerror = () => resolve([]);
+      });
+    } catch {
+      return [];
     }
   },
 };

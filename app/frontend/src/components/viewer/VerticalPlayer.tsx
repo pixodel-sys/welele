@@ -84,7 +84,7 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
   const identTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const nextVideoPreloadRef = useRef<HTMLVideoElement>(null);
 
-  const [isIdentPlaying, setIsIdentPlaying] = useState<boolean>(() => checkShouldPlayIdent());
+  const [isIdentPlaying, setIsIdentPlaying] = useState<boolean>(false);
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [progress, setProgress] = useState<number>(0);
@@ -101,7 +101,11 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
   const [qualityMode, setQualityMode] = useState<'AUTO' | '1080P' | '720P' | '480P_DATA_SAVER'>('AUTO');
   const [activeSubtitleText, setActiveSubtitleText] = useState<string>('');
   const [airtimeToast, setAirtimeToast] = useState<string | null>(null);
-  const [resolvedVideoUrl, setResolvedVideoUrl] = useState<string>(currentEpisode?.video_url || '/videos/welele_placeholder.mp4');
+  const [resolvedVideoUrl, setResolvedVideoUrl] = useState<string>(currentEpisode?.video_url || '');
+  const [mediaError, setMediaError] = useState<string | null>(null);
+  const [storedDbKeys, setStoredDbKeys] = useState<string[]>([]);
+  const [resolvedSourceKey, setResolvedSourceKey] = useState<string>('');
+  const [showDebugHud, setShowDebugHud] = useState<boolean>(true);
 
   // Welele Immersive Viewing Law: 5-second auto-hide timer for unencumbered story watching
   const [showControls, setShowControls] = useState<boolean>(true);
@@ -208,7 +212,11 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
     let isCancelled = false;
 
     const resolveMedia = async () => {
+      setMediaError(null);
       try {
+        const allKeys = await mediaStore.getAllStoredKeys();
+        setStoredDbKeys(allKeys);
+
         const cached = await mediaStore.findEpisodeMedia({
           seriesId: currentEpisode.series_id || currentStory?.id,
           seriesTitle: currentStory?.title,
@@ -219,29 +227,37 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
         });
 
         if (!isCancelled && cached) {
+          console.log('[VerticalPlayer] Successfully resolved media URL:', cached);
           setResolvedVideoUrl(cached);
-          if (videoRef.current && videoRef.current.src !== cached) {
+          setResolvedSourceKey('IndexedDB Blob Cache');
+          if (videoRef.current) {
             videoRef.current.src = cached;
             videoRef.current.load();
-            if (isPlaying && !isIdentPlaying) {
-              videoRef.current.play().catch(() => {});
+            if (isPlaying) {
+              videoRef.current.play().catch((err) => {
+                console.warn('[VerticalPlayer] Autoplay error:', err);
+              });
             }
           }
           return;
         }
-      } catch (e) {
+      } catch (e: any) {
         console.warn('[VerticalPlayer] Error retrieving cached media:', e);
+        setMediaError(e?.message || 'Failed to query local media database');
       }
 
       if (!isCancelled) {
-        const rawUrl = currentEpisode.video_url;
-        const finalUrl = (rawUrl && !rawUrl.startsWith('blob:')) ? rawUrl : '/videos/welele_placeholder.mp4';
-        setResolvedVideoUrl(finalUrl);
-        if (videoRef.current && videoRef.current.src !== finalUrl && !videoRef.current.src.endsWith(finalUrl)) {
-          videoRef.current.src = finalUrl;
+        const rawUrl = currentEpisode.video_url || '';
+        console.log('[VerticalPlayer] Using raw episode video URL:', rawUrl);
+        setResolvedVideoUrl(rawUrl);
+        setResolvedSourceKey(rawUrl ? 'Raw Video URL' : 'None');
+        if (videoRef.current && rawUrl) {
+          videoRef.current.src = rawUrl;
           videoRef.current.load();
-          if (isPlaying && !isIdentPlaying) {
-            videoRef.current.play().catch(() => {});
+          if (isPlaying) {
+            videoRef.current.play().catch((err) => {
+              console.warn('[VerticalPlayer] Autoplay error:', err);
+            });
           }
         }
       }
@@ -252,7 +268,7 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
     return () => {
       isCancelled = true;
     };
-  }, [currentEpisode, currentStory, isIdentPlaying]);
+  }, [currentEpisode, currentStory]);
 
   // Synchronize video element when resolvedVideoUrl updates from IndexedDB
   useEffect(() => {
@@ -260,12 +276,12 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
       if (videoRef.current.src !== resolvedVideoUrl && !videoRef.current.src.endsWith(resolvedVideoUrl)) {
         videoRef.current.src = resolvedVideoUrl;
         videoRef.current.load();
-        if (isPlaying && !isIdentPlaying) {
+        if (isPlaying) {
           videoRef.current.play().catch(() => {});
         }
       }
     }
-  }, [resolvedVideoUrl, isPlaying, isIdentPlaying]);
+  }, [resolvedVideoUrl, isPlaying]);
 
   // Next episode calculation for chunked buffer preloading (Pillar 4 / Sec 4.2)
   const currentIndex = currentStory?.episodes.findIndex((e) => e.id === currentEpisode?.id) ?? -1;
@@ -523,15 +539,13 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
       {/* Video Element & DRM Transparent Protective Shield */}
       {isUnlocked ? (
         <div className="relative w-full h-full bg-black overflow-hidden">
-          {/* Episode Video (Preloads buffer in background while brand ident plays) */}
+          {/* Episode Video (Plays actual resolved URL directly) */}
           <video
             ref={videoRef}
             src={resolvedVideoUrl}
-            className={`w-full h-full object-cover pointer-events-none transition-opacity duration-300 ${
-              isIdentPlaying ? 'opacity-0' : 'opacity-100'
-            }`}
+            className="w-full h-full object-cover"
             playsInline
-            autoPlay={!isIdentPlaying}
+            autoPlay
             loop
             muted={isMuted}
             preload="auto"
@@ -541,47 +555,68 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
             onContextMenu={(e) => e.preventDefault()}
             onDragStart={(e) => e.preventDefault()}
             onTimeUpdate={handleTimeUpdate}
+            onPlay={() => setMediaError(null)}
             onError={(e) => {
-              const target = e.currentTarget;
-              const placeholderUrl = window.location.origin + '/videos/welele_ident.mp4';
-              if (target.src !== placeholderUrl && !target.src.endsWith('/videos/welele_ident.mp4') && !target.src.endsWith('/videos/welele_placeholder.mp4')) {
-                console.warn('[VerticalPlayer] Video playback error for source:', target.src);
-                target.src = '/videos/welele_ident.mp4';
-                target.load();
-                if (!isIdentPlaying) target.play().catch(() => {});
-              }
+              const err = e.currentTarget.error;
+              const errMsg = err
+                ? `HTML5 Media Error Code ${err.code}: ${err.message || 'Format unsupported or stream unavailable'}`
+                : 'Playback error';
+              console.error('[VerticalPlayer] Native Video Error:', errMsg, 'Src:', e.currentTarget.src);
+              setMediaError(errMsg);
             }}
           />
 
-          {/* Global Platform Brand Ident Stage (Preloader & Sonic-Visual Intro) */}
-          {isIdentPlaying && (
-            <div className="absolute inset-0 z-30 bg-black flex items-center justify-center overflow-hidden animate-fade-in">
-              <video
-                ref={identVideoRef}
-                src={BRAND_IDENT_URL}
-                className="w-full h-full object-cover"
-                playsInline
-                autoPlay
-                muted={isMuted}
-                onEnded={handleIdentFinished}
-                onError={handleIdentFinished}
-              />
-
-              {/* Discreet Skip Action (Immersive Viewing Law) */}
-              <div className="absolute top-4 right-4 z-40">
-                <button
-                  onClick={handleIdentFinished}
-                  className="px-3 py-1 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-md text-[11px] font-bold text-white/80 hover:text-white border border-white/10 transition-all flex items-center gap-1 active:scale-95 shadow-xl cursor-pointer"
-                >
-                  <span>Skip Ident</span>
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </button>
+          {/* Real-time Diagnostics HUD */}
+          {(mediaError || !resolvedVideoUrl) && (
+            <div className="absolute inset-0 z-40 bg-black/90 p-6 flex flex-col items-center justify-center text-center space-y-4 animate-fade-in text-white">
+              <div className="w-12 h-12 rounded-full bg-red-500/20 border border-red-500/40 flex items-center justify-center text-red-400">
+                <SlidersHorizontal className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-sm font-black uppercase text-red-400 font-cinematic">
+                  Playback Diagnostics
+                </h3>
+                <p className="text-xs text-welele-muted mt-1 max-w-sm">
+                  {mediaError || 'No video binary found in IndexedDB for this episode.'}
+                </p>
               </div>
 
-              {/* Subtle brand watermark during ident */}
-              <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-40 text-[10px] tracking-widest font-mono text-white/40 uppercase pointer-events-none">
-                Welele Original
+              <div className="p-3 bg-white/5 rounded-[7px] border border-white/10 text-[10px] font-mono text-left max-w-xs w-full space-y-1 text-white/80">
+                <div><b>Episode:</b> {currentEpisode?.title} (EP {currentEpisode?.episode_number})</div>
+                <div><b>Series:</b> {currentEpisode?.series_id}</div>
+                <div className="break-all"><b>Source:</b> {resolvedVideoUrl || 'Empty'}</div>
+                <div className="break-all"><b>IndexedDB Keys:</b> {storedDbKeys.length > 0 ? storedDbKeys.join(', ') : 'No keys found'}</div>
               </div>
+
+              {/* Direct Attach Button */}
+              <label className="cursor-pointer px-4 py-2.5 rounded-[7px] bg-gradient-welele text-white text-xs font-bold shadow-xl shadow-orange-500/20 flex items-center gap-2 hover:opacity-95 transition-all">
+                <Zap className="w-4 h-4" />
+                <span>Select & Play Video File Now</span>
+                <input
+                  type="file"
+                  accept="video/mp4,video/quicktime,video/webm"
+                  className="hidden"
+                  onChange={async (e) => {
+                    if (e.target.files && e.target.files[0] && currentEpisode) {
+                      const file = e.target.files[0];
+                      const newUrl = await mediaStore.saveEpisodeMedia({
+                        seriesId: currentEpisode.series_id || currentStory?.id,
+                        seriesTitle: currentStory?.title,
+                        episodeNumber: currentEpisode.episode_number,
+                        episodeId: currentEpisode.id,
+                        title: currentEpisode.title,
+                      }, file);
+                      setResolvedVideoUrl(newUrl);
+                      setMediaError(null);
+                      if (videoRef.current) {
+                        videoRef.current.src = newUrl;
+                        videoRef.current.load();
+                        videoRef.current.play().catch(() => {});
+                      }
+                    }
+                  }}
+                />
+              </label>
             </div>
           )}
 
