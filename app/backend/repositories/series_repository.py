@@ -647,15 +647,24 @@ class SeriesRepository(BaseRepository):
         self.local_set("episodes", episodes_data)
 
         # Populate decoupled media assets for all episodes
+        sample_videos = [
+            "/videos/ocean_waves.mp4",
+            "/videos/sample_drama.mp4",
+            "/videos/flower_bloom.mp4",
+            "/videos/jellyfish.mp4",
+            "/videos/sintel.mp4",
+            "/videos/big_buck.mp4",
+        ]
         media_assets = []
         series_poster_map = {s["id"]: s.get("vertical_poster", "/posters/blood_ties.jpg") for s in canonical_series}
-        for ep in episodes_data:
+        for idx, ep in enumerate(episodes_data):
             s_poster = series_poster_map.get(ep["series_id"], "/posters/blood_ties.jpg")
+            v_url = sample_videos[idx % len(sample_videos)]
             media_assets.append({
                 "id": f"media_{ep['id']}",
                 "episode_id": ep["id"],
                 "storage_key": f"masters/{ep['series_id']}/{ep['id']}.mp4",
-                "master_video_url": "/videos/welele_placeholder.mp4",
+                "master_video_url": v_url,
                 "hls_master_manifest_url": f"https://cdn.welele.media/hls/{ep['series_id']}/{ep['id']}/master.m3u8",
                 "thumbnail_url": s_poster,
                 "duration_seconds": ep["duration_seconds"],
