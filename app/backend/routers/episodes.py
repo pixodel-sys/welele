@@ -7,6 +7,7 @@ cliffhanger detection, and subtitles.
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Query
 from database import db
+from repositories.series_repository import series_repository
 from services.storage_service import storage_service
 from services.ledger_service import ledger_service
 
@@ -18,10 +19,12 @@ def get_episode_stream(
     episode_id: str,
     user_id: Optional[str] = "user_sa_01"
 ):
-    stories = db.get("stories")
-    story = next((s for s in stories if s["id"] == series_id), None)
+    story = series_repository.get_series_detail(series_id)
     if not story:
-        raise HTTPException(status_code=404, detail="Series not found")
+        stories = db.get("stories")
+        story = next((s for s in stories if s["id"] == series_id), None)
+        if not story:
+            raise HTTPException(status_code=404, detail="Series not found")
     
     episode = next((ep for ep in story.get("episodes", []) if ep["id"] == episode_id), None)
     if not episode:
@@ -60,10 +63,12 @@ def unlock_episode(
     user_id: str = Query(..., description="User ID"),
     method: str = Query("COINS", description="Unlock method: COINS, AIRTIME_DCB, VIP_PASS")
 ):
-    stories = db.get("stories")
-    story = next((s for s in stories if s["id"] == series_id), None)
+    story = series_repository.get_series_detail(series_id)
     if not story:
-        raise HTTPException(status_code=404, detail="Series not found")
+        stories = db.get("stories")
+        story = next((s for s in stories if s["id"] == series_id), None)
+        if not story:
+            raise HTTPException(status_code=404, detail="Series not found")
     
     episode = next((ep for ep in story.get("episodes", []) if ep["id"] == episode_id), None)
     if not episode:

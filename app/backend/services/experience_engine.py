@@ -7,6 +7,7 @@ from datetime import datetime
 from typing import Dict, Any, List, Optional
 import copy
 from database import db
+from repositories.series_repository import series_repository
 from schemas.experience_schemas import (
     ExperienceManifest,
     ExperienceSection,
@@ -329,8 +330,9 @@ class ExperienceEngine:
         raw_manifest = cls.get_stored_manifest(page_id, state=state)
         now_dt = eval_time or datetime.utcnow()
 
-        all_stories = {s["id"]: s for s in db.get("stories")}
-        stories_list = db.get("stories")
+        feed = series_repository.list_feed()
+        all_stories = {s["id"]: s for s in feed}
+        stories_list = feed
 
         resolved_sections = []
 

@@ -205,7 +205,10 @@ export const HeroCarouselSection: React.FC<HeroCarouselSectionProps> = ({
           <div className="flex items-center gap-2 text-xs font-semibold text-welele-muted mt-2">
             <span>{story.genre || 'Drama'}</span>
             <span>•</span>
-            <span>{story.total_episodes || 12} Episodes</span>
+            <span>
+              {story.episodes?.length || story.total_episodes || 1}{' '}
+              {(story.episodes?.length || story.total_episodes || 1) === 1 ? 'Episode' : 'Episodes'}
+            </span>
             <span>•</span>
             <span className="text-white/80">{story.language?.split('/')[0].trim() || 'isiZulu'}</span>
           </div>

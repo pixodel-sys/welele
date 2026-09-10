@@ -180,7 +180,8 @@ export const CreatorStudioShell: React.FC = () => {
                           {story.title}
                         </h3>
                         <p className="text-xs text-welele-muted">
-                          {story.episodes?.length || 10} Episodes • {story.genre}
+                          {story.episodes?.length || story.total_episodes || 1}{' '}
+                          {(story.episodes?.length || story.total_episodes || 1) === 1 ? 'Episode' : 'Episodes'} • {story.genre}
                         </p>
                       </div>
                     </div>
