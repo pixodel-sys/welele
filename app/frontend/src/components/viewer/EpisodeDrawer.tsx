@@ -23,7 +23,7 @@ export const EpisodeDrawer: React.FC<EpisodeDrawerProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/70 backdrop-blur-sm animate-fade-in">
+    <div className="fixed inset-0 z-[999] flex justify-end bg-black/70 backdrop-blur-sm animate-fade-in">
       <div className="w-full max-w-md bg-welele-surface h-full border-l border-white/10 p-5 flex flex-col shadow-2xl animate-slide-left">
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-white/10">
@@ -41,9 +41,9 @@ export const EpisodeDrawer: React.FC<EpisodeDrawerProps> = ({
           <button
             onClick={onClose}
             aria-label="Close Episode Drawer"
-            className="w-8 h-8 rounded-[7px] bg-white/5 hover:bg-white/10 flex items-center justify-center text-welele-muted hover:text-white"
+            className="w-9 h-9 rounded-[7px] bg-white/10 hover:bg-white/20 active:scale-95 flex items-center justify-center text-white border border-white/15 transition-all shadow-md cursor-pointer"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 

@@ -97,7 +97,7 @@ export const App: React.FC = () => {
       <Header />
 
       {/* Main App Content Viewport */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-5 relative z-10">
+      <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-5 relative">
         {/* MODE: VIEWER */}
         {mode === 'viewer' && (
           <div className="w-full">
