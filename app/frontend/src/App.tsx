@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from './context/AppContext';
 import { Header } from './components/common/Header';
 import { BottomNav } from './components/common/BottomNav';
@@ -13,8 +13,9 @@ import { DiscoverScreen } from './components/viewer/DiscoverScreen';
 import { VerticalPlayer } from './components/viewer/VerticalPlayer';
 import { ProfileScreen } from './components/viewer/ProfileScreen';
 import { CreatorStudioShell } from './components/creator/CreatorStudioShell';
+import { CreatorStudioGate } from './components/creator/CreatorStudioGate';
 import { AdminDashboard } from './components/admin/AdminDashboard';
-import { RequireRole } from './components/common/RequireRole';
+import { AdminGate } from './components/admin/AdminGate';
 import { Story, Episode } from './types';
 import { Bookmark, Play, Star, ShieldAlert } from 'lucide-react';
 import { useContentProtection } from './hooks/useContentProtection';
@@ -23,6 +24,7 @@ export const App: React.FC = () => {
   const {
     mode,
     setMode,
+    user,
     stories,
     bookmarks,
     setCurrentStory,
@@ -31,6 +33,25 @@ export const App: React.FC = () => {
     setShowSplash,
     userId,
   } = useApp();
+
+  // Sync URL Path with Operational Surface
+  useEffect(() => {
+    const handleLocation = () => {
+      const path = window.location.pathname.toLowerCase();
+      const params = new URLSearchParams(window.location.search);
+      const portal = params.get('portal');
+      if (path === '/creator' || path.startsWith('/creator/') || portal === 'creator') {
+        setMode('creator');
+      } else if (path === '/admin' || path.startsWith('/admin/') || portal === 'admin') {
+        setMode('admin');
+      } else if (path === '/' || path === '') {
+        setMode('viewer');
+      }
+    };
+    handleLocation();
+    window.addEventListener('popstate', handleLocation);
+    return () => window.removeEventListener('popstate', handleLocation);
+  }, [setMode]);
 
   const { isSecurityAlertActive, securityMessage } = useContentProtection({
     enabled: true,
@@ -165,18 +186,22 @@ export const App: React.FC = () => {
           </div>
         )}
 
-        {/* MODE: CREATOR STUDIO (Creator Operating System) */}
+        {/* MODE: CREATOR STUDIO (Creator Operating System: /creator) */}
         {mode === 'creator' && (
-          <RequireRole allowedRoles={['creator', 'admin']} fallbackMode="viewer">
+          user?.role === 'creator' || user?.role === 'admin' ? (
             <CreatorStudioShell />
-          </RequireRole>
+          ) : (
+            <CreatorStudioGate />
+          )
         )}
 
-        {/* MODE: ADMIN CONSOLE (Desktop Workstation) */}
+        {/* MODE: ADMIN CONSOLE (Enterprise Control Plane: /admin) */}
         {mode === 'admin' && (
-          <RequireRole allowedRoles={['admin']} fallbackMode="viewer">
+          user?.role === 'admin' ? (
             <AdminDashboard />
-          </RequireRole>
+          ) : (
+            <AdminGate />
+          )
         )}
       </main>
 

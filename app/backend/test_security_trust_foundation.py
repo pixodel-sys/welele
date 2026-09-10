@@ -175,5 +175,37 @@ def test_audit_domains_coverage():
     print(f"[PASS] Active Audit Domains Recorded in Ledger: {sorted(list(domains_logged))}")
     assert "SECURITY" in domains_logged or "CONTENT" in domains_logged or "AUTH" in domains_logged
 
+def test_url_tampering_and_route_switching_cannot_bypass_authorization():
+    """
+    Acceptance Test: Changing URL or attempting route switching without authorized credentials
+    must never bypass backend RBAC authorization and tenant isolation.
+    """
+    # 1. Anonymous / Unauthenticated requests to Creator and Admin endpoints
+    assert client.get("/api/admin/moderation-queue").status_code in [401, 403]
+    assert client.post("/api/experience/page/home/publish").status_code in [401, 403]
+    assert client.get("/api/creators/creator_zola/dashboard").status_code in [401, 403]
+    assert client.post("/api/creators/episodes/add", json={"series_id": "story_blood_ties", "title": "Bypass"}).status_code in [401, 403]
+
+    # 2. Viewer Role Token attempting Creator and Admin endpoints
+    viewer_token = create_access_token(user_id="viewer_mobile_user", role="viewer", market="ZA")
+    viewer_headers = {"Authorization": f"Bearer {viewer_token}"}
+    
+    assert client.get("/api/creators/creator_zola/dashboard", headers=viewer_headers).status_code == 403
+    assert client.post("/api/creators/episodes/add", json={"series_id": "story_blood_ties", "title": "Bypass"}, headers=viewer_headers).status_code == 403
+    assert client.get("/api/admin/moderation-queue", headers=viewer_headers).status_code == 403
+    assert client.post("/api/experience/page/home/publish", headers=viewer_headers).status_code == 403
+    assert client.get("/api/admin/audit-logs", headers=viewer_headers).status_code == 403
+
+    # 3. Creator Role Token attempting Admin-Only endpoints
+    creator_token = create_access_token(user_id="creator_zola", role="creator", creator_id="creator_zola")
+    creator_headers = {"Authorization": f"Bearer {creator_token}"}
+    
+    assert client.get("/api/admin/moderation-queue", headers=creator_headers).status_code == 403
+    assert client.post("/api/experience/page/home/publish", headers=creator_headers).status_code == 403
+    assert client.get("/api/admin/audit-logs", headers=creator_headers).status_code == 403
+
+    print("[PASS] URL/Route Switching Security: Zero capability leakage across unauthenticated, viewer, and creator contexts.")
+
 if __name__ == "__main__":
     pytest.main(["-v", "backend/test_security_trust_foundation.py"])
+

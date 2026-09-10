@@ -303,13 +303,15 @@ export const ProfileScreen: React.FC = () => {
           </select>
         </div>
 
-        {/* Switch to Creator Studio (with Desktop Gate) */}
-        <button
-          onClick={() => attemptModeChange('creator')}
-          className="w-full mt-2 py-3 rounded-[7px] bg-gradient-to-r from-welele-pink to-welele-magenta text-white font-bold text-xs shadow-lg shadow-pink-500/20 hover:opacity-90 flex items-center justify-center gap-2"
-        >
-          <Sparkles className="w-4 h-4" /> Open Creator Studio™ (Desktop Workstation)
-        </button>
+        {/* Verified Creator Portal Shortcut (Only visible to authenticated Showrunners & Admins) */}
+        {(user?.role === 'creator' || user?.role === 'admin') && (
+          <button
+            onClick={() => attemptModeChange('creator')}
+            className="w-full mt-2 py-3 rounded-[7px] bg-gradient-to-r from-welele-pink to-welele-magenta text-white font-bold text-xs shadow-lg shadow-pink-500/20 hover:opacity-90 flex items-center justify-center gap-2"
+          >
+            <Sparkles className="w-4 h-4" /> Open Creator Studio™ Workstation
+          </button>
+        )}
 
         {/* Replay Brand Splash Screen Intro */}
         <button
