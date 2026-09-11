@@ -25,7 +25,8 @@ class ExperienceEngine:
             "play_brand_ident": True,
             "brand_ident_url": "/videos/welele_ident.mp4",
             "brand_ident_duration": 5.2,
-            "frequency_capping_minutes": 15,
+            "ident_frequency": 5,
+            "failsafe_buffer": 1.0,
             "experience_rule": "standard",
             "asset": {
                 "id": "welele-brand-ident",

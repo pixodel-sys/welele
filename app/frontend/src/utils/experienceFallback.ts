@@ -1,6 +1,24 @@
-import { ExperienceManifest, ExperienceSection, SlotItem } from '../types/experience';
+import { ExperienceManifest, ExperienceSection, SlotItem, BrandIdentConfig } from '../types/experience';
 import { Story } from '../types';
 import { DEFAULT_STORIES } from '../services/mockData';
+
+export const DEFAULT_BRAND_IDENT_CONFIG: BrandIdentConfig = {
+  play_brand_ident: true,
+  brand_ident_url: '/videos/welele_ident.mp4',
+  brand_ident_duration: 5.2,
+  ident_frequency: 5, // Launch default: 5 (First episode of session + every 5th subsequent)
+  failsafe_buffer: 1.0, // Configurable failsafe watchdog margin
+  experience_rule: 'standard',
+  asset: {
+    id: 'welele-brand-ident',
+    asset_type: 'sonic_visual_ident',
+    name: 'Welele Sonic Visual Ident',
+    url: '/videos/welele_ident.mp4',
+    version: 1,
+    active: true,
+    duration: 5.2,
+  },
+};
 
 /**
  * Hydrates an ExperienceManifest by attaching full Story objects to slot items
@@ -90,6 +108,7 @@ export function getDefaultExperienceManifest(
         theme: 'dark_gold_glow',
         description: 'Explore African short dramas by genre, country, and creator.',
       },
+      brand_config: DEFAULT_BRAND_IDENT_CONFIG,
       sections: [
         {
           section_id: 'sec_discover_grid',
@@ -255,6 +274,7 @@ export function getDefaultExperienceManifest(
       theme: 'dark_gold_glow',
       description: 'Stream high-octane 9:16 vertical micro-dramas produced across South Africa, Nigeria, and Ghana.',
     },
+    brand_config: DEFAULT_BRAND_IDENT_CONFIG,
     sections: [
       {
         section_id: 'sec_hero_home',

@@ -89,8 +89,9 @@ class BrandAsset(BaseModel):
 class BrandIdentConfig(BaseModel):
     play_brand_ident: bool = True
     brand_ident_url: str = "/videos/welele_ident.mp4"
-    brand_ident_duration: float = 5.2
-    frequency_capping_minutes: int = 15
+    brand_ident_duration: Optional[float] = 5.2
+    ident_frequency: int = 5
+    failsafe_buffer: float = 1.0
     experience_rule: Literal["standard", "first_visit", "originals", "special_event", "creator_premiere"] = "standard"
     asset: Optional[BrandAsset] = None
 

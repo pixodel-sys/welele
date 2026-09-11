@@ -32,27 +32,19 @@ import {
 } from 'lucide-react';
 import { useContentProtection } from '../../hooks/useContentProtection';
 import { mediaStore } from '../../services/mediaStore';
-
-const IDENT_STORAGE_KEY = 'welele_last_brand_ident_time';
-const IDENT_FREQ_MS = 15 * 60 * 1000; // 15-minute frequency cap across binge session
-const BRAND_IDENT_URL = '/videos/welele_ident.mp4';
-
-const checkShouldPlayIdent = () => {
-  try {
-    const lastPlayed = sessionStorage.getItem(IDENT_STORAGE_KEY);
-    if (!lastPlayed) return true;
-    const diff = Date.now() - parseInt(lastPlayed, 10);
-    return isNaN(diff) || diff > IDENT_FREQ_MS;
-  } catch {
-    return true;
-  }
-};
+import { BrandIdentConfig } from '../../types/experience';
+import { DEFAULT_BRAND_IDENT_CONFIG } from '../../utils/experienceFallback';
+import { evaluateEpisodeIdentTrigger, computeWatchdogMs } from '../../services/brandIdentPolicy';
 
 interface VerticalPlayerProps {
   onBack?: () => void;
+  brandConfig?: BrandIdentConfig;
 }
 
-export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
+export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
+  onBack,
+  brandConfig = DEFAULT_BRAND_IDENT_CONFIG,
+}) => {
   const {
     currentStory,
     currentEpisode,
@@ -86,8 +78,12 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
   const identTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const nextVideoPreloadRef = useRef<HTMLVideoElement>(null);
   const sessionIdRef = useRef<string>(`sess_${Math.random().toString(36).substring(2, 10)}`);
+  const lastEvaluatedEpisodeIdRef = useRef<string | null>(null);
 
-  const [isIdentPlaying, setIsIdentPlaying] = useState<boolean>(checkShouldPlayIdent);
+  const [isIdentPlaying, setIsIdentPlaying] = useState<boolean>(() => {
+    lastEvaluatedEpisodeIdRef.current = currentEpisode?.id || null;
+    return evaluateEpisodeIdentTrigger(brandConfig);
+  });
   const [isIdentMuted, setIsIdentMuted] = useState<boolean>(false);
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
   const [isMuted, setIsMuted] = useState<boolean>(false);
@@ -464,13 +460,6 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
       identTimeoutRef.current = null;
     }
     setIsIdentPlaying(false);
-    if (wasMeaningfulAttempt) {
-      try {
-        sessionStorage.setItem(IDENT_STORAGE_KEY, Date.now().toString());
-      } catch (e) {
-        console.warn('[VerticalPlayer] Ident storage write error:', e);
-      }
-    }
     if (videoRef.current) {
       videoRef.current.currentTime = 0;
       videoRef.current.play().catch((err) => {
@@ -480,7 +469,24 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
     resetControlsTimer();
   };
 
-  // Robust Brand Ident Audio Autoplay with Visual Muted Fallback & 5.8s Failsafe
+  // Helper to dynamically arm the watchdog failsafe
+  const armIdentWatchdog = (durationSeconds?: number | null) => {
+    if (identTimeoutRef.current) {
+      clearTimeout(identTimeoutRef.current);
+      identTimeoutRef.current = null;
+    }
+    const timeoutMs = computeWatchdogMs(
+      durationSeconds,
+      brandConfig.failsafe_buffer ?? 1.0,
+      brandConfig.brand_ident_duration ?? 5.2
+    );
+    identTimeoutRef.current = setTimeout(() => {
+      console.warn(`[VerticalPlayer] Brand ident watchdog triggered after ${timeoutMs}ms failsafe window`);
+      handleIdentFinished(true);
+    }, timeoutMs);
+  };
+
+  // Robust Brand Ident Audio Autoplay with Visual Muted Fallback & Dynamic Asset-Driven Watchdog
   useEffect(() => {
     if (isIdentPlaying) {
       const identEl = identVideoRef.current;
@@ -509,10 +515,8 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
           });
       }
 
-      // 5.8s Failsafe watchdog timer
-      identTimeoutRef.current = setTimeout(() => {
-        handleIdentFinished(true);
-      }, 5800);
+      // Initial watchdog arming (updated dynamically when onLoadedMetadata fires)
+      armIdentWatchdog(identEl?.duration || brandConfig.brand_ident_duration || 5.2);
 
       return () => {
         if (identTimeoutRef.current) {
@@ -521,9 +525,9 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
         }
       };
     }
-  }, [isIdentPlaying]);
+  }, [isIdentPlaying, brandConfig]);
 
-  // Load comments & reset playback whenever episode changes
+  // Load comments & reset playback whenever episode changes (Direct selection & auto-advance)
   useEffect(() => {
     if (episodeId) {
       loadEpisodeComments(episodeId);
@@ -532,13 +536,17 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
       setShowCliffhangerPrompt(false);
       setIsPlaying(true);
 
-      const shouldPlayIdent = checkShouldPlayIdent();
-      setIsIdentPlaying(shouldPlayIdent);
+      // Deterministic episode-based brand ident evaluation
+      if (episodeId !== lastEvaluatedEpisodeIdRef.current) {
+        lastEvaluatedEpisodeIdRef.current = episodeId;
+        const shouldPlayIdent = evaluateEpisodeIdentTrigger(brandConfig);
+        setIsIdentPlaying(shouldPlayIdent);
 
-      if (videoRef.current) {
-        videoRef.current.currentTime = 0;
-        if (!shouldPlayIdent) {
-          videoRef.current.play().catch(() => {});
+        if (videoRef.current) {
+          videoRef.current.currentTime = 0;
+          if (!shouldPlayIdent) {
+            videoRef.current.play().catch(() => {});
+          }
         }
       }
 
@@ -556,7 +564,7 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
         });
       }
     }
-  }, [episodeId, currentStory, userId]);
+  }, [episodeId, currentStory, userId, brandConfig]);
 
   // Telemetry: 15s periodic heartbeat during active playback
   useEffect(() => {
@@ -893,10 +901,17 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
             <div className="absolute inset-0 z-50 bg-black flex items-center justify-center">
               <video
                 ref={identVideoRef}
-                src={BRAND_IDENT_URL}
+                src={brandConfig.brand_ident_url || brandConfig.asset?.url || '/videos/welele_ident.mp4'}
                 className="w-full h-full object-cover"
                 playsInline
                 muted={isIdentMuted}
+                onLoadedMetadata={() => {
+                  const physicalDuration = identVideoRef.current?.duration;
+                  if (physicalDuration && physicalDuration > 0) {
+                    console.log(`[VerticalPlayer] Discovered physical brand ident duration: ${physicalDuration.toFixed(2)}s`);
+                    armIdentWatchdog(physicalDuration);
+                  }
+                }}
                 onEnded={() => handleIdentFinished(true)}
                 onError={(e) => {
                   console.warn('[VerticalPlayer] Ident video playback error, advancing to episode:', e);

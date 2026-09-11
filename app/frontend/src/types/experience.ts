@@ -86,6 +86,26 @@ export interface PageMeta {
   description?: string;
 }
 
+export interface BrandAsset {
+  id: string;
+  asset_type: 'sonic_visual_ident' | 'originals_ident' | 'welcome_ident' | 'campaign_ident';
+  name: string;
+  url: string;
+  version: number;
+  active: boolean;
+  duration?: number;
+}
+
+export interface BrandIdentConfig {
+  play_brand_ident: boolean;
+  brand_ident_url: string;
+  brand_ident_duration?: number;
+  ident_frequency: number; // Launch default: 5 (First episode + every 5th subsequent episode)
+  failsafe_buffer?: number; // Configurable buffer in seconds (default: 1.0)
+  experience_rule?: 'standard' | 'first_visit' | 'originals' | 'special_event' | 'creator_premiere';
+  asset?: BrandAsset;
+}
+
 export interface ExperienceManifest {
   page_id: string;
   version: string;
@@ -93,5 +113,6 @@ export interface ExperienceManifest {
   published_at?: string;
   updated_at?: string;
   meta: PageMeta;
+  brand_config?: BrandIdentConfig;
   sections: ExperienceSection[];
 }
