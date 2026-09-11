@@ -1,4 +1,4 @@
-# Environment & Secrets
+﻿# Environment & Secrets
 .env
 .env.local
 .env.*.local
@@ -31,13 +31,15 @@ Thumbs.db
 .vscode/
 .idea/
 
-# Documentation & Non-App Root Assets (Exclude doc, docs, documentation, root markdown)
+# Documentation & Non-App Root Assets (Local only, never push to git)
 /documentation/
 /docs/
 /doc/
 /documentation
 /docs
 /doc
+/App Documentation/
+/App Documentation
 /*.md
 /*.pdf
 /*.jfif
