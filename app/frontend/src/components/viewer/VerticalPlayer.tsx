@@ -339,19 +339,61 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
               mediaSource = 'episodesApi.getStream (HLS)';
               decisionReason = 'Authorised canonical HLS manifest resolved from backend';
             } else {
-              finalUrl = primaryUrl || '/videos/welele_placeholder.mp4';
+              finalUrl = primaryUrl || currentEpisode.video_url || '/videos/ocean_waves.mp4';
               streamType = 'DEFAULT_CATALOG_ASSET';
               mediaSource = 'episodesApi.getStream';
               decisionReason = 'Canonical backend stream returned default catalog asset';
             }
+          } else if (currentEpisode.video_url) {
+            finalUrl = currentEpisode.video_url;
+            streamType = 'CATALOG_FALLBACK_STREAM';
+            mediaSource = 'currentEpisode.video_url (Catalog Seed)';
+            decisionReason = 'Backend stream endpoint returned empty payload; falling back to catalog seed media';
+            setMediaError(null);
           } else {
-            setMediaError('Production media resolution failed: Backend stream endpoint returned empty payload.');
+            setMediaError('Media resolution failed: Backend stream endpoint returned empty payload.');
             decisionReason = 'Backend stream endpoint returned no stream object';
           }
         } catch (apiErr: any) {
-          console.error('[VerticalPlayer] Production stream contract error:', apiErr);
-          setMediaError(`Production stream resolution failed: ${apiErr?.message || 'Server error'}. IndexedDB fallback rejected in production.`);
-          decisionReason = 'Backend stream endpoint failed (HTTP error/network error). IndexedDB fallback blocked in production.';
+          console.warn('[VerticalPlayer] Backend stream API unavailable (Network/Staging):', apiErr);
+          // Graceful fallback to catalog media URL or seed video asset
+          if (currentEpisode.video_url) {
+            finalUrl = currentEpisode.video_url;
+            streamType = 'CATALOG_FALLBACK_STREAM';
+            mediaSource = 'currentEpisode.video_url (Catalog Seed)';
+            decisionReason = 'Backend stream API unavailable (Network/Staging). Falling back gracefully to catalog media.';
+            setMediaError(null);
+          } else {
+            try {
+              const cached = await mediaStore.findEpisodeMedia({
+                seriesId: sId,
+                seriesTitle: currentStory?.title,
+                episodeNumber: epNum,
+                episodeId: epId,
+                title: currentEpisode.title,
+                videoUrl: currentEpisode.video_url,
+              });
+              if (cached) {
+                finalUrl = cached;
+                streamType = 'LOCAL_INDEXED_DB_BLOB';
+                mediaSource = 'mediaStore.findEpisodeMedia';
+                decisionReason = 'Backend unavailable; resolved from local IndexedDB';
+                setMediaError(null);
+              } else {
+                finalUrl = '/videos/ocean_waves.mp4';
+                streamType = 'SEED_FALLBACK_STREAM';
+                mediaSource = 'Default Seed Video';
+                decisionReason = 'Backend unavailable; using default seed video fallback';
+                setMediaError(null);
+              }
+            } catch {
+              finalUrl = '/videos/ocean_waves.mp4';
+              streamType = 'SEED_FALLBACK_STREAM';
+              mediaSource = 'Default Seed Video';
+              decisionReason = 'Backend unavailable; using default seed video fallback';
+              setMediaError(null);
+            }
+          }
         }
       }
 
