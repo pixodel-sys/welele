@@ -4,11 +4,57 @@ Direct Presigned Upload URL generation for S3 / Cloudflare R2 / Supabase Storage
 """
 
 from typing import Optional, Dict, Any, List
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel
 from services.storage_service import storage_service
 
 router = APIRouter(prefix="/storage", tags=["Cloud Storage & Video Delivery (Pillar 4)"])
+
+class BinaryUploadResponse(BaseModel):
+    success: bool
+    storage_key: str
+    public_cdn_url: str
+    file_size_bytes: int
+    content_type: str
+    provider: str
+
+@router.post("/upload-binary", response_model=BinaryUploadResponse)
+async def upload_binary_master(
+    file: UploadFile = File(...),
+    series_id: str = Form(...),
+    episode_id: Optional[str] = Form(None),
+    episode_number: Optional[int] = Form(None)
+):
+    """
+    Direct binary ingestion endpoint: Uploads video file bytes to object storage.
+    Returns authoritative storage_key and public_cdn_url.
+    """
+    try:
+        contents = await file.read()
+        if not contents:
+            raise HTTPException(status_code=400, detail="Empty video file payload")
+        
+        result = storage_service.save_binary_master(
+            file_bytes=contents,
+            story_id=series_id,
+            episode_id=episode_id,
+            episode_number=episode_number,
+            filename=file.filename or "master.mp4",
+            content_type=file.content_type or "video/mp4"
+        )
+        return {
+            "success": True,
+            "storage_key": result["storage_key"],
+            "public_cdn_url": result["public_cdn_url"],
+            "file_size_bytes": result["file_size_bytes"],
+            "content_type": result["content_type"],
+            "provider": result["provider"]
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 class PresignedUploadRequest(BaseModel):
     story_id: str

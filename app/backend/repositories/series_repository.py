@@ -710,6 +710,8 @@ class SeriesRepository(BaseRepository):
                     ep_copy["hls_url"] = media.get("hls_master_manifest_url")
                     ep_copy["thumbnail_url"] = media.get("thumbnail_url", s_copy.get("vertical_poster"))
                     ep_copy["renditions"] = media.get("renditions_json")
+                    ep_copy["media_asset_id"] = media.get("id")
+                    ep_copy["storage_key"] = media.get("storage_key")
                 else:
                     ep_copy["video_url"] = "/videos/welele_placeholder.mp4"
                 hydrated_eps.append(ep_copy)

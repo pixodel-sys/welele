@@ -918,7 +918,7 @@
       "verified": true,
       "followers_count": 420000,
       "total_views": 8420000,
-      "coin_earnings": 284000,
+      "coin_earnings": 284030,
       "payout_balance": 1890.0
     },
     {
@@ -1553,6 +1553,60 @@
       "text": "This cliffhanger is insane!",
       "likes": 0,
       "time_ago": "Just now"
+    },
+    {
+      "id": "c_f102b2ef",
+      "episode_id": "ep_bt_1",
+      "user_name": "Lerato Khumalo",
+      "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80",
+      "text": "This cliffhanger is insane!",
+      "likes": 0,
+      "time_ago": "Just now"
+    },
+    {
+      "id": "c_c85d88cd",
+      "episode_id": "ep_bt_1",
+      "user_name": "Lerato Khumalo",
+      "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80",
+      "text": "This cliffhanger is insane!",
+      "likes": 0,
+      "time_ago": "Just now"
+    },
+    {
+      "id": "c_21a209ef",
+      "episode_id": "ep_bt_1",
+      "user_name": "Lerato Khumalo",
+      "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80",
+      "text": "This cliffhanger is insane!",
+      "likes": 0,
+      "time_ago": "Just now"
+    },
+    {
+      "id": "c_3558110a",
+      "episode_id": "ep_bt_1",
+      "user_name": "Lerato Khumalo",
+      "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80",
+      "text": "This cliffhanger is insane!",
+      "likes": 0,
+      "time_ago": "Just now"
+    },
+    {
+      "id": "c_fd9fd9e4",
+      "episode_id": "ep_bt_1",
+      "user_name": "Lerato Khumalo",
+      "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80",
+      "text": "This cliffhanger is insane!",
+      "likes": 0,
+      "time_ago": "Just now"
+    },
+    {
+      "id": "c_3c3b30bb",
+      "episode_id": "ep_bt_1",
+      "user_name": "Lerato Khumalo",
+      "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80",
+      "text": "This cliffhanger is insane!",
+      "likes": 0,
+      "time_ago": "Just now"
     }
   ],
   "reactions": [
@@ -1868,7 +1922,7 @@
       "version": "1.0.0",
       "status": "draft",
       "published_at": "2026-08-01T00:00:00Z",
-      "updated_at": "2026-09-10T21:29:42.487335+00:00",
+      "updated_at": "2026-09-11T11:33:33.293923+00:00",
       "meta": {
         "title": "Welele™ | Curated African Dramas",
         "theme": "dark_gold_glow",
@@ -2449,10 +2503,10 @@
     },
     {
       "page_id": "home",
-      "version": "2026.09.10.v787",
+      "version": "2026.09.11.v422",
       "status": "published",
-      "published_at": "2026-09-10T21:29:47.954928+00:00",
-      "updated_at": "2026-09-10T21:29:47.954928+00:00",
+      "published_at": "2026-09-11T11:33:42.687210+00:00",
+      "updated_at": "2026-09-11T11:33:42.687210+00:00",
       "meta": {
         "title": "Welele™ | Curated African Dramas",
         "theme": "dark_gold_glow",

@@ -106,6 +106,28 @@ export const EpisodeUploader: React.FC<EpisodeUploaderProps> = ({ onBack, onSucc
     setIsSubmitting(true);
     try {
       const targetStory = stories.find((s) => s.id === selectedSeriesId);
+
+      // 1. Ingest binary to Object Storage
+      let canonicalStorageKey: string | undefined;
+      let canonicalVideoUrl = videoUrl.startsWith('blob:') ? '/videos/welele_placeholder.mp4' : videoUrl;
+
+      if (videoFile) {
+        try {
+          const uploadRes = await storageApi.uploadBinary(
+            videoFile,
+            selectedSeriesId,
+            Number(episodeNumber)
+          );
+          if (uploadRes && uploadRes.storage_key) {
+            canonicalStorageKey = uploadRes.storage_key;
+            canonicalVideoUrl = uploadRes.public_cdn_url;
+          }
+        } catch (uploadErr) {
+          console.error('[EpisodeUploader] Binary upload failed:', uploadErr);
+        }
+      }
+
+      // 2. Also save to IndexedDB for local developer/offline cache
       if (videoFile) {
         await mediaStore.saveEpisodeMedia({
           seriesId: selectedSeriesId,
@@ -120,7 +142,8 @@ export const EpisodeUploader: React.FC<EpisodeUploaderProps> = ({ onBack, onSucc
         episode_number: Number(episodeNumber),
         title,
         synopsis,
-        video_url: videoUrl,
+        video_url: canonicalVideoUrl,
+        storage_key: canonicalStorageKey,
         thumbnail_url: thumbnailUrl,
         duration_seconds: Number(durationSeconds),
         is_free: isFree,

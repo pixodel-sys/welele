@@ -139,6 +139,35 @@ export const walletApi = {
 };
 
 export const storageApi = {
+  uploadBinary: async (
+    file: File,
+    series_id: string,
+    episode_number?: number,
+    episode_id?: string
+  ): Promise<{
+    success: boolean;
+    storage_key: string;
+    public_cdn_url: string;
+    file_size_bytes: number;
+    content_type: string;
+    provider: string;
+  }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('series_id', series_id);
+    if (episode_number !== undefined) {
+      formData.append('episode_number', episode_number.toString());
+    }
+    if (episode_id) {
+      formData.append('episode_id', episode_id);
+    }
+    const res = await API.post('/storage/upload-binary', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return res.data;
+  },
   getPresignedUploadUrl: async (story_id: string, episode_number: number, filename: string) => {
     const res = await API.post('/storage/presigned-upload', {
       story_id,

@@ -399,7 +399,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           }
           for (const s of data.stories) {
             const found = s.episodes?.find((e) => e.id === prevEp.id || (e.series_id === prevEp.series_id && e.episode_number === prevEp.episode_number));
-            if (found) return found;
+            if (found) {
+              // Preserve active local media reference if available, while updating server metadata
+              return {
+                ...found,
+                video_url: prevEp.video_url && !prevEp.video_url.includes('/videos/welele_placeholder.mp4')
+                  ? prevEp.video_url
+                  : found.video_url,
+              };
+            }
           }
           return data.stories[0]?.episodes?.[0] || prevEp;
         });

@@ -3,10 +3,13 @@ Welele Media™ — Backend Application Entry Point & Router Registration
 Architecture: FastAPI Asynchronous Micro-Service Hub with 8 Frozen Pillars & Digital IP Engine
 """
 
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from config import settings
 from seed_data import seed_database_if_empty
+
 
 # Canonical Domain Routers (Manifesto Specification 5.1 & Digital IP Spine)
 from routers import (
@@ -46,6 +49,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Mount local physical object storage directory for media delivery
+media_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "media_storage")
+os.makedirs(media_dir, exist_ok=True)
+app.mount("/media", StaticFiles(directory=media_dir), name="media")
+
 
 # -----------------------------------------------------------------------------
 # Register Canonical Domain Routers (Digital IP Spine)

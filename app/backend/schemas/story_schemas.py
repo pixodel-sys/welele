@@ -81,6 +81,8 @@ class CreateEpisodeRequest(BaseModel):
     title: str
     synopsis: str = ""
     video_url: str = "/videos/welele_placeholder.mp4"
+    storage_key: Optional[str] = None
+    media_asset_id: Optional[str] = None
     thumbnail_url: Optional[str] = None
     duration_seconds: int = 60
     is_free: bool = True
@@ -90,3 +92,4 @@ class CreateEpisodeRequest(BaseModel):
     status: str = "under_review"
     scheduled_at: Optional[str] = None
     preflight_health: Optional[Dict[str, Any]] = None
+

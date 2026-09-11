@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import Hls from 'hls.js';
 import { useApp } from '../../context/AppContext';
 import { useChat } from '../../context/ChatContext';
 import { EpisodeDrawer } from './EpisodeDrawer';
@@ -80,6 +81,7 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
   const { triggerReaction, loadEpisodeComments, comments, addComment } = useChat();
 
   const videoRef = useRef<HTMLVideoElement>(null);
+  const hlsRef = useRef<Hls | null>(null);
   const identVideoRef = useRef<HTMLVideoElement>(null);
   const identTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const nextVideoPreloadRef = useRef<HTMLVideoElement>(null);
@@ -206,67 +208,182 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
     }
   };
 
-  // Resolve media from persistent IndexedDB mediaStore if custom uploaded
+  // Canonical Video Stream Mounting Helper (HLS / Native / Direct MP4)
+  const attachVideoStream = (videoEl: HTMLVideoElement, url: string, isHlsManifest: boolean) => {
+    if (hlsRef.current) {
+      hlsRef.current.destroy();
+      hlsRef.current = null;
+    }
+
+    if (isHlsManifest) {
+      if (Hls.isSupported()) {
+        const hls = new Hls({
+          enableWorker: true,
+          lowLatencyMode: true,
+        });
+        hls.loadSource(url);
+        hls.attachMedia(videoEl);
+        hlsRef.current = hls;
+      } else if (videoEl.canPlayType('application/vnd.apple.mpegurl')) {
+        videoEl.src = url;
+        videoEl.load();
+      } else {
+        videoEl.src = url;
+        videoEl.load();
+      }
+    } else {
+      videoEl.src = url;
+      videoEl.load();
+    }
+  };
+
+  // Cleanup HLS on unmount
+  useEffect(() => {
+    return () => {
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+    };
+  }, []);
+
+  // Strict Separation: Canonical Production vs Local/Dev Media Resolution Pipeline
   useEffect(() => {
     if (!currentEpisode) return;
     let isCancelled = false;
 
     const resolveMedia = async () => {
       setMediaError(null);
-      try {
-        const allKeys = await mediaStore.getAllStoredKeys();
-        setStoredDbKeys(allKeys);
+      const sId = currentEpisode.series_id || currentStory?.id || '';
+      const epId = currentEpisode.id;
+      const epNum = currentEpisode.episode_number;
 
-        const cached = await mediaStore.findEpisodeMedia({
-          seriesId: currentEpisode.series_id || currentStory?.id,
-          seriesTitle: currentStory?.title,
-          episodeNumber: currentEpisode.episode_number,
-          episodeId: currentEpisode.id,
-          title: currentEpisode.title,
-          videoUrl: currentEpisode.video_url,
-        });
+      // Authoritative Playback Invariant: In production, episodesApi.getStream() is authoritative.
+      // blob: URLs must never hijack the production media decision.
+      const isExplicitLocalDevDraft =
+        Boolean(currentEpisode.id?.startsWith('ep_local_')) ||
+        Boolean(currentEpisode.series_id?.startsWith('story_local_'));
 
-        if (!isCancelled && cached) {
-          console.log('[VerticalPlayer] Successfully resolved media URL:', cached);
-          setResolvedVideoUrl(cached);
-          setResolvedSourceKey('IndexedDB Blob Cache');
-          if (videoRef.current) {
-            videoRef.current.src = cached;
-            videoRef.current.load();
-            if (isPlaying) {
-              videoRef.current.play().catch((err) => {
-                console.warn('[VerticalPlayer] Autoplay error:', err);
-              });
-            }
+      const resolutionMode: 'PRODUCTION_CANONICAL' | 'LOCAL_DEV' = isExplicitLocalDevDraft
+        ? 'LOCAL_DEV'
+        : 'PRODUCTION_CANONICAL';
+
+
+      let finalUrl = '';
+      let streamType = '';
+      let mediaSource = '';
+      let decisionReason = '';
+      let mediaAssetId = currentEpisode.media_asset_id || `media_${epId}`;
+      let storageKey = currentEpisode.storage_key || `masters/${sId}/${epId}.mp4`;
+      let isHls = false;
+
+      if (resolutionMode === 'LOCAL_DEV') {
+        // ==========================================
+        // 1. LOCAL / DEV RESOLUTION PATH
+        // ==========================================
+        try {
+          const allKeys = await mediaStore.getAllStoredKeys();
+          if (!isCancelled) setStoredDbKeys(allKeys);
+
+          const cached = await mediaStore.findEpisodeMedia({
+            seriesId: sId,
+            seriesTitle: currentStory?.title,
+            episodeNumber: epNum,
+            episodeId: epId,
+            title: currentEpisode.title,
+            videoUrl: currentEpisode.video_url,
+          });
+
+          if (cached) {
+            finalUrl = cached;
+            streamType = 'LOCAL_INDEXED_DB_BLOB';
+            mediaSource = 'mediaStore.findEpisodeMedia (LOCAL_DEV)';
+            decisionReason = 'Resolved from local IndexedDB binary store for in-session creator draft / local dev';
+          } else {
+            setMediaError('Local/Dev asset not found in IndexedDB. Please re-attach the video master.');
+            decisionReason = 'Local session blob expired with no matching binary in IndexedDB';
           }
-          return;
+        } catch (dbErr: any) {
+          setMediaError(`IndexedDB query failed: ${dbErr?.message || dbErr}`);
+          decisionReason = 'IndexedDB query threw an exception in local/dev mode';
         }
-      } catch (e: any) {
-        console.warn('[VerticalPlayer] Error retrieving cached media:', e);
-        setMediaError(e?.message || 'Failed to query local media database');
+      } else {
+        // ==========================================
+        // 2. CANONICAL PRODUCTION RESOLUTION PATH
+        // (Episode -> MediaAsset -> Storage -> AuthorisedStream)
+        // ==========================================
+        try {
+          const streamData = await episodesApi.getStream(sId, epId, userId);
+          if (streamData && streamData.stream) {
+            const streamObj = streamData.stream;
+            mediaAssetId = streamData.media_asset_id || mediaAssetId;
+            storageKey = streamData.storage_key || storageKey;
+
+            const primaryUrl = streamObj.primary_url;
+            const hlsUrl = streamObj.hls_manifest;
+
+            if (primaryUrl && !primaryUrl.includes('/videos/welele_placeholder.mp4')) {
+              finalUrl = primaryUrl;
+              isHls = false;
+              streamType = 'CANONICAL_CDN_STREAM';
+              mediaSource = 'episodesApi.getStream';
+              decisionReason = streamData.is_unlocked
+                ? 'Authorised canonical production stream resolved from backend'
+                : 'Canonical production preview stream resolved from backend';
+            } else if (hlsUrl && !hlsUrl.includes('/videos/welele_placeholder')) {
+              finalUrl = hlsUrl;
+              isHls = true;
+              streamType = 'HLS_MANIFEST';
+              mediaSource = 'episodesApi.getStream (HLS)';
+              decisionReason = 'Authorised canonical HLS manifest resolved from backend';
+            } else {
+              finalUrl = primaryUrl || '/videos/welele_placeholder.mp4';
+              streamType = 'DEFAULT_CATALOG_ASSET';
+              mediaSource = 'episodesApi.getStream';
+              decisionReason = 'Canonical backend stream returned default catalog asset';
+            }
+          } else {
+            setMediaError('Production media resolution failed: Backend stream endpoint returned empty payload.');
+            decisionReason = 'Backend stream endpoint returned no stream object';
+          }
+        } catch (apiErr: any) {
+          console.error('[VerticalPlayer] Production stream contract error:', apiErr);
+          setMediaError(`Production stream resolution failed: ${apiErr?.message || 'Server error'}. IndexedDB fallback rejected in production.`);
+          decisionReason = 'Backend stream endpoint failed (HTTP error/network error). IndexedDB fallback blocked in production.';
+        }
       }
 
-      if (!isCancelled) {
-        const rawUrl = currentEpisode.video_url || '';
-        if (rawUrl && !rawUrl.startsWith('blob:')) {
-          console.log('[VerticalPlayer] Using raw episode video URL:', rawUrl);
-          setResolvedVideoUrl(rawUrl);
-          setResolvedSourceKey('Raw Remote URL');
-          if (videoRef.current) {
-            videoRef.current.src = rawUrl;
-            videoRef.current.load();
-            if (isPlaying) {
-              videoRef.current.play().catch((err) => {
-                console.warn('[VerticalPlayer] Autoplay error:', err);
-              });
-            }
+      if (isCancelled) return;
+
+      // Full Lineage Diagnostic Logging (Episode -> MediaAsset -> Storage -> Stream -> Video)
+      console.log(
+        `%c[VerticalPlayer:MediaDecision] ${currentEpisode.title} (Ep #${epNum})`,
+        'background: #111; color: #00E676; font-weight: bold; padding: 2px 6px; border-radius: 4px;',
+        {
+          episodeId: epId,
+          seriesId: sId,
+          isUnlocked: Boolean(isUnlocked),
+          returnedStreamUrl: finalUrl,
+          mediaAssetId,
+          storageKey,
+          resolutionMode,
+          streamType,
+          mediaSource,
+          decisionReason,
+        }
+      );
+
+      setResolvedVideoUrl(finalUrl);
+      setResolvedSourceKey(`${resolutionMode} • ${streamType}`);
+
+      if (videoRef.current && finalUrl) {
+        if (videoRef.current.src !== finalUrl && !videoRef.current.src.endsWith(finalUrl)) {
+          attachVideoStream(videoRef.current, finalUrl, isHls);
+          if (isPlaying && !isIdentPlaying) {
+            videoRef.current.play().catch((err) => {
+              console.warn('[VerticalPlayer] Autoplay error:', err);
+            });
           }
-        } else {
-          // If raw URL is an expired blob: or empty, mark as un-cached so user can attach
-          console.warn('[VerticalPlayer] Expired blob URL from previous session, awaiting IndexedDB cache.');
-          setResolvedVideoUrl('');
-          setResolvedSourceKey('Expired Session URL');
-          setMediaError('Expired session blob URL. Click below to attach your local video master for permanent IndexedDB playback.');
         }
       }
     };
@@ -276,20 +393,19 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
     return () => {
       isCancelled = true;
     };
-  }, [currentEpisode, currentStory]);
+  }, [currentEpisode, currentStory, userId, isUnlocked, isPlaying, isIdentPlaying]);
 
-  // Synchronize video element when resolvedVideoUrl updates from IndexedDB
+  // Synchronize video element when resolvedVideoUrl updates
   useEffect(() => {
     if (videoRef.current && resolvedVideoUrl) {
       if (videoRef.current.src !== resolvedVideoUrl && !videoRef.current.src.endsWith(resolvedVideoUrl)) {
-        videoRef.current.src = resolvedVideoUrl;
-        videoRef.current.load();
-        if (isPlaying) {
+        attachVideoStream(videoRef.current, resolvedVideoUrl, resolvedVideoUrl.endsWith('.m3u8'));
+        if (isPlaying && !isIdentPlaying) {
           videoRef.current.play().catch(() => {});
         }
       }
     }
-  }, [resolvedVideoUrl, isPlaying]);
+  }, [resolvedVideoUrl, isPlaying, isIdentPlaying]);
 
   // Next episode calculation for chunked buffer preloading (Pillar 4 / Sec 4.2)
   const currentIndex = currentStory?.episodes.findIndex((e) => e.id === currentEpisode?.id) ?? -1;
@@ -425,7 +541,7 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
 
     setIsUnlocking(true);
     try {
-      // Call canonical unlock endpoint with double-entry ledger verification
+      // 1. Call canonical unlock endpoint with double-entry ledger verification
       await episodesApi.unlock(currentStory.id, currentEpisode.id, userId, 'COINS');
       unlockEpisodeLocal(currentEpisode.id, cost);
 
@@ -435,6 +551,46 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
         origin: { y: 0.5 },
         colors: ['#FF9D00', '#FFC400', '#39D353'],
       });
+
+      // 2. Immediately request the authoritative stream from canonical endpoint
+      try {
+        const streamData = await episodesApi.getStream(currentStory.id, currentEpisode.id, userId);
+        if (streamData && streamData.stream) {
+          const canonicalUrl = streamData.stream.primary_url || streamData.stream.hls_manifest;
+          const mediaAssetId = streamData.media_asset_id || `media_${currentEpisode.id}`;
+          const storageKey = streamData.storage_key || `masters/${currentStory.id}/${currentEpisode.id}.mp4`;
+          const isHls = Boolean(canonicalUrl?.endsWith('.m3u8'));
+
+          if (canonicalUrl && !canonicalUrl.includes('/videos/welele_placeholder.mp4')) {
+            console.log(
+              `%c[VerticalPlayer:MediaDecision:PostUnlock] ${currentEpisode.title} (Ep #${currentEpisode.episode_number})`,
+              'background: #00E676; color: #000; font-weight: bold; padding: 2px 6px;',
+              {
+                episodeId: currentEpisode.id,
+                seriesId: currentStory.id,
+                isUnlocked: true,
+                returnedStreamUrl: canonicalUrl,
+                mediaAssetId,
+                storageKey,
+                resolutionMode: 'PRODUCTION_CANONICAL',
+                streamType: isHls ? 'HLS_MANIFEST' : 'CANONICAL_CDN_STREAM',
+                mediaSource: 'episodesApi.getStream (POST-UNLOCK)',
+                decisionReason: 'Immediately resolved from canonical backend stream endpoint after successful coin unlock',
+              }
+            );
+            setResolvedVideoUrl(canonicalUrl);
+            setResolvedSourceKey(`PRODUCTION_CANONICAL • ${isHls ? 'HLS_MANIFEST' : 'CANONICAL_CDN_STREAM'}`);
+            if (videoRef.current) {
+              attachVideoStream(videoRef.current, canonicalUrl, isHls);
+              if (isPlaying && !isIdentPlaying) {
+                videoRef.current.play().catch(() => {});
+              }
+            }
+          }
+        }
+      } catch (streamErr) {
+        console.warn('[VerticalPlayer] Error retrieving stream post-coin-unlock:', streamErr);
+      }
     } catch (err) {
       console.error('Episode unlock failed:', err);
       // Fallback
@@ -456,6 +612,7 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
     setIsAirtimeUnlocking(true);
 
     try {
+      // 1. Deduct airtime and establish entitlement
       await quickAirtimeUnlock(currentEpisode.id, currentStory.id, 3.0, 5);
 
       confetti({
@@ -467,6 +624,46 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
 
       setAirtimeToast(`✨ R3.00 deducted from ${selectedCarrier.replace('_', ' ').toUpperCase()} Airtime. Unlocked!`);
       setTimeout(() => setAirtimeToast(null), 4000);
+
+      // 2. Immediately request the authoritative stream from canonical endpoint
+      try {
+        const streamData = await episodesApi.getStream(currentStory.id, currentEpisode.id, userId);
+        if (streamData && streamData.stream) {
+          const canonicalUrl = streamData.stream.primary_url || streamData.stream.hls_manifest;
+          const mediaAssetId = streamData.media_asset_id || `media_${currentEpisode.id}`;
+          const storageKey = streamData.storage_key || `masters/${currentStory.id}/${currentEpisode.id}.mp4`;
+          const isHls = Boolean(canonicalUrl?.endsWith('.m3u8'));
+
+          if (canonicalUrl && !canonicalUrl.includes('/videos/welele_placeholder.mp4')) {
+            console.log(
+              `%c[VerticalPlayer:MediaDecision:PostUnlock] ${currentEpisode.title} (Ep #${currentEpisode.episode_number})`,
+              'background: #00E676; color: #000; font-weight: bold; padding: 2px 6px;',
+              {
+                episodeId: currentEpisode.id,
+                seriesId: currentStory.id,
+                isUnlocked: true,
+                returnedStreamUrl: canonicalUrl,
+                mediaAssetId,
+                storageKey,
+                resolutionMode: 'PRODUCTION_CANONICAL',
+                streamType: isHls ? 'HLS_MANIFEST' : 'CANONICAL_CDN_STREAM',
+                mediaSource: 'episodesApi.getStream (POST-AIRTIME-UNLOCK)',
+                decisionReason: 'Immediately resolved from canonical backend stream endpoint after successful airtime unlock',
+              }
+            );
+            setResolvedVideoUrl(canonicalUrl);
+            setResolvedSourceKey(`PRODUCTION_CANONICAL • ${isHls ? 'HLS_MANIFEST' : 'CANONICAL_CDN_STREAM'}`);
+            if (videoRef.current) {
+              attachVideoStream(videoRef.current, canonicalUrl, isHls);
+              if (isPlaying && !isIdentPlaying) {
+                videoRef.current.play().catch(() => {});
+              }
+            }
+          }
+        }
+      } catch (streamErr) {
+        console.warn('[VerticalPlayer] Error retrieving stream post-airtime-unlock:', streamErr);
+      }
     } catch (err) {
       console.error('Quick airtime unlock failed:', err);
     } finally {

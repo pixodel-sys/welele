@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
-import { creatorApi, aiApi } from '../../services/api';
+import { creatorApi, aiApi, storageApi } from '../../services/api';
 import { mediaStore } from '../../services/mediaStore';
+
 import { Story, PreflightHealth } from '../../types';
 import {
   CheckCircle2,
@@ -231,7 +232,27 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
         captions_present: true,
       };
 
-      // Ensure the video file is indexed under the final seriesId, episodeNumber, title, and aliases
+      // 1. Upload physical binary to Object Storage (Pillar 4 Ingestion Contract)
+      let canonicalStorageKey: string | undefined;
+      let canonicalVideoUrl = videoUrl.startsWith('blob:') ? '/videos/welele_placeholder.mp4' : videoUrl;
+
+      if (videoFile) {
+        try {
+          const uploadRes = await storageApi.uploadBinary(
+            videoFile,
+            seriesId,
+            Number(episodeNumber)
+          );
+          if (uploadRes && uploadRes.storage_key) {
+            canonicalStorageKey = uploadRes.storage_key;
+            canonicalVideoUrl = uploadRes.public_cdn_url;
+          }
+        } catch (uploadErr) {
+          console.error('[EpisodePipelineModal] Binary upload failed:', uploadErr);
+        }
+      }
+
+      // 2. Also save to IndexedDB for local developer/offline cache
       if (videoFile) {
         await mediaStore.saveEpisodeMedia({
           seriesId,
@@ -241,12 +262,14 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
         }, videoFile);
       }
 
+      // 3. Persist episode with authoritative storage_key and clean CDN url (never blob:)
       const res = await creatorApi.addEpisode({
         series_id: seriesId,
         episode_number: Number(episodeNumber),
         title: title.trim(),
         synopsis: synopsis.trim(),
-        video_url: videoUrl,
+        video_url: canonicalVideoUrl,
+        storage_key: canonicalStorageKey,
         thumbnail_url: thumbnailUrl || selectedStory?.vertical_poster || '/posters/blood_ties.jpg',
         duration_seconds: Number(durationSeconds),
         is_free: isFree,

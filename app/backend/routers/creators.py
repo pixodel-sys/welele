@@ -205,6 +205,13 @@ def add_episode(req: CreateEpisodeRequest, auth_user: dict = Depends(get_current
 
     enforce_tenant_access(auth_user, series.get("creator_id"), domain="CONTENT", action="add episode")
 
+    # Reject ephemeral browser blob references
+    if req.video_url and req.video_url.startswith("blob:") and not req.storage_key:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid media reference: Ephemeral browser blob: URLs cannot be stored as canonical episode video masters. Please upload video binary to storage first."
+        )
+
     status_target = req.status or "published"
     ep_payload = {
         "series_id": req.series_id,
@@ -227,19 +234,34 @@ def add_episode(req: CreateEpisodeRequest, auth_user: dict = Depends(get_current
         payload=ep_payload
     )
 
-    # 2. Attach Media Asset (GAP-006 Decoupling)
-    storage_key = f"masters/{req.series_id}/{created_ep['id']}.mp4"
-    series_repository.attach_media_asset(
+    # 2. Attach Decoupled Media Asset (GAP-006 Decoupling)
+    from services.storage_service import storage_service
+    storage_key = req.storage_key or f"masters/{req.series_id}/{created_ep['id']}.mp4"
+    if req.storage_key:
+        master_url = storage_service.get_stream_url(storage_key, adaptive_hls=False)
+    else:
+        master_url = req.video_url if req.video_url and not req.video_url.startswith("blob:") else storage_service.get_stream_url(storage_key, adaptive_hls=False)
+
+    media_asset = series_repository.attach_media_asset(
         episode_id=created_ep["id"],
         storage_key=storage_key,
-        master_url=req.video_url,
+        master_url=master_url,
         thumbnail_url=req.thumbnail_url or series.get("vertical_poster"),
         duration_seconds=req.duration_seconds
     )
 
-    # Ensure status and series episode count are updated so the episode is immediately streamable
-    series_repository.local_update("episodes", "id", created_ep["id"], {"status": "published"})
+    # Ensure status, storage_key, media_asset_id, and series episode count are updated so the episode is immediately streamable
+    series_repository.local_update("episodes", "id", created_ep["id"], {
+        "status": "published",
+        "video_url": master_url,
+        "storage_key": storage_key,
+        "media_asset_id": media_asset.get("id")
+    })
     created_ep["status"] = "published"
+    created_ep["video_url"] = master_url
+    created_ep["storage_key"] = storage_key
+    created_ep["media_asset_id"] = media_asset.get("id")
+
     all_series = series_repository.local_get("series")
     target_s = next((s for s in all_series if s["id"] == req.series_id), None)
     if target_s:

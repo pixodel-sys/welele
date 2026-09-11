@@ -38,6 +38,11 @@ class StorageService:
         self.cdn_base_url = os.getenv("CDN_BASE_URL", "https://cdn.welele.media").rstrip("/")
         self.supported_formats = ["video/mp4", "video/quicktime", "application/x-mpegURL"]
 
+        # Local physical disk backing for local dev & object verification
+        backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        self.local_storage_dir = os.path.join(backend_dir, "media_storage")
+        os.makedirs(self.local_storage_dir, exist_ok=True)
+
         # Initialize boto3 S3/R2 client if credentials exist
         self.s3_client = None
         if HAS_BOTO3 and self.account_id and self.access_key and self.secret_key:
@@ -54,17 +59,119 @@ class StorageService:
             except Exception as e:
                 print(f"[StorageService] Failed to initialize live R2 client: {e}")
 
+    def save_binary_master(
+        self,
+        file_bytes: bytes,
+        story_id: str,
+        episode_id: Optional[str] = None,
+        episode_number: Optional[int] = None,
+        filename: str = "master.mp4",
+        content_type: str = "video/mp4"
+    ) -> Dict[str, Any]:
+        """
+        Ingests real binary video payload into object storage (R2 or local persistent store).
+        Returns the authoritative storage_key and stream delivery URL.
+        """
+        if not file_bytes:
+            raise ValueError("Cannot ingest empty binary payload into object storage.")
+
+        ext = filename.rsplit(".", 1)[-1] if "." in filename else "mp4"
+        clean_ext = f".{ext}"
+        
+        if episode_id:
+            storage_key = f"masters/{story_id}/{episode_id}{clean_ext}"
+        elif episode_number is not None:
+            storage_key = f"masters/{story_id}/ep_{episode_number:03d}_{uuid.uuid4().hex[:6]}{clean_ext}"
+        else:
+            storage_key = f"masters/{story_id}/master_{uuid.uuid4().hex[:8]}{clean_ext}"
+
+        # 1. Store to local disk for persistence / verification
+        local_target_path = os.path.join(self.local_storage_dir, *storage_key.split("/"))
+        os.makedirs(os.path.dirname(local_target_path), exist_ok=True)
+        with open(local_target_path, "wb") as f:
+            f.write(file_bytes)
+
+        # 2. Store to Cloudflare R2 / S3 if client exists
+        provider = "Local Object Storage"
+        if self.s3_client:
+            try:
+                self.s3_client.put_object(
+                    Bucket=self.storage_bucket,
+                    Key=storage_key,
+                    Body=file_bytes,
+                    ContentType=content_type
+                )
+                provider = "Cloudflare R2 Storage (Direct Ingestion)"
+            except Exception as e:
+                print(f"[StorageService] Failed writing to R2 bucket: {e}")
+
+        stream_url = self.get_stream_url(storage_key, adaptive_hls=False)
+
+        return {
+            "storage_key": storage_key,
+            "public_cdn_url": stream_url,
+            "file_size_bytes": len(file_bytes),
+            "content_type": content_type,
+            "provider": provider,
+            "local_path": local_target_path
+        }
+
+    def get_stored_binary(self, storage_key: str) -> Optional[bytes]:
+        """
+        Retrieves actual binary bytes from storage for integrity & playback verification.
+        """
+        if storage_key.startswith("blob:"):
+            raise ValueError(f"Cannot retrieve binary from ephemeral browser blob reference: {storage_key}")
+
+        clean_key = storage_key.lstrip("/").replace("media/", "")
+        
+        # Check local disk
+        local_target_path = os.path.join(self.local_storage_dir, *clean_key.split("/"))
+        if os.path.exists(local_target_path) and os.path.isfile(local_target_path):
+            with open(local_target_path, "rb") as f:
+                return f.read()
+
+        # Check R2 / S3
+        if self.s3_client:
+            try:
+                response = self.s3_client.get_object(Bucket=self.storage_bucket, Key=clean_key)
+                return response['Body'].read()
+            except Exception as e:
+                print(f"[StorageService] Failed reading from R2 bucket for {clean_key}: {e}")
+
+        return None
+
     def get_stream_url(self, video_path_or_url: str, adaptive_hls: bool = True) -> str:
         """
-        Resolves asset path to edge CDN URL with optional HLS adaptive bitrate manifest (.m3u8).
+        Resolves asset path or storage_key to edge CDN URL or streamable route.
+        Strict invariant: Rejects browser blob: references.
         """
+        if not video_path_or_url:
+            return "/videos/welele_placeholder.mp4"
+
+        if video_path_or_url.startswith("blob:"):
+            raise ValueError(
+                f"Invalid media reference: Cannot resolve ephemeral browser blob URL '{video_path_or_url}'. "
+                f"A valid storage_key or completed binary upload is required."
+            )
+
         if video_path_or_url.startswith("http://") or video_path_or_url.startswith("https://"):
             return video_path_or_url
 
+        if video_path_or_url.startswith("/videos/"):
+            return video_path_or_url
+
         clean_path = video_path_or_url.lstrip("/")
+        if clean_path.startswith("media/"):
+            clean_path = clean_path[len("media/"):]
+
         if adaptive_hls and not clean_path.endswith(".m3u8"):
             base_name = clean_path.rsplit(".", 1)[0]
             clean_path = f"{base_name}/master.m3u8"
+
+        # In local development mode without live R2 credentials, stream from mounted /media endpoint
+        if not self.s3_client:
+            return f"/media/{clean_path}"
 
         return f"{self.cdn_base_url}/{clean_path}"
 
@@ -112,7 +219,7 @@ class StorageService:
                 print(f"[StorageService] Failed generating live R2 presigned URL: {e}")
 
         # 2. Simulation / Fallback Presigned Ticket
-        public_cdn_url = f"{self.cdn_base_url}/{storage_key}"
+        public_cdn_url = self.get_stream_url(storage_key, adaptive_hls=False)
         return {
             "upload_url": f"{self.cdn_base_url}/upload/{storage_key}?ticket={uuid.uuid4().hex}",
             "storage_key": storage_key,
@@ -130,6 +237,9 @@ class StorageService:
         """
         Generates multi-bitrate rendition specifications for vertical microdramas.
         """
+        if not video_path_or_url or video_path_or_url.startswith("blob:"):
+            return []
+
         base_clean = video_path_or_url.replace(".mp4", "").replace(".m3u8", "")
         return [
             {
@@ -156,6 +266,9 @@ class StorageService:
         """
         Returns the HLS multi-bitrate adaptive streaming manifest and rendition URLs.
         """
+        if storage_key.startswith("blob:"):
+            raise ValueError(f"Invalid storage key: Ephemeral blob URL cannot have HLS renditions.")
+
         base_url = f"{self.cdn_base_url}/{storage_key.rsplit('.', 1)[0]}"
         return {
             "master_playlist_url": f"{base_url}/master.m3u8",

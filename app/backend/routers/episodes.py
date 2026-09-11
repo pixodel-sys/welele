@@ -7,6 +7,7 @@ cliffhanger detection, and subtitles.
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Query
 from database import db
+from repositories.ledger_repository import ledger_repository
 from repositories.series_repository import series_repository
 from services.storage_service import storage_service
 from services.ledger_service import ledger_service
@@ -30,31 +31,46 @@ def get_episode_stream(
     if not episode:
         raise HTTPException(status_code=404, detail="Episode not found")
     
-    # Check unlock status
+    # Check unlock status across ledger repository and relational store
     is_free = episode.get("is_free", False) or episode.get("episode_number", 1) <= story.get("free_episodes_count", 3)
-    unlocks = db.get("unlocked_episodes")
-    is_unlocked = is_free or any(u.get("user_id") == user_id and u.get("episode_id") == episode_id for u in unlocks)
+    ledger_unlocks = ledger_repository.local_get("unlocked_episodes") or []
+    db_unlocks = db.get("unlocked_episodes") or []
+    all_unlocks = ledger_unlocks + db_unlocks
+    is_unlocked = is_free or any(u.get("user_id") == user_id and u.get("episode_id") == episode_id for u in all_unlocks)
 
-    # Resolve edge CDN URL and adaptive renditions
-    video_raw = episode.get("video_url", "")
-    stream_url = storage_service.get_stream_url(video_raw, adaptive_hls=False)
-    renditions = storage_service.generate_adaptive_renditions(video_raw)
+    # Resolve media asset identity & storage lineage
+    all_media = series_repository.local_get("media_assets")
+    media = next((m for m in all_media if m.get("episode_id") == episode_id), None)
+    media_asset_id = media.get("id") if media else episode.get("media_asset_id", f"media_{episode_id}")
+    storage_key = media.get("storage_key") if media else episode.get("storage_key", f"masters/{series_id}/{episode_id}.mp4")
+
+    # Resolve stream from storage_key or verified master video URL
+    video_target = storage_key or (media.get("master_video_url") if media else episode.get("video_url", ""))
+    if not video_target or video_target.startswith("blob:"):
+        video_target = f"masters/{series_id}/{episode_id}.mp4"
+
+    stream_url = storage_service.get_stream_url(video_target, adaptive_hls=False)
+    renditions = storage_service.generate_adaptive_renditions(video_target)
+    hls_manifest = storage_service.get_stream_url(video_target, adaptive_hls=True)
 
     return {
         "series_id": series_id,
         "episode": episode,
+        "media_asset_id": media_asset_id,
+        "storage_key": storage_key,
         "is_unlocked": is_unlocked,
         "stream": {
             "primary_url": stream_url,
             "format": "9:16 Canonical Vertical",
             "adaptive_renditions": renditions,
-            "hls_manifest": storage_service.get_stream_url(video_raw, adaptive_hls=True)
+            "hls_manifest": hls_manifest
         },
         "cliffhanger": {
             "timestamp_seconds": episode.get("cliffhanger_time", 65),
             "hook_text": episode.get("cliffhanger_hook", "The confrontation begins now...")
         }
     }
+
 
 @router.post("/{series_id}/{episode_id}/unlock")
 def unlock_episode(

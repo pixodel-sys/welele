@@ -47,6 +47,9 @@ export interface Episode {
   views_count: number;
   comments_count: number;
   published_at: string;
+  media_asset_id?: string;
+  storage_key?: string;
+  hls_url?: string;
   subtitles?: Record<string, Array<{ start: string; end: string; text: string }>>;
 }
 
