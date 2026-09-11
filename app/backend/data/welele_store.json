@@ -918,7 +918,7 @@
       "verified": true,
       "followers_count": 420000,
       "total_views": 8420000,
-      "coin_earnings": 284045,
+      "coin_earnings": 284075,
       "payout_balance": 1890.0
     },
     {
@@ -1634,6 +1634,33 @@
       "text": "This cliffhanger is insane!",
       "likes": 0,
       "time_ago": "Just now"
+    },
+    {
+      "id": "c_2ec12373",
+      "episode_id": "ep_bt_1",
+      "user_name": "Lerato Khumalo",
+      "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80",
+      "text": "This cliffhanger is insane!",
+      "likes": 0,
+      "time_ago": "Just now"
+    },
+    {
+      "id": "c_e851a8cf",
+      "episode_id": "ep_bt_1",
+      "user_name": "Lerato Khumalo",
+      "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80",
+      "text": "This cliffhanger is insane!",
+      "likes": 0,
+      "time_ago": "Just now"
+    },
+    {
+      "id": "c_73962e02",
+      "episode_id": "ep_bt_1",
+      "user_name": "Lerato Khumalo",
+      "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80",
+      "text": "This cliffhanger is insane!",
+      "likes": 0,
+      "time_ago": "Just now"
     }
   ],
   "reactions": [
@@ -1949,7 +1976,7 @@
       "version": "1.0.0",
       "status": "draft",
       "published_at": "2026-08-01T00:00:00Z",
-      "updated_at": "2026-09-11T12:01:21.518362+00:00",
+      "updated_at": "2026-09-11T12:28:26.837792+00:00",
       "meta": {
         "title": "Welele™ | Curated African Dramas",
         "theme": "dark_gold_glow",
@@ -2530,10 +2557,10 @@
     },
     {
       "page_id": "home",
-      "version": "2026.09.11.v89",
+      "version": "2026.09.11.v721",
       "status": "published",
-      "published_at": "2026-09-11T12:01:29.843517+00:00",
-      "updated_at": "2026-09-11T12:01:29.843517+00:00",
+      "published_at": "2026-09-11T12:28:41.022119+00:00",
+      "updated_at": "2026-09-11T12:28:41.022119+00:00",
       "meta": {
         "title": "Welele™ | Curated African Dramas",
         "theme": "dark_gold_glow",

@@ -22,9 +22,11 @@ from services.rbac_service import create_access_token
 client = TestClient(app)
 
 def test_playback_authorisation_lineage():
-    # 1. Setup Creator & Viewer Auth
+    # 1. Setup Creator, Admin & Viewer Auth
     creator_token = create_access_token(user_id="creator_zola", role="creator")
     creator_headers = {"Authorization": f"Bearer {creator_token}"}
+    admin_token = create_access_token(user_id="admin_chief", role="admin")
+    admin_headers = {"Authorization": f"Bearer {admin_token}"}
     viewer_token = create_access_token(user_id="viewer_test_99", role="viewer")
     viewer_headers = {"Authorization": f"Bearer {viewer_token}"}
 
@@ -95,6 +97,7 @@ def test_playback_authorisation_lineage():
     assert create_res.status_code == 200, f"Failed creating episode: {create_res.text}"
     ep_data = create_res.json()["episode"]
     episode_id = ep_data["id"]
+    assert ep_data["status"] == "under_review", "Creator episode must be gated to under_review"
 
     # Verify media_assets table holds exact storage_key
     all_media = series_repository.local_get("media_assets")
@@ -102,6 +105,18 @@ def test_playback_authorisation_lineage():
     assert matched_media is not None, "Media asset record was not attached!"
     assert matched_media["storage_key"] == storage_key
     assert not matched_media["master_video_url"].startswith("blob:")
+
+    # -------------------------------------------------------------------------
+    # Gate 4b: Admin Moderation Approval to publish
+    # -------------------------------------------------------------------------
+    queue_res = client.get("/api/admin/moderation-queue", headers=admin_headers)
+    assert queue_res.status_code == 200
+    queue_items = queue_res.json().get("queue", [])
+    mod_item = next((item for item in queue_items if item.get("episode_id") == episode_id), None)
+    assert mod_item is not None, "Submitted episode must be present in admin moderation queue"
+
+    approve_res = client.post(f"/api/admin/moderation/{mod_item['id']}/approve", headers=admin_headers)
+    assert approve_res.status_code == 200
 
     # -------------------------------------------------------------------------
     # Gate 5: Pre-unlock getStream() is locked

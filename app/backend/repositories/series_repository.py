@@ -726,6 +726,61 @@ class SeriesRepository(BaseRepository):
         all_series = self.list_feed()
         return next((s for s in all_series if s["id"] == series_id), None)
 
+    def get_creator_series(self, creator_id: Optional[str] = None) -> List[Dict[str, Any]]:
+        """
+        Creator-facing Series roster returning ALL episodes across all lifecycle states
+        (draft, under_review, changes_requested, approved, published) with full media hydration.
+        """
+        all_series = self.local_get("series")
+        all_episodes = self.local_get("episodes")
+        all_media = self.local_get("media_assets")
+
+        media_map = {m["episode_id"]: m for m in all_media}
+
+        result = []
+        for s in all_series:
+            if creator_id and s.get("creator_id") != creator_id:
+                continue
+
+            s_copy = dict(s)
+            s_episodes = [e for e in all_episodes if e.get("series_id") == s["id"]]
+            s_episodes.sort(key=lambda x: x.get("episode_number", 0))
+
+            hydrated_eps = []
+            for ep in s_episodes:
+                ep_copy = dict(ep)
+                media = media_map.get(ep["id"])
+                if media:
+                    ep_copy["video_url"] = media.get("master_video_url", "/videos/welele_placeholder.mp4")
+                    ep_copy["hls_url"] = media.get("hls_master_manifest_url")
+                    ep_copy["thumbnail_url"] = media.get("thumbnail_url", s_copy.get("vertical_poster"))
+                    ep_copy["renditions"] = media.get("renditions_json")
+                    ep_copy["media_asset_id"] = media.get("id")
+                    ep_copy["storage_key"] = media.get("storage_key")
+                else:
+                    ep_copy["video_url"] = ep_copy.get("video_url") or "/videos/welele_placeholder.mp4"
+                hydrated_eps.append(ep_copy)
+
+            published_cnt = len([e for e in hydrated_eps if e.get("status") == "published"])
+            under_review_cnt = len([e for e in hydrated_eps if e.get("status") in ["under_review", "submitted", "pending_review"]])
+            draft_cnt = len([e for e in hydrated_eps if e.get("status") == "draft"])
+
+            s_copy["episodes"] = hydrated_eps
+            s_copy["total_episodes"] = len(hydrated_eps)
+            s_copy["published_episodes_count"] = published_cnt
+            s_copy["under_review_episodes_count"] = under_review_cnt
+            s_copy["draft_episodes_count"] = draft_cnt
+            result.append(s_copy)
+
+        return result
+
+    def get_creator_series_detail(self, series_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Returns a single series with all episodes across all lifecycle states.
+        """
+        all_series = self.get_creator_series()
+        return next((s for s in all_series if s["id"] == series_id), None)
+
     def create_episode_draft(
         self,
         series_id: str,

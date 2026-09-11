@@ -77,6 +77,7 @@ export interface Story {
   is_original: boolean;
   is_trending: boolean;
   status: string;
+  ip_id?: string;
   episodes: Episode[];
 }
 

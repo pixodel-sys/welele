@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
-import { aiApi } from '../../services/api';
+import { aiApi, creatorApi } from '../../services/api';
 import { AIStatus } from '../../types';
 import { SeriesCommandRoom } from './SeriesCommandRoom';
 import { EpisodePipelineModal } from './EpisodePipelineModal';
@@ -26,6 +26,7 @@ export const CreatorStudioShell: React.FC = () => {
 
   const [activeNavTab, setActiveNavTab] = useState<SimpleCreatorTab>('shows');
   const [selectedSeriesId, setSelectedSeriesId] = useState<string | null>(null);
+  const [creatorShows, setCreatorShows] = useState<any[]>([]);
 
   // Modals
   const [isPipelineOpen, setIsPipelineOpen] = useState<boolean>(false);
@@ -36,9 +37,21 @@ export const CreatorStudioShell: React.FC = () => {
   // AI Connection Status
   const [aiStatus, setAiStatus] = useState<AIStatus | null>(null);
 
+  const fetchCreatorShows = async () => {
+    try {
+      const res = await creatorApi.getDashboard(user?.id || 'creator_zola');
+      if (res && res.series) {
+        setCreatorShows(res.series);
+      }
+    } catch (e) {
+      console.warn('Could not load creator specific dashboard shows:', e);
+    }
+  };
+
   useEffect(() => {
     aiApi.getStatus().then((st) => setAiStatus(st)).catch(() => {});
-  }, []);
+    fetchCreatorShows();
+  }, [user]);
 
   const handleOpenPipeline = (seriesId?: string, episodeNumber?: number) => {
     setPipelineSeriesId(seriesId || stories[0]?.id);
@@ -157,7 +170,7 @@ export const CreatorStudioShell: React.FC = () => {
 
               {/* Show Cards Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
-                {stories.map((story) => (
+                {(creatorShows.length > 0 ? creatorShows : stories).map((story) => (
                   <div
                     key={story.id}
                     className="p-4 rounded-[7px] bg-[#14151B] border border-white/10 hover:border-[#E6007A]/50 transition-all group flex flex-col justify-between"
@@ -180,8 +193,11 @@ export const CreatorStudioShell: React.FC = () => {
                           {story.title}
                         </h3>
                         <p className="text-xs text-welele-muted">
-                          {story.episodes?.length || story.total_episodes || 1}{' '}
-                          {(story.episodes?.length || story.total_episodes || 1) === 1 ? 'Episode' : 'Episodes'} • {story.genre}
+                          {story.total_episodes || story.episodes?.length || 1}{' '}
+                          {(story.total_episodes || story.episodes?.length || 1) === 1 ? 'Episode' : 'Episodes'}
+                          {story.under_review_episodes_count > 0 ? (
+                            <span className="text-amber-300 font-semibold"> ({story.under_review_episodes_count} in review)</span>
+                          ) : ''} • {story.genre}
                         </p>
                       </div>
                     </div>
@@ -189,7 +205,7 @@ export const CreatorStudioShell: React.FC = () => {
                     <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between">
                       <button
                         onClick={() => handleOpenShow(story.id)}
-                        className="w-full py-2 rounded-[7px] bg-white/5 hover:bg-gradient-to-r hover:from-[#E6007A] hover:to-[#FF2A6D] text-white text-xs font-bold border border-white/10 hover:border-transparent transition-all flex items-center justify-center gap-1.5"
+                        className="w-full py-2 rounded-[7px] bg-white/5 hover:bg-gradient-to-r hover:from-[#E6007A] hover:to-[#FF2A6D] text-white text-xs font-bold border border-white/10 hover:border-transparent transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                       >
                         <span>Continue Show</span>
                         <ArrowRight className="w-3.5 h-3.5" />
@@ -245,10 +261,12 @@ export const CreatorStudioShell: React.FC = () => {
       <EpisodePipelineModal
         isOpen={isPipelineOpen}
         onClose={() => setIsPipelineOpen(false)}
-        onSuccess={() => {
+        onSuccess={(createdEp) => {
+          fetchCreatorShows();
           refreshStories();
-          if (pipelineSeriesId) {
-            setSelectedSeriesId(pipelineSeriesId);
+          const targetId = pipelineSeriesId || createdEp?.series_id;
+          if (targetId) {
+            setSelectedSeriesId(targetId);
           }
           setActiveNavTab('shows');
         }}

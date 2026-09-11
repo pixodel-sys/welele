@@ -82,7 +82,7 @@ export const SeriesCommandRoom: React.FC<SeriesCommandRoomProps> = ({
   const displayPoster = customPoster || series.vertical_poster;
   const displayBanner = customBanner || series.cover_image || series.vertical_poster;
 
-  const getStatusBadge = (status?: string, isFree?: boolean) => {
+  const getModerationBadge = (status?: string) => {
     switch (status) {
       case 'published':
         return (
@@ -90,12 +90,18 @@ export const SeriesCommandRoom: React.FC<SeriesCommandRoomProps> = ({
             <CheckCircle2 className="w-3 h-3" /> Published
           </span>
         );
+      case 'approved':
+        return (
+          <span className="px-2 py-0.5 rounded-[7px] text-[10px] font-bold bg-teal-500/20 text-teal-400 border border-teal-500/30 flex items-center gap-1 w-max">
+            <Check className="w-3 h-3" /> Approved
+          </span>
+        );
       case 'under_review':
       case 'submitted':
       case 'pending_review':
         return (
           <span className="px-2 py-0.5 rounded-[7px] text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center gap-1 w-max">
-            <Clock className="w-3 h-3" /> In Review
+            <Clock className="w-3 h-3" /> Under Review
           </span>
         );
       case 'changes_requested':
@@ -108,10 +114,31 @@ export const SeriesCommandRoom: React.FC<SeriesCommandRoomProps> = ({
       default:
         return (
           <span className="px-2 py-0.5 rounded-[7px] text-[10px] font-bold bg-white/10 text-white/70 border border-white/10 flex items-center gap-1 w-max">
-            Ready to publish
+            Draft
           </span>
         );
     }
+  };
+
+  const getCommercialBadge = (ep: Episode) => {
+    if (ep.is_free) {
+      return (
+        <div className="flex flex-col">
+          <span className="text-emerald-400 font-bold text-[11px] flex items-center gap-1">
+            Free Episode
+          </span>
+          <span className="text-[9px] text-welele-muted">Public Access</span>
+        </div>
+      );
+    }
+    return (
+      <div className="flex flex-col">
+        <span className="text-amber-400 font-bold text-[11px] flex items-center gap-1">
+          <Coins className="w-3 h-3" /> Locked • {ep.coin_price || 5} Coins
+        </span>
+        <span className="text-[9px] text-emerald-400/80 font-medium">Airtime Enabled (R3.00)</span>
+      </div>
+    );
   };
 
   return (
@@ -137,7 +164,7 @@ export const SeriesCommandRoom: React.FC<SeriesCommandRoomProps> = ({
               </span>
             </div>
             <p className="text-xs text-welele-muted mt-0.5">
-              {series.genre} • {episodes.length} Episodes • {series.language}
+              {series.genre} • {episodes.length} Episodes {metrics?.under_review_count ? `(${metrics.under_review_count} In Review)` : ''} • {series.language}
             </p>
           </div>
         </div>
@@ -146,7 +173,7 @@ export const SeriesCommandRoom: React.FC<SeriesCommandRoomProps> = ({
         <div className="flex items-center gap-2.5 self-end sm:self-center">
           <button
             onClick={() => onOpenEpisodePipeline(series.id, episodes.length + 1)}
-            className="px-5 py-2.5 rounded-[7px] bg-gradient-to-r from-[#E6007A] to-[#FF2A6D] text-white font-bold text-xs shadow-lg shadow-pink-500/20 flex items-center gap-2 hover:opacity-95 transition-all"
+            className="px-5 py-2.5 rounded-[7px] bg-gradient-to-r from-[#E6007A] to-[#FF2A6D] text-white font-bold text-xs shadow-lg shadow-pink-500/20 flex items-center gap-2 hover:opacity-95 transition-all cursor-pointer"
           >
             <PlusCircle className="w-4 h-4" />
             <span>+ Add Episode</span>
@@ -185,12 +212,19 @@ export const SeriesCommandRoom: React.FC<SeriesCommandRoomProps> = ({
       {activeTab === 'episodes' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider">
-              Episodes List
-            </h3>
+            <div className="flex items-center gap-2">
+              <h3 className="text-xs font-bold text-white uppercase tracking-wider">
+                Episodes Roster ({episodes.length})
+              </h3>
+              {metrics?.under_review_count > 0 && (
+                <span className="px-2 py-0.5 rounded-[7px] bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-bold">
+                  {metrics.under_review_count} Under Review
+                </span>
+              )}
+            </div>
             <button
               onClick={() => onOpenEpisodePipeline(series.id, episodes.length + 1)}
-              className="text-xs text-pink-400 hover:text-pink-300 font-bold flex items-center gap-1"
+              className="text-xs text-pink-400 hover:text-pink-300 font-bold flex items-center gap-1 cursor-pointer"
             >
               <PlusCircle className="w-3.5 h-3.5" />
               <span>Add Episode {episodes.length + 1}</span>
@@ -204,8 +238,8 @@ export const SeriesCommandRoom: React.FC<SeriesCommandRoomProps> = ({
                   <th className="px-4 py-3">#</th>
                   <th className="px-4 py-3">Episode</th>
                   <th className="px-4 py-3">Duration</th>
-                  <th className="px-4 py-3">Access</th>
-                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">Commercial Policy</th>
+                  <th className="px-4 py-3">Moderation State</th>
                   <th className="px-4 py-3 text-right">Action</th>
                 </tr>
               </thead>
@@ -228,16 +262,10 @@ export const SeriesCommandRoom: React.FC<SeriesCommandRoomProps> = ({
                         {ep.duration_seconds || 65}s
                       </td>
                       <td className="px-4 py-3.5">
-                        {ep.is_free ? (
-                          <span className="text-emerald-400 font-bold text-[11px]">Free</span>
-                        ) : (
-                          <span className="text-amber-400 font-bold text-[11px] flex items-center gap-1">
-                            <Coins className="w-3 h-3" /> {ep.coin_price || 5} Coins
-                          </span>
-                        )}
+                        {getCommercialBadge(ep)}
                       </td>
                       <td className="px-4 py-3.5">
-                        {getStatusBadge(ep.status, ep.is_free)}
+                        {getModerationBadge(ep.status)}
                       </td>
                       <td className="px-4 py-3.5 text-right">
                         <button

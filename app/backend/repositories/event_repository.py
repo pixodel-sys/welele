@@ -35,6 +35,16 @@ class EventRepository(BaseRepository):
             device_type = payload.device_type
             metadata = payload.metadata
 
+        # Ensure IP ID lineage is preserved (resolve from series if not supplied)
+        if not ip_id and series_id:
+            from .series_repository import series_repository
+            s = series_repository.get_series_detail(series_id)
+            if not s:
+                all_s = series_repository.local_get("series")
+                s = next((x for x in all_s if x.get("id") == series_id), None)
+            if s:
+                ip_id = s.get("ip_id")
+
         event_record = {
             "id": f"evt_{uuid.uuid4().hex[:10]}",
             "event_name": event_name,

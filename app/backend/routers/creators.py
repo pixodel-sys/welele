@@ -53,7 +53,7 @@ def get_creator_profile(creator_id: str):
         "coin_earnings": 284000,
         "payout_balance": 1890.00
     }
-    series_list = series_repository.list_feed()
+    series_list = series_repository.get_creator_series(creator_id)
     return {
         "creator": creator,
         "series": series_list,
@@ -65,9 +65,9 @@ def get_creator_dashboard(creator_id: str, auth_user: dict = Depends(get_current
     """Creator Dashboard KPIs & owned series roster (Tenant Protected)."""
     enforce_tenant_access(auth_user, creator_id, domain="CONTENT", action="view dashboard analytics")
     
-    series_list = series_repository.list_feed()
+    series_list = series_repository.get_creator_series(creator_id)
     total_views = sum(s.get("total_views", 0) for s in series_list)
-    total_episodes_count = sum(len(s.get("episodes", [])) for s in series_list)
+    total_episodes_count = sum(s.get("total_episodes", len(s.get("episodes", []))) for s in series_list)
 
     return {
         "stats": {
@@ -110,7 +110,7 @@ def get_creator_episodes(creator_id: str, status: str = Query(None), auth_user: 
 @router.get("/series/{series_id}/workspace", dependencies=[Depends(require_role(["creator", "admin"]))])
 def get_series_workspace(series_id: str, auth_user: dict = Depends(get_current_user)):
     """Series Command Room workspace data with retention & coin metrics."""
-    series = series_repository.get_series_detail(series_id)
+    series = series_repository.get_creator_series_detail(series_id)
     if not series:
         all_series = series_repository.local_get("series")
         series = next((s for s in all_series if s["id"] == series_id), None)
@@ -119,8 +119,7 @@ def get_series_workspace(series_id: str, auth_user: dict = Depends(get_current_u
 
     enforce_tenant_access(auth_user, series.get("creator_id"), domain="CONTENT", action="access series workspace")
 
-    all_episodes = series_repository.local_get("episodes")
-    series_episodes = [e for e in all_episodes if e.get("series_id") == series_id]
+    series_episodes = series.get("episodes", [])
 
     published_count = len([e for e in series_episodes if e.get("status") == "published"])
     under_review_count = len([e for e in series_episodes if e.get("status") in ["under_review", "submitted", "pending_review"]])
@@ -212,7 +211,16 @@ def add_episode(req: CreateEpisodeRequest, auth_user: dict = Depends(get_current
             detail="Invalid media reference: Ephemeral browser blob: URLs cannot be stored as canonical episode video masters. Please upload video binary to storage first."
         )
 
-    status_target = req.status or "published"
+    user_role = auth_user.get("role", "creator")
+    # Moderation Gate Contract: Creator submissions cannot publish directly.
+    # Only admin users can bypass moderation if explicitly set to 'published'.
+    if user_role == "admin" and req.status == "published":
+        status_target = "published"
+    elif req.status == "draft":
+        status_target = "draft"
+    else:
+        status_target = "under_review"
+
     ep_payload = {
         "series_id": req.series_id,
         "episode_number": req.episode_number,
@@ -250,21 +258,21 @@ def add_episode(req: CreateEpisodeRequest, auth_user: dict = Depends(get_current
         duration_seconds=req.duration_seconds
     )
 
-    # Ensure status, storage_key, media_asset_id, and series episode count are updated so the episode is immediately streamable
+    # Update storage_key and media_asset_id while preserving the strict status_target
     series_repository.local_update("episodes", "id", created_ep["id"], {
-        "status": "published",
+        "status": status_target,
         "video_url": master_url,
         "storage_key": storage_key,
         "media_asset_id": media_asset.get("id")
     })
-    created_ep["status"] = "published"
+    created_ep["status"] = status_target
     created_ep["video_url"] = master_url
     created_ep["storage_key"] = storage_key
     created_ep["media_asset_id"] = media_asset.get("id")
 
     all_series = series_repository.local_get("series")
     target_s = next((s for s in all_series if s["id"] == req.series_id), None)
-    if target_s:
+    if target_s and status_target == "published":
         curr_count = target_s.get("total_episodes", 0)
         if req.episode_number > curr_count:
             series_repository.local_update("series", "id", req.series_id, {"total_episodes": req.episode_number})
@@ -280,10 +288,13 @@ def add_episode(req: CreateEpisodeRequest, auth_user: dict = Depends(get_current
         metadata={"preflight_checks": req.preflight_health}
     )
 
-    # 3. Submit for Moderation if requested
+    # 3. Register in Moderation Queue if under review
+    mod_ticket = None
     if status_target in ["under_review", "submitted", "pending_review"]:
         series_repository.submit_for_moderation(created_ep["id"])
         created_ep["status"] = "under_review"
+        clean_suffix = created_ep["id"].replace("ep_", "").replace("_", "")[-6:].upper()
+        mod_ticket = f"MOD-{clean_suffix}"
 
         audit_service.record_trust_event(
             domain="CONTENT",
@@ -293,10 +304,15 @@ def add_episode(req: CreateEpisodeRequest, auth_user: dict = Depends(get_current
             target_type="episode_moderation_queue",
             target_id=created_ep["id"],
             after_state={"status": "under_review", "series_id": req.series_id},
-            metadata={"cliffhanger_hook": req.cliffhanger_hook}
+            metadata={"cliffhanger_hook": req.cliffhanger_hook, "moderation_ticket": mod_ticket}
         )
 
-    return {"success": True, "episode": created_ep}
+    return {
+        "success": True,
+        "episode": created_ep,
+        "moderation_ticket": mod_ticket,
+        "status": status_target
+    }
 
 @router.get("/analytics/retention", dependencies=[Depends(require_role(["creator", "admin"]))])
 def get_retention_telemetry(

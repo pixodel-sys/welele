@@ -42,3 +42,14 @@ Thumbs.db
 .idea/
 .vscode/
 *.swp
+
+# Documentation & Design Archives (Local Only)
+docs/
+doc/
+documentation/
+/docs/
+/doc/
+/documentation/
+*.mp4
+!frontend/public/videos/*.mp4
+

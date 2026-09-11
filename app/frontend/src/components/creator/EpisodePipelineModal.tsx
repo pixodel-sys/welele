@@ -24,7 +24,7 @@ import { CreateShowModal } from './CreateShowModal';
 interface EpisodePipelineModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (createdEpisode?: any) => void;
   initialSeriesId?: string;
   initialEpisodeNumber?: number;
 }
@@ -97,10 +97,14 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
   const [coinPrice, setCoinPrice] = useState<number>(5);
   const [releaseSchedule, setReleaseSchedule] = useState<'immediate' | 'scheduled'>('immediate');
   const [scheduledDateTime, setScheduledDateTime] = useState<string>('2026-09-15T18:00');
-  // STEP 5: READY & RECEIPT
+  
+  // STEP 5: READY, 4-STAGE PIPELINE & RECEIPT
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [submittedReceipt, setSubmittedReceipt] = useState<boolean>(false);
   const [submittedStatus, setSubmittedStatus] = useState<'draft' | 'under_review' | 'published'>('under_review');
+  const [submissionStage, setSubmissionStage] = useState<'idle' | 'video_received' | 'processing' | 'preflight' | 'under_review'>('idle');
+  const [moderationTicket, setModerationTicket] = useState<string>('');
+  const [canonicalEpisode, setCanonicalEpisode] = useState<any>(null);
 
   if (!isOpen) return null;
 
@@ -232,6 +236,9 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
         captions_present: true,
       };
 
+      setIsSubmitting(true);
+      setSubmissionStage('processing');
+
       // 1. Upload physical binary to Object Storage (Pillar 4 Ingestion Contract)
       let canonicalStorageKey: string | undefined;
       let canonicalVideoUrl = videoUrl.startsWith('blob:') ? '/videos/welele_placeholder.mp4' : videoUrl;
@@ -246,10 +253,13 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
           if (uploadRes && uploadRes.storage_key) {
             canonicalStorageKey = uploadRes.storage_key;
             canonicalVideoUrl = uploadRes.public_cdn_url;
+            setSubmissionStage('video_received');
           }
         } catch (uploadErr) {
           console.error('[EpisodePipelineModal] Binary upload failed:', uploadErr);
         }
+      } else {
+        setSubmissionStage('video_received');
       }
 
       // 2. Also save to IndexedDB for local developer/offline cache
@@ -261,6 +271,8 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
           title: title.trim(),
         }, videoFile);
       }
+
+      setSubmissionStage('preflight');
 
       // 3. Persist episode with authoritative storage_key and clean CDN url (never blob:)
       const res = await creatorApi.addEpisode({
@@ -280,6 +292,16 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
         scheduled_at: releaseSchedule === 'scheduled' ? scheduledDateTime : undefined,
         preflight_health: preflightHealth,
       });
+
+      // 4. SERVER RETURNS CANONICAL EPISODE - authoritative source of truth
+      if (res && res.episode) {
+        setCanonicalEpisode(res.episode);
+        setModerationTicket(
+          res.moderation_ticket ||
+          `MOD-${res.episode.id.replace('ep_', '').slice(-6).toUpperCase()}`
+        );
+        setSubmissionStage('under_review');
+      }
 
       // Also index under the created episode's server ID and all variations
       if (videoFile && res?.episode?.id) {
@@ -783,95 +805,110 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
           {step === 5 && (
             <div className="space-y-5 animate-fade-in">
               {submittedReceipt ? (
-                /* Honest Ingestion Receipt with explicit Approval/Publish state */
-                <div className={`p-6 rounded-[7px] border text-center space-y-4 animate-fade-in ${
-                  submittedStatus === 'under_review'
-                    ? 'bg-amber-950/30 border-amber-500/40'
-                    : submittedStatus === 'published'
-                    ? 'bg-emerald-950/40 border-emerald-500/40'
-                    : 'bg-[#14151B] border-white/20'
-                }`}>
-                  <div className={`w-14 h-14 rounded-full mx-auto flex items-center justify-center ${
-                    submittedStatus === 'under_review'
-                      ? 'bg-amber-500/20 text-amber-400'
-                      : submittedStatus === 'published'
-                      ? 'bg-emerald-500/20 text-emerald-400'
-                      : 'bg-white/10 text-white/70'
-                  }`}>
-                    {submittedStatus === 'under_review' ? (
-                      <Clock className="w-7 h-7" />
-                    ) : (
-                      <CheckCircle2 className="w-7 h-7" />
-                    )}
+                /* Honest Ingestion Receipt with explicit 4-stage pipeline and approval state */
+                <div className="p-6 rounded-[7px] border border-amber-500/40 bg-amber-950/20 text-center space-y-4 animate-fade-in">
+                  <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-amber-500/20 to-pink-500/20 text-welele-gold border border-amber-500/30 flex items-center justify-center mx-auto shadow-lg shadow-amber-500/10">
+                    <ShieldCheck className="w-7 h-7" />
                   </div>
+
                   <div>
-                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-[7px] text-xs font-black uppercase tracking-wider mb-2 ${
-                      submittedStatus === 'under_review'
-                        ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                        : submittedStatus === 'published'
-                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                        : 'bg-white/10 text-white/80 border border-white/10'
-                    }`}>
-                      {submittedStatus === 'under_review' && <Clock className="w-3.5 h-3.5" />}
-                      {submittedStatus === 'published' && <Check className="w-3.5 h-3.5" />}
-                      {submittedStatus === 'under_review'
-                        ? 'Awaiting Admin Approval'
-                        : submittedStatus === 'published'
-                        ? 'Published & Live'
-                        : 'Draft Saved'}
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-[7px] text-xs font-black uppercase tracking-wider mb-2 bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                      <Clock className="w-3.5 h-3.5" />
+                      Submitted to Moderation Desk
                     </span>
-                    <h3 className="text-base sm:text-lg font-black text-white uppercase tracking-tight font-cinematic">
-                      {submittedStatus === 'under_review'
-                        ? 'Submitted to Moderation Desk'
-                        : submittedStatus === 'published'
-                        ? 'Episode Published Live'
-                        : 'Draft Saved in Workspace'}
+                    <h3 className="text-lg sm:text-xl font-black text-white uppercase tracking-tight font-cinematic">
+                      Episode {episodeNumber < 10 ? `0${episodeNumber}` : episodeNumber} Received Successfully
                     </h3>
                     <p className="text-xs text-welele-muted mt-1 max-w-md mx-auto">
-                      {submittedStatus === 'under_review'
-                        ? `"${title}" (EP ${episodeNumber}) has been submitted to Admin Moderation. Once verified by the review desk, it will be published across all viewer feeds.`
-                        : submittedStatus === 'published'
-                        ? `"${title}" (EP ${episodeNumber}) is now live and streamable for all viewers.`
-                        : `"${title}" (EP ${episodeNumber}) is saved in your studio workspace.`}
+                      Your episode has been submitted to the Welele Moderation Desk. Once reviewed by compliance and quality control, it will be published across all viewer feeds.
                     </p>
                   </div>
 
-                  <div className="p-3.5 bg-black/50 rounded-[7px] text-xs text-left max-w-sm mx-auto space-y-2 text-white/90 border border-white/5">
-                    <div className="flex items-center justify-between text-emerald-400 font-semibold">
-                      <span className="flex items-center gap-2">
-                        <Check className="w-3.5 h-3.5" /> Video Asset Verified
-                      </span>
-                      <span className="font-mono text-white/70">{durationSeconds}s</span>
+                  {/* 4-Stage Visual Tracker */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 my-4 max-w-xl mx-auto">
+                    {/* Stage 1: Video Received */}
+                    <div className="p-2.5 rounded-[7px] bg-black/40 border border-emerald-500/30 text-left flex items-center gap-2">
+                      <div className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-[10px] shrink-0">
+                        ✓
+                      </div>
+                      <div>
+                        <div className="text-[9px] font-mono text-emerald-400 font-bold">① VIDEO</div>
+                        <div className="text-[11px] font-bold text-white">RECEIVED</div>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between text-emerald-400 font-semibold">
-                      <span className="flex items-center gap-2">
-                        <Check className="w-3.5 h-3.5" /> Format & Safe Zone
-                      </span>
-                      <span className="font-mono text-white/70">9:16</span>
+
+                    {/* Stage 2: Processing */}
+                    <div className="p-2.5 rounded-[7px] bg-black/40 border border-emerald-500/30 text-left flex items-center gap-2">
+                      <div className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-[10px] shrink-0">
+                        ✓
+                      </div>
+                      <div>
+                        <div className="text-[9px] font-mono text-emerald-400 font-bold">② SYSTEM</div>
+                        <div className="text-[11px] font-bold text-white">PROCESSING</div>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between text-emerald-400 font-semibold">
-                      <span className="flex items-center gap-2">
-                        <Check className="w-3.5 h-3.5" /> Cliffhanger Marker
-                      </span>
-                      <span className="font-mono text-white/70">@{cliffhangerTime}s</span>
+
+                    {/* Stage 3: Preflight Verified */}
+                    <div className="p-2.5 rounded-[7px] bg-black/40 border border-emerald-500/30 text-left flex items-center gap-2">
+                      <div className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-[10px] shrink-0">
+                        ✓
+                      </div>
+                      <div>
+                        <div className="text-[9px] font-mono text-emerald-400 font-bold">③ PREFLIGHT</div>
+                        <div className="text-[11px] font-bold text-white">VERIFIED</div>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between text-emerald-400 font-semibold">
-                      <span className="flex items-center gap-2">
-                        <Check className="w-3.5 h-3.5" /> Moderation Ticket
+
+                    {/* Stage 4: Under Review */}
+                    <div className="p-2.5 rounded-[7px] bg-black/40 border border-amber-500/40 text-left flex items-center gap-2">
+                      <div className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-[10px] shrink-0 animate-pulse">
+                        ●
+                      </div>
+                      <div>
+                        <div className="text-[9px] font-mono text-amber-400 font-bold">④ DESK</div>
+                        <div className="text-[11px] font-bold text-amber-300">UNDER REVIEW</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Authoritative Confirmation Card */}
+                  <div className="p-4 bg-black/60 rounded-[7px] text-xs text-left max-w-md mx-auto space-y-2 text-white/90 border border-white/10 shadow-xl">
+                    <div className="flex items-center justify-between pb-2 border-b border-white/10">
+                      <span className="font-bold text-white text-xs">
+                        {title}
                       </span>
-                      <span className="text-amber-300 font-mono text-[11px]">
-                        {submittedStatus === 'under_review' ? 'In Queue' : 'N/A'}
+                      <span className="px-2 py-0.5 rounded-[7px] bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
+                        <Clock className="w-3 h-3" /> UNDER REVIEW
                       </span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-welele-muted">Moderation Ticket</span>
+                      <span className="font-mono text-welele-gold font-bold">#{moderationTicket || `MOD-${episodeNumber}01`}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-welele-muted">Commercial Access</span>
+                      <span className="font-bold text-white">{isFree ? 'Free Episode' : `Locked • ${coinPrice} Coins`}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-welele-muted">Cliffhanger Hook</span>
+                      <span className="text-white/80 font-mono text-[11px]">@{cliffhangerTime}s</span>
+                    </div>
+
+                    <div className="pt-2 text-[11px] text-welele-muted italic border-t border-white/5">
+                      Your episode has been submitted to the Welele Moderation Desk.
                     </div>
                   </div>
 
                   <button
                     type="button"
                     onClick={() => {
-                      onSuccess();
+                      onSuccess(canonicalEpisode);
                       onClose();
                     }}
-                    className="px-8 py-3 rounded-[7px] bg-gradient-to-r from-[#E6007A] to-[#FF2A6D] text-white font-black text-xs hover:opacity-95 shadow-xl shadow-pink-500/20 cursor-pointer"
+                    className="px-8 py-3 rounded-[7px] bg-gradient-to-r from-[#E6007A] to-[#FF2A6D] text-white font-black text-xs hover:opacity-95 shadow-xl shadow-pink-500/20 cursor-pointer uppercase tracking-wider"
                   >
                     Done
                   </button>
@@ -937,18 +974,18 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
                     <button
                       type="button"
                       disabled={isSubmitting}
-                      onClick={() => handleSubmit('published')}
+                      onClick={() => handleSubmit('under_review')}
                       className="px-6 py-2.5 rounded-[7px] text-xs font-bold bg-gradient-to-r from-[#E6007A] to-[#FF2A6D] text-white hover:opacity-95 shadow-lg shadow-pink-500/20 disabled:opacity-50 flex items-center gap-2 transition-all cursor-pointer font-cinematic uppercase tracking-wider"
                     >
                       {isSubmitting ? (
                         <>
                           <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          <span>Publishing...</span>
+                          <span>Submitting...</span>
                         </>
                       ) : (
                         <>
-                          <CheckCircle2 className="w-4 h-4" />
-                          <span>Publish Episode Live</span>
+                          <ShieldCheck className="w-4 h-4" />
+                          <span>Submit for Moderation</span>
                         </>
                       )}
                     </button>

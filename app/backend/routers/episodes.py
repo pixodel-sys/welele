@@ -32,7 +32,8 @@ def get_episode_stream(
         raise HTTPException(status_code=404, detail="Episode not found")
     
     # Check unlock status across ledger repository and relational store
-    is_free = episode.get("is_free", False) or episode.get("episode_number", 1) <= story.get("free_episodes_count", 3)
+    free_count = story.get("free_episodes", story.get("free_episodes_count", 0))
+    is_free = episode.get("is_free", False) or (episode.get("episode_number", 1) <= free_count if free_count > 0 else False)
     ledger_unlocks = ledger_repository.local_get("unlocked_episodes") or []
     db_unlocks = db.get("unlocked_episodes") or []
     all_unlocks = ledger_unlocks + db_unlocks

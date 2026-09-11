@@ -4,7 +4,7 @@ import { useApp } from '../../context/AppContext';
 import { useChat } from '../../context/ChatContext';
 import { EpisodeDrawer } from './EpisodeDrawer';
 import { FloatingReactions } from './FloatingReactions';
-import { episodesApi, monetizationApi } from '../../services/api';
+import { episodesApi, monetizationApi, telemetryApi } from '../../services/api';
 import confetti from 'canvas-confetti';
 import {
   Heart,
@@ -85,8 +85,10 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
   const identVideoRef = useRef<HTMLVideoElement>(null);
   const identTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const nextVideoPreloadRef = useRef<HTMLVideoElement>(null);
+  const sessionIdRef = useRef<string>(`sess_${Math.random().toString(36).substring(2, 10)}`);
 
-  const [isIdentPlaying, setIsIdentPlaying] = useState<boolean>(false);
+  const [isIdentPlaying, setIsIdentPlaying] = useState<boolean>(checkShouldPlayIdent);
+  const [isIdentMuted, setIsIdentMuted] = useState<boolean>(false);
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [progress, setProgress] = useState<number>(0);
@@ -414,16 +416,18 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
     : null;
 
   // Brand Ident completion handler & seamless handoff to episode video
-  const handleIdentFinished = () => {
+  const handleIdentFinished = (wasMeaningfulAttempt: boolean = true) => {
     if (identTimeoutRef.current) {
       clearTimeout(identTimeoutRef.current);
       identTimeoutRef.current = null;
     }
     setIsIdentPlaying(false);
-    try {
-      sessionStorage.setItem(IDENT_STORAGE_KEY, Date.now().toString());
-    } catch (e) {
-      console.warn('[VerticalPlayer] Ident storage write error:', e);
+    if (wasMeaningfulAttempt) {
+      try {
+        sessionStorage.setItem(IDENT_STORAGE_KEY, Date.now().toString());
+      } catch (e) {
+        console.warn('[VerticalPlayer] Ident storage write error:', e);
+      }
     }
     if (videoRef.current) {
       videoRef.current.currentTime = 0;
@@ -434,12 +438,40 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
     resetControlsTimer();
   };
 
-  // Failsafe timer for Brand Ident (max ~5.8s)
+  // Robust Brand Ident Audio Autoplay with Visual Muted Fallback & 5.8s Failsafe
   useEffect(() => {
     if (isIdentPlaying) {
+      const identEl = identVideoRef.current;
+      if (identEl) {
+        identEl.currentTime = 0;
+        identEl.muted = false;
+        setIsIdentMuted(false);
+
+        // 1. Attempt unmuted audio autoplay
+        identEl
+          .play()
+          .then(() => {
+            console.log('[VerticalPlayer] Ident playing with full audio');
+          })
+          .catch((err) => {
+            console.warn('[VerticalPlayer] Audio autoplay blocked by browser policy, falling back to visual muted Ident:', err);
+            // 2. Fallback: Mute and play visual ident immediately
+            if (identEl) {
+              identEl.muted = true;
+              setIsIdentMuted(true);
+              identEl.play().catch((fallbackErr) => {
+                console.error('[VerticalPlayer] Muted Ident play also rejected, advancing directly to episode:', fallbackErr);
+                handleIdentFinished(false);
+              });
+            }
+          });
+      }
+
+      // 5.8s Failsafe watchdog timer
       identTimeoutRef.current = setTimeout(() => {
-        handleIdentFinished();
+        handleIdentFinished(true);
       }, 5800);
+
       return () => {
         if (identTimeoutRef.current) {
           clearTimeout(identTimeoutRef.current);
@@ -467,8 +499,40 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
           videoRef.current.play().catch(() => {});
         }
       }
+
+      // Telemetry: episode_started beacon on episode change
+      if (currentStory) {
+        telemetryApi.trackEvent({
+          event_name: 'episode_started',
+          session_id: sessionIdRef.current,
+          user_id: userId || 'user_sa_01',
+          ip_id: currentStory.ip_id || (currentStory as any).franchise_code,
+          series_id: currentStory.id,
+          episode_id: episodeId,
+          playback_second: 0,
+          region_code: 'ZA',
+        });
+      }
     }
-  }, [episodeId]);
+  }, [episodeId, currentStory, userId]);
+
+  // Telemetry: 15s periodic heartbeat during active playback
+  useEffect(() => {
+    if (!isPlaying || isIdentPlaying || !currentStory || !currentEpisode) return;
+    const interval = setInterval(() => {
+      telemetryApi.trackEvent({
+        event_name: 'heartbeat',
+        session_id: sessionIdRef.current,
+        user_id: userId || 'user_sa_01',
+        ip_id: currentStory.ip_id || (currentStory as any).franchise_code,
+        series_id: currentStory.id,
+        episode_id: currentEpisode.id,
+        playback_second: Math.round(currentTime),
+        region_code: 'ZA',
+      });
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [isPlaying, isIdentPlaying, currentStory, currentEpisode, currentTime, userId]);
 
   // Video time updates, adaptive quality, and cliffhanger trigger
   const handleTimeUpdate = () => {
@@ -513,6 +577,18 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
       }
     } else if (curr > (currentEpisode?.cliffhanger_time || 65) && !showCliffhangerPrompt) {
       setShowCliffhangerPrompt(true);
+      if (currentStory && currentEpisode) {
+        telemetryApi.trackEvent({
+          event_name: 'cliffhanger_reached',
+          session_id: sessionIdRef.current,
+          user_id: userId || 'user_sa_01',
+          ip_id: currentStory.ip_id || (currentStory as any).franchise_code,
+          series_id: currentStory.id,
+          episode_id: currentEpisode.id,
+          playback_second: Math.round(curr),
+          region_code: 'ZA',
+        });
+      }
     }
   };
 
@@ -591,6 +667,19 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
       } catch (streamErr) {
         console.warn('[VerticalPlayer] Error retrieving stream post-coin-unlock:', streamErr);
       }
+
+      // Telemetry: Track unlock_completed
+      telemetryApi.trackEvent({
+        event_name: 'unlock_completed',
+        session_id: sessionIdRef.current,
+        user_id: userId || 'user_sa_01',
+        ip_id: currentStory.ip_id || (currentStory as any).franchise_code,
+        series_id: currentStory.id,
+        episode_id: currentEpisode.id,
+        playback_second: Math.round(currentTime),
+        region_code: 'ZA',
+        metadata: { method: 'COINS', cost },
+      });
     } catch (err) {
       console.error('Episode unlock failed:', err);
       // Fallback
@@ -664,6 +753,19 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
       } catch (streamErr) {
         console.warn('[VerticalPlayer] Error retrieving stream post-airtime-unlock:', streamErr);
       }
+
+      // Telemetry: Track unlock_completed via Airtime
+      telemetryApi.trackEvent({
+        event_name: 'unlock_completed',
+        session_id: sessionIdRef.current,
+        user_id: userId || 'user_sa_01',
+        ip_id: currentStory.ip_id || (currentStory as any).franchise_code,
+        series_id: currentStory.id,
+        episode_id: currentEpisode.id,
+        playback_second: Math.round(currentTime),
+        region_code: 'ZA',
+        metadata: { method: 'AIRTIME_DCB', carrier: selectedCarrier },
+      });
     } catch (err) {
       console.error('Quick airtime unlock failed:', err);
     } finally {
@@ -744,6 +846,48 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({ onBack }) => {
       {/* Video Element & DRM Transparent Protective Shield */}
       {isUnlocked ? (
         <div className="relative w-full h-full bg-black overflow-hidden">
+          {/* Welele Brand Ident Overlay (GAP-002 Brand Identity) */}
+          {isIdentPlaying && (
+            <div className="absolute inset-0 z-50 bg-black flex items-center justify-center">
+              <video
+                ref={identVideoRef}
+                src={BRAND_IDENT_URL}
+                className="w-full h-full object-cover"
+                playsInline
+                muted={isIdentMuted}
+                onEnded={() => handleIdentFinished(true)}
+                onError={(e) => {
+                  console.warn('[VerticalPlayer] Ident video playback error, advancing to episode:', e);
+                  handleIdentFinished(false);
+                }}
+              />
+              {/* Skip Ident Button */}
+              <button
+                onClick={() => handleIdentFinished(true)}
+                className="absolute top-4 right-4 z-50 px-3 py-1 rounded-[7px] bg-black/60 hover:bg-black/90 backdrop-blur-md text-white/80 hover:text-white text-[11px] font-bold border border-white/10 flex items-center gap-1 transition-all cursor-pointer"
+              >
+                <span>Skip</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+
+              {/* Tap to Unmute Overlay Button */}
+              {isIdentMuted && (
+                <button
+                  onClick={() => {
+                    if (identVideoRef.current) {
+                      identVideoRef.current.muted = false;
+                      setIsIdentMuted(false);
+                    }
+                  }}
+                  className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 px-3.5 py-1.5 rounded-full bg-black/70 hover:bg-black/90 backdrop-blur-md text-welele-gold text-xs font-bold border border-welele-gold/40 flex items-center gap-1.5 shadow-xl transition-all cursor-pointer animate-pulse"
+                >
+                  <VolumeX className="w-3.5 h-3.5" />
+                  <span>Tap for Sound</span>
+                </button>
+              )}
+            </div>
+          )}
+
           {/* Episode Video (Plays actual resolved URL directly) */}
           <video
             ref={videoRef}
