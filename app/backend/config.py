@@ -9,25 +9,36 @@ class Settings:
     PROJECT_NAME: str = "Welele™ Media Backend"
     VERSION: str = "1.0.0"
     API_V1_STR: str = "/api"
+    ENVIRONMENT: str = os.getenv("ENVIRONMENT") or os.getenv("APP_ENV") or os.getenv("NODE_ENV") or "development"
+    IS_PRODUCTION_OR_STAGING: bool = ENVIRONMENT.lower() in ("staging", "production", "prod")
+    ENABLE_STARTUP_SEED: bool = os.getenv("ENABLE_STARTUP_SEED", "false").lower() in ("true", "1", "yes")
+
     CORS_ORIGINS: list = [
         "http://localhost:5173",
         "http://127.0.0.1:5173",
         "http://localhost:3000",
         "http://127.0.0.1:3000",
+        "https://staging.welele-staging.pages.dev",
+        "https://welele.pages.dev",
+        "https://welele.media",
         "*"
     ]
     DATA_FILE: str = os.path.join(os.path.dirname(__file__), "data", "welele_store.json")
 
-    # Live Supabase PostgreSQL Connection
+    # Authoritative Supabase PostgreSQL Connection
     SUPABASE_URL: str = os.getenv("SUPABASE_URL") or os.getenv("NEXT_PUBLIC_SUPABASE_URL") or ""
     SUPABASE_KEY: str = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_KEY") or os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY") or ""
     SUPABASE_ANON_KEY: str = os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY") or os.getenv("SUPABASE_ANON_KEY") or ""
 
-    # Cloud Object Storage (Pillar 4)
-    CDN_BASE_URL: str = os.getenv("CDN_BASE_URL", "https://cdn.welele.media")
-    STORAGE_BUCKET: str = os.getenv("STORAGE_BUCKET", "welele-vod-masters")
+    # Cloud Object Storage (Pillar 4 / Cloudflare R2)
+    CDN_BASE_URL: str = os.getenv("CDN_BASE_URL", "https://cdn.welele.media").rstrip("/")
+    STORAGE_BUCKET: str = os.getenv("STORAGE_BUCKET") or os.getenv("R2_BUCKET_NAME", "welele-vod-masters")
+    R2_ACCOUNT_ID: str = os.getenv("R2_ACCOUNT_ID") or ""
+    R2_ACCESS_KEY_ID: str = os.getenv("R2_ACCESS_KEY_ID") or ""
+    R2_SECRET_ACCESS_KEY: str = os.getenv("R2_SECRET_ACCESS_KEY") or ""
+    R2_BUCKET_NAME: str = os.getenv("R2_BUCKET_NAME") or STORAGE_BUCKET
 
-    # Live Google Gemini AI (Pillar 8)
+    # Google Gemini AI (Pillar 8)
     GEMINI_API_KEY: str = (
         os.getenv("GEMINI_API_KEY") or 
         os.getenv("GOOGLE_API_KEY") or 

@@ -11,9 +11,10 @@ from .base_repository import BaseRepository
 class SeriesRepository(BaseRepository):
     def __init__(self):
         super().__init__()
-        self._seed_default_series()
+        if not self.local_get("series"):
+            self.seed_if_missing()
 
-    def _seed_default_series(self):
+    def seed_if_missing(self):
         # Canonical catalog with all 14 series synchronized across Creator, Admin, and Viewer
         canonical_series = [
             # 1. Blood Ties
@@ -354,8 +355,6 @@ class SeriesRepository(BaseRepository):
             }
         ]
 
-        self.local_set("series", canonical_series)
-
         # Seed canonical episodes
         episodes_data = [
             # 1. Blood Ties
@@ -644,9 +643,21 @@ class SeriesRepository(BaseRepository):
             }
         ]
 
-        self.local_set("episodes", episodes_data)
+        # 1. Idempotent Series Insertion
+        existing_series = self.local_get("series")
+        existing_series_ids = {s.get("id") for s in existing_series if s.get("id")}
+        for s in canonical_series:
+            if s["id"] not in existing_series_ids:
+                self.local_insert("series", s)
 
-        # Populate decoupled media assets for all episodes
+        # 2. Idempotent Episodes Insertion
+        existing_episodes = self.local_get("episodes")
+        existing_ep_ids = {e.get("id") for e in existing_episodes if e.get("id")}
+        for ep in episodes_data:
+            if ep["id"] not in existing_ep_ids:
+                self.local_insert("episodes", ep)
+
+        # 3. Idempotent Media Assets Insertion
         sample_videos = [
             "/videos/ocean_waves.mp4",
             "/videos/sample_drama.mp4",
@@ -655,33 +666,35 @@ class SeriesRepository(BaseRepository):
             "/videos/sintel.mp4",
             "/videos/big_buck.mp4",
         ]
-        media_assets = []
+        existing_media = self.local_get("media_assets")
+        existing_media_ids = {m.get("id") for m in existing_media if m.get("id")}
         series_poster_map = {s["id"]: s.get("vertical_poster", "/posters/blood_ties.jpg") for s in canonical_series}
         for idx, ep in enumerate(episodes_data):
-            s_poster = series_poster_map.get(ep["series_id"], "/posters/blood_ties.jpg")
-            v_url = sample_videos[idx % len(sample_videos)]
-            media_assets.append({
-                "id": f"media_{ep['id']}",
-                "episode_id": ep["id"],
-                "storage_key": f"masters/{ep['series_id']}/{ep['id']}.mp4",
-                "master_video_url": v_url,
-                "hls_master_manifest_url": f"https://cdn.welele.media/hls/{ep['series_id']}/{ep['id']}/master.m3u8",
-                "thumbnail_url": s_poster,
-                "duration_seconds": ep["duration_seconds"],
-                "transcoding_status": "READY",
-                "renditions_json": {
-                    "1080p": f"https://cdn.welele.media/hls/{ep['series_id']}/{ep['id']}/1080p.m3u8",
-                    "720p": f"https://cdn.welele.media/hls/{ep['series_id']}/{ep['id']}/720p.m3u8",
-                    "480p": f"https://cdn.welele.media/hls/{ep['series_id']}/{ep['id']}/480p.m3u8"
-                },
-                "subtitles_vtt_json": {
-                    "isiZulu": f"https://cdn.welele.media/subs/{ep['series_id']}/{ep['id']}_zu.vtt",
-                    "English": f"https://cdn.welele.media/subs/{ep['series_id']}/{ep['id']}_en.vtt"
-                },
-                "created_at": datetime.now(timezone.utc).isoformat(),
-                "updated_at": datetime.now(timezone.utc).isoformat()
-            })
-        self.local_set("media_assets", media_assets)
+            m_id = f"media_{ep['id']}"
+            if m_id not in existing_media_ids:
+                s_poster = series_poster_map.get(ep["series_id"], "/posters/blood_ties.jpg")
+                v_url = sample_videos[idx % len(sample_videos)]
+                self.local_insert("media_assets", {
+                    "id": m_id,
+                    "episode_id": ep["id"],
+                    "storage_key": f"masters/{ep['series_id']}/{ep['id']}.mp4",
+                    "master_video_url": v_url,
+                    "hls_master_manifest_url": f"https://cdn.welele.media/hls/{ep['series_id']}/{ep['id']}/master.m3u8",
+                    "thumbnail_url": s_poster,
+                    "duration_seconds": ep["duration_seconds"],
+                    "transcoding_status": "READY",
+                    "renditions_json": {
+                        "1080p": f"https://cdn.welele.media/hls/{ep['series_id']}/{ep['id']}/1080p.m3u8",
+                        "720p": f"https://cdn.welele.media/hls/{ep['series_id']}/{ep['id']}/720p.m3u8",
+                        "480p": f"https://cdn.welele.media/hls/{ep['series_id']}/{ep['id']}/480p.m3u8"
+                    },
+                    "subtitles_vtt_json": {
+                        "isiZulu": f"https://cdn.welele.media/subs/{ep['series_id']}/{ep['id']}_zu.vtt",
+                        "English": f"https://cdn.welele.media/subs/{ep['series_id']}/{ep['id']}_en.vtt"
+                    },
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                })
 
     def list_feed(self, genre: Optional[str] = None, language: Optional[str] = None) -> List[Dict[str, Any]]:
         all_series = self.local_get("series")

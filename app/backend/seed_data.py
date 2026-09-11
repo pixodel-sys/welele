@@ -1,105 +1,49 @@
 """
-Welele Media™ — Authentic African Micro-Drama Catalog & Seed Data
-Featuring Vibrant South African, Nigerian, Ghanaian & Kenyan Original Stories.
+Welele Media™ — Authentic African Micro-Drama Catalog & Seed Service
+Strictly entity-level idempotent seeding. Protects all runtime data from deletion or overwrite.
 """
 
+from config import settings
 from database import db
 from repositories.series_repository import series_repository
-
-# ============================================================================
-# CANONICAL CREATOR ROSTER
-# ============================================================================
-DEFAULT_CREATORS = [
-    {
-        "id": "creator_zola",
-        "name": "Zola Dlamini",
-        "handle": "@zola_cinemas",
-        "bio": "Johannesburg crime & dynasty showrunner. Master of the 60-second Mzansi cliffhanger.",
-        "avatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80",
-        "country": "South Africa",
-        "verified": True,
-        "followers_count": 420000,
-        "total_views": 8420000,
-        "coin_earnings": 284000,
-        "payout_balance": 1890.00
-    },
-    {
-        "id": "creator_amaka",
-        "name": "Amaka Okafor",
-        "handle": "@amaka_films",
-        "bio": "Lagos-based romance & billionaire microdrama director. Creator of high-stakes African stories.",
-        "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80",
-        "country": "Nigeria",
-        "verified": True,
-        "followers_count": 380000,
-        "total_views": 6910000,
-        "coin_earnings": 215000,
-        "payout_balance": 1430.00
-    },
-    {
-        "id": "creator_kofi",
-        "name": "Kofi Mensah & Studio Accra",
-        "handle": "@kofi_accra",
-        "bio": "Afrofuturist action, heist thrillers, and young adult drama across West Africa.",
-        "avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80",
-        "country": "Ghana",
-        "verified": True,
-        "followers_count": 265000,
-        "total_views": 4820000,
-        "coin_earnings": 142000,
-        "payout_balance": 945.00
-    },
-    {
-        "id": "creator_wanjiku",
-        "name": "Wanjiku Mwangi",
-        "handle": "@wanjiku_tales",
-        "bio": "Nairobi high-society romance & modern relationship drama. Stories that move hearts.",
-        "avatar": "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&w=400&q=80",
-        "country": "Kenya",
-        "verified": True,
-        "followers_count": 210000,
-        "total_views": 3950000,
-        "coin_earnings": 98000,
-        "payout_balance": 650.00
-    }
-]
-
-# ============================================================================
-# CANONICAL AFRICAN MICRODRAMA SERIES CATALOG
-# Synchronized with SeriesRepository & Frontend mockData
-# ============================================================================
-DEFAULT_STORIES = series_repository.list_feed()
-
-# ============================================================================
-# CANONICAL USERS
-# ============================================================================
-DEFAULT_USERS = [
-    {
-        "id": "user_sa_01",
-        "name": "Sipho Dlamini",
-        "email": "sipho.dlamini@welele.media",
-        "avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80",
-        "country": "ZA",
-        "coin_balance": 150,
-        "is_creator": False
-    },
-    {
-        "id": "user_sa_02",
-        "name": "Lerato Khumalo",
-        "email": "lerato.khumalo@welele.media",
-        "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80",
-        "country": "ZA",
-        "coin_balance": 280,
-        "is_creator": True
-    }
-]
+from data.fixtures.seed_fixtures import DEFAULT_CREATORS, DEFAULT_USERS
 
 def seed_database_if_empty(force: bool = False):
-    feed = series_repository.list_feed()
-    db.set("creators", DEFAULT_CREATORS)
-    db.set("stories", feed)
-    db.set("users", DEFAULT_USERS)
-    print(f"[SEED] Successfully seeded/synchronized {len(feed)} African microdrama series and {len(DEFAULT_CREATORS)} creators!")
+    """
+    Idempotently ensures baseline catalog fixtures exist without overwriting runtime data.
+    Only executes if force=True or ENABLE_STARTUP_SEED=True in settings.
+    """
+    if not (force or settings.ENABLE_STARTUP_SEED):
+        print("[SEED] Startup seeding skipped (ENABLE_STARTUP_SEED is disabled). Runtime data protected.")
+        return
+
+    print("[SEED] Running entity-level idempotent seed synchronization...")
+
+    # 1. Idempotent Creators Seeding
+    existing_creators = db.get("creators")
+    existing_c_ids = {c.get("id") for c in existing_creators if c.get("id")}
+    new_creators_count = 0
+    for creator in DEFAULT_CREATORS:
+        if creator["id"] not in existing_c_ids:
+            db.insert("creators", creator)
+            new_creators_count += 1
+
+    # 2. Idempotent Users Seeding
+    existing_users = db.get("users")
+    existing_u_ids = {u.get("id") for u in existing_users if u.get("id")}
+    new_users_count = 0
+    for user in DEFAULT_USERS:
+        if user["id"] not in existing_u_ids:
+            db.insert("users", user)
+            new_users_count += 1
+
+    # 3. Idempotent Series & Episodes Seeding via Repository
+    series_repository.seed_if_missing()
+
+    print(
+        f"[SEED] Complete. Inserted {new_creators_count} new creators, {new_users_count} new users. "
+        "Existing creator drafts, published series, and transactions were preserved intact."
+    )
 
 if __name__ == "__main__":
     seed_database_if_empty(force=True)
