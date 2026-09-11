@@ -70,11 +70,16 @@ def test_media_worker_resilience():
         simulate_failure_attempts=1 # Fails on attempt 1, recovers on attempt 2
     )
 
-    time.sleep(0.25)
-    retry_job_status = transcoding_service.get_job_status(retry_job["id"])
+    for _ in range(20):
+        retry_job_status = transcoding_service.get_job_status(retry_job["id"])
+        if retry_job_status and retry_job_status.get("status") == "completed":
+            break
+        time.sleep(0.05)
+
     assert retry_job_status["status"] == "completed"
     assert retry_job_status["attempt"] == 2
     print(f"[PASS] Resilience Retry: Job '{retry_job['id']}' recovered from simulated worker error on attempt {retry_job_status['attempt']}.")
+
 
     # 3. Failure-Path: Permanent Failure (Max Retries Exceeded)
     fail_asset = series_repository.register_media_asset(
@@ -87,11 +92,16 @@ def test_media_worker_resilience():
         simulate_failure_attempts=5 # Exceeds max retries
     )
 
-    time.sleep(0.25)
-    fail_job_status = transcoding_service.get_job_status(fail_job["id"])
+    for _ in range(20):
+        fail_job_status = transcoding_service.get_job_status(fail_job["id"])
+        if fail_job_status and fail_job_status.get("status") == "failed":
+            break
+        time.sleep(0.05)
+
     assert fail_job_status["status"] == "failed"
     assert fail_job_status["error"] is not None
     print(f"[PASS] Failure Isolation: Job '{fail_job['id']}' gracefully marked 'failed' after {fail_job_status['attempt']} retries without corrupting system.")
+
 
     print("=======================================================")
     print("ALL MEDIA PRODUCTION & RESILIENCE TESTS PASSED (100%)")
