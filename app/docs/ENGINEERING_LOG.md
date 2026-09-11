@@ -157,15 +157,36 @@ Browser File ➔ Binary Upload (POST /api/storage/upload-binary)
 
 ---
 
-## 9. Verification & Acceptance Gates
+## 10. Catalogue Classification & Media Taxonomy
+
+### Clean Separation of Environments
+To prevent conflating development prototypes with live production infrastructure, all media assets are strictly classified according to the following taxonomy:
 
 ```
-[Level 1: Type & Syntax]     ──► tsc && vite build: 0 errors (1944 modules transformed)  ✅ PASSED
-[Level 2: Unit & Ledger]     ──► pytest: 20/20 backend tests passing                     ✅ PASSED
-[Level 3: Lineage Contract]  ──► test_playback_authorisation_lineage.py: PASSED          ✅ PASSED
-[Level 4: Byte Exactness]    ──► Uploaded Bytes == Streamed Bytes (100% Bit-for-Bit)      ✅ PASSED
+┌──────────────────────────────────────────────────────────────────────────────────┐
+│                             WELELE MEDIA TAXONOMY                                │
+├──────────────────────────────────────┬───────────────────────────────────────────┤
+│ 1. Development Seed Media            │ Bundled demo MP4 assets (e.g.             │
+│    (Catalogue Prototypes)            │ /videos/ocean_waves.mp4, flower_bloom.mp4) │
+│                                      │ powering the 14 initial UI prototype      │
+│                                      │ series. Explicitly NOT production masters.│
+├──────────────────────────────────────┼───────────────────────────────────────────┤
+│ 2. Production Masters                │ Real physical video binaries ingested via │
+│    (Canonical Media Assets)          │ POST /storage/upload-binary, stored in    │
+│                                      │ Cloudflare R2 / persistent storage with   │
+│                                      │ immutable storage_key and verified DAL    │
+│                                      │ media_assets records.                     │
+├──────────────────────────────────────┼───────────────────────────────────────────┤
+│ 3. Local/Dev Draft Cache             │ Temporary client-side IndexedDB cache for │
+│    (In-Session Workspace)            │ offline authoring and draft previews      │
+│                                      │ (strictly isolated from production getStream). │
+└──────────────────────────────────────┴───────────────────────────────────────────┘
 ```
 
-> [!IMPORTANT]
-> **Production Status:** The canonical ingestion and playback boundary is fully sealed and verified across both backend DAL and frontend player. Ephemeral blob URLs can neither enter the database nor hijack the production playback pipeline.
+> [!NOTE]
+> **Architectural Rule:** Seed catalogue demo files (`ocean_waves.mp4`, `flower_bloom.mp4`, etc.) will NOT be backfilled into Cloudflare R2 under synthetic production keys (`masters/story_.../ep_...mp4`).  
+> The canonical migration path is:  
+> `Seed Catalogue Metadata ➔ Bundled Development Seed Media`  
+> `Production Micro-Dramas ➔ Real Creator Ingestion ➔ R2 Object Storage ➔ Canonical Delivery`
+
 

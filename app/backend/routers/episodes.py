@@ -44,10 +44,10 @@ def get_episode_stream(
     media_asset_id = media.get("id") if media else episode.get("media_asset_id", f"media_{episode_id}")
     storage_key = media.get("storage_key") if media else episode.get("storage_key", f"masters/{series_id}/{episode_id}.mp4")
 
-    # Authoritative master video resolution priority:
-    # 1. Local/bundle media masters (/videos/... or /media/...) present in catalog
-    # 2. Uploaded physical binaries stored in storage_service (local physical disk /media/{storage_key})
-    # 3. Canonical external CDN stream URLs
+    # Authoritative stream resolution hierarchy:
+    # 1. Development Seed Media: Bundled demo media (/videos/...) for seeded prototype catalog
+    # 2. Production Masters: Physical binaries in Object Storage (R2 / local store via storage_key)
+    # 3. Canonical External CDN Streams
     master_video = (media.get("master_video_url") if media else None) or episode.get("video_url", "")
 
     if master_video and (master_video.startswith("/videos/") or master_video.startswith("/media/")):
@@ -58,6 +58,7 @@ def get_episode_stream(
         stream_url = storage_service.get_stream_url(master_video, adaptive_hls=False)
     else:
         stream_url = storage_service.get_stream_url(storage_key or f"masters/{series_id}/{episode_id}.mp4", adaptive_hls=False)
+
 
     renditions = storage_service.generate_adaptive_renditions(stream_url)
     hls_manifest = storage_service.get_stream_url(storage_key or stream_url, adaptive_hls=True)
