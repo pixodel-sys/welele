@@ -1,22 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Story, Episode } from '../../types';
 import { StoryDetailModal } from './StoryDetailModal';
 import { ExperiencePageRenderer } from '../experience/ExperiencePageRenderer';
 import {
-  Play,
-  Flame,
-  Star,
-  Plus,
-  Info,
   Clock,
-  Check,
   MessageCircle,
   Sparkles,
   Smartphone,
-  ChevronLeft,
-  ChevronRight,
-  Eye,
 } from 'lucide-react';
 
 interface HomeScreenProps {
@@ -27,52 +18,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onOpenPlayer }) => {
   const { stories, loadingStories, bookmarks, toggleBookmark, setMode, setIsCoinModalOpen } = useApp();
   const [selectedStoryForDetail, setSelectedStoryForDetail] = useState<Story | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>('All');
-  const [activeHeroIndex, setActiveHeroIndex] = useState<number>(0);
-  const [isHeroHovered, setIsHeroHovered] = useState<boolean>(false);
-
-  const heroContainerRef = useRef<HTMLDivElement>(null);
 
   const categories = ['All', 'Drama', 'Romance', 'Crime', 'Comedy', 'Township', 'Action', 'Thriller'];
-
-  // 1. Top Featured Titles for Hero Carousel Rotation & Ken Burns
-  const featuredHeroStories = [
-    stories.find((s) => s.id === 'story_blood_ties'),
-    stories.find((s) => s.id === 'story_queen_of_jozi'),
-    stories.find((s) => s.id === 'story_ceo_wife'),
-    stories.find((s) => s.id === 'story_umembeso'),
-    stories.find((s) => s.id === 'story_lagos_confidential'),
-  ].filter((s): s is Story => Boolean(s));
-
-  const activeHeroStory = featuredHeroStories[activeHeroIndex] || stories[0] || null;
-  const isBookmarked = activeHeroStory ? bookmarks.has(activeHeroStory.id) : false;
-
-  // 2. Slow, Subtle Carousel Auto-Advance (8s interval, pauses on interaction/hover)
-  useEffect(() => {
-    if (featuredHeroStories.length <= 1 || isHeroHovered) return;
-    const interval = setInterval(() => {
-      setActiveHeroIndex((prev) => (prev + 1) % featuredHeroStories.length);
-    }, 8000);
-    return () => clearInterval(interval);
-  }, [featuredHeroStories.length, isHeroHovered]);
-
-  // 3. Selection handler: Brings any selected story directly into Hero focus
-  const handleSelectHeroStory = (story: Story, shouldScroll = false) => {
-    const idx = featuredHeroStories.findIndex((s) => s.id === story.id);
-    if (idx !== -1) {
-      setActiveHeroIndex(idx);
-    }
-    if (shouldScroll && heroContainerRef.current) {
-      heroContainerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  };
-
-  const handleNextHero = () => {
-    setActiveHeroIndex((prev) => (prev + 1) % featuredHeroStories.length);
-  };
-
-  const handlePrevHero = () => {
-    setActiveHeroIndex((prev) => (prev - 1 + featuredHeroStories.length) % featuredHeroStories.length);
-  };
 
   if (loadingStories && stories.length === 0) {
     return (
@@ -81,19 +28,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onOpenPlayer }) => {
       </div>
     );
   }
-
-  // Curated Content Rows (Complete Rich Catalog of African Micro-Dramas)
-  const trendingNow = stories.filter((s) =>
-    ['story_queen_of_jozi', 'story_ceo_wife', 'story_heist_game', 'story_barrio_billionaire', 'story_lagos_confidential'].includes(s.id)
-  );
-
-  const spotlightOriginals = stories.filter((s) =>
-    ['story_blood_ties', 'story_umembeso', 'story_durban_heat', 'story_the_hustlers'].includes(s.id)
-  );
-
-  const newReleases = stories.filter((s) =>
-    ['story_zulu_love', 'story_broken_vows', 'story_the_spaza_king', 'story_campus_royals', 'story_heist_game'].includes(s.id)
-  );
 
   const continueWatching = stories.slice(0, 3);
 
@@ -141,9 +75,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onOpenPlayer }) => {
             {categoryFilteredStories.map((story) => (
               <div
                 key={story.id}
-                onClick={() => {
-                  handleSelectHeroStory(story, true);
-                }}
+                onClick={() => setSelectedStoryForDetail(story)}
                 className="group relative rounded-[7px] overflow-hidden bg-welele-surface-2 border border-white/5 cursor-pointer hover:border-welele-orange/50 transition-all hover:shadow-xl hover:shadow-orange-500/10"
               >
                 <div className="aspect-[9/16] w-full relative">
@@ -171,7 +103,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onOpenPlayer }) => {
         </section>
       )}
 
-      {/* WEE (Welele Experience Engine) Dynamic Master Surface Renderer */}
+      {/* WEE (Welele Experience Engine) Dynamic Master Surface Renderer (Hero Carousel, Trending, Spotlight) */}
       {activeCategory === 'All' && (
         <ExperiencePageRenderer
           pageId="home"

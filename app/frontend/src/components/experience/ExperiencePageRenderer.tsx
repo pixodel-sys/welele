@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ExperienceManifest, ExperienceSection } from '../../types/experience';
 import { Story, Episode } from '../../types';
 import { experienceApi } from '../../services/api';
+import { useApp } from '../../context/AppContext';
+import { getDefaultExperienceManifest, hydrateManifest } from '../../utils/experienceFallback';
 import { HeroCarouselSection } from './HeroCarouselSection';
 import { HorizontalRowSection } from './HorizontalRowSection';
 import { EditorialBannerSection } from './EditorialBannerSection';
@@ -32,48 +34,56 @@ export const ExperiencePageRenderer: React.FC<ExperiencePageRendererProps> = ({
   highlightedSectionId,
   onSectionClick,
 }) => {
-  const [manifest, setManifest] = useState<ExperienceManifest | null>(manifestOverride || null);
-  const [loading, setLoading] = useState<boolean>(!manifestOverride);
-  const [error, setError] = useState<string | null>(null);
+  const { stories } = useApp();
+
+  // Instant fallback manifest ready on first frame
+  const fallbackManifest = useMemo(
+    () => getDefaultExperienceManifest(pageId, stories),
+    [pageId, stories]
+  );
+
+  const [manifest, setManifest] = useState<ExperienceManifest>(() => {
+    if (manifestOverride) {
+      return hydrateManifest(manifestOverride, stories);
+    }
+    return fallbackManifest;
+  });
+
+  const [loading, setLoading] = useState<boolean>(false);
 
   useEffect(() => {
     if (manifestOverride) {
-      setManifest(manifestOverride);
-      setLoading(false);
+      setManifest(hydrateManifest(manifestOverride, stories));
       return;
     }
 
-    setLoading(true);
+    let isMounted = true;
+
     experienceApi
       .getPageExperience(pageId)
       .then((data) => {
-        setManifest(data);
-        setError(null);
+        if (!isMounted) return;
+        if (data && Array.isArray(data.sections) && data.sections.length > 0) {
+          setManifest(hydrateManifest(data, stories));
+        } else {
+          setManifest(fallbackManifest);
+        }
       })
       .catch((err) => {
-        console.warn(`[WEE Surface Renderer] Could not fetch manifest for ${pageId}, using fallback:`, err);
-        setError('Failed to load dynamic experience');
+        if (!isMounted) return;
+        console.warn(`[WEE Surface Renderer] Network/backend unavailable for ${pageId}, using canonical manifest:`, err);
+        setManifest(fallbackManifest);
       })
       .finally(() => {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       });
-  }, [pageId, manifestOverride]);
 
-  if (loading && !manifest) {
-    return (
-      <div className="space-y-6 animate-pulse">
-        <div className="w-full aspect-[9/12] sm:aspect-[16/9] rounded-[7px] bg-white/5" />
-        <div className="h-6 w-48 bg-white/5 rounded-[7px]" />
-        <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
-          {[1, 2, 3, 4, 5].map((n) => (
-            <div key={n} className="aspect-[9/14] bg-white/5 rounded-[7px]" />
-          ))}
-        </div>
-      </div>
-    );
-  }
+    return () => {
+      isMounted = false;
+    };
+  }, [pageId, manifestOverride, stories, fallbackManifest]);
 
-  if (!manifest || manifest.sections.length === 0) {
+  if (!manifest || !manifest.sections || manifest.sections.length === 0) {
     return null;
   }
 
