@@ -33,7 +33,7 @@ def to_uuid(name: str) -> str:
 
 seed_database_if_empty()
 
-# 1. Seed Default Users
+# 1. Seed Default Users & Admin / Creator Personas
 default_users = [
     {
         "id": to_uuid("user_sa_01"),
@@ -56,6 +56,61 @@ default_users = [
         "avatar_url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80",
         "is_creator": True,
         "is_admin": False
+    },
+    {
+        "id": to_uuid("user_zola"),
+        "display_name": "Zola Dlamini",
+        "email": "zola.dlamini@welele.media",
+        "phone_number": "+27828912345",
+        "region_code": "ZA",
+        "preferred_language": "isiZulu",
+        "avatar_url": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80",
+        "is_creator": True,
+        "is_admin": False
+    },
+    {
+        "id": to_uuid("user_amaka"),
+        "display_name": "Amaka Okafor",
+        "email": "amaka.okafor@welele.media",
+        "phone_number": "+2348031234567",
+        "region_code": "NG",
+        "preferred_language": "Yoruba",
+        "avatar_url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80",
+        "is_creator": True,
+        "is_admin": False
+    },
+    {
+        "id": to_uuid("user_kofi"),
+        "display_name": "Kofi Mensah",
+        "email": "kofi.mensah@welele.media",
+        "phone_number": "+233241234567",
+        "region_code": "GH",
+        "preferred_language": "English",
+        "avatar_url": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80",
+        "is_creator": True,
+        "is_admin": False
+    },
+    {
+        "id": to_uuid("user_wanjiku"),
+        "display_name": "Wanjiku Mwangi",
+        "email": "wanjiku.mwangi@welele.media",
+        "phone_number": "+254712345678",
+        "region_code": "KE",
+        "preferred_language": "Swahili",
+        "avatar_url": "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&w=400&q=80",
+        "is_creator": True,
+        "is_admin": False
+    },
+    {
+        "id": to_uuid("admin_supervisor"),
+        "display_name": "Welele Operations Admin",
+        "email": "ops@welele.media",
+        "phone_number": "+27820000000",
+        "region_code": "ZA",
+        "preferred_language": "English",
+        "avatar_url": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80",
+        "is_creator": False,
+        "is_admin": True
     }
 ]
 
@@ -67,20 +122,29 @@ for u in default_users:
         print(f"! User notice: {e}")
 
 # 2. Seed Creators
+creator_user_mapping = {
+    "creator_zola": "user_zola",
+    "creator_amaka": "user_amaka",
+    "creator_kofi": "user_kofi",
+    "creator_wanjiku": "user_wanjiku",
+    "creator_3": "user_sa_02"
+}
+
 creators = db.get("creators")
 for c in creators:
     try:
         creator_uuid = to_uuid(c["id"])
-        user_uuid = to_uuid("user_sa_02" if c["id"] == "creator_3" else "user_sa_01")
+        mapped_user = creator_user_mapping.get(c["id"], "user_zola")
+        user_uuid = to_uuid(mapped_user)
         client.table("creators").upsert({
             "id": creator_uuid,
             "user_id": user_uuid,
             "stage_name": c["name"],
             "bio": c.get("bio", ""),
-            "country": "ZA",
+            "country": c.get("country", "South Africa")[:2].upper() if len(c.get("country", "ZA")) > 2 else c.get("country", "ZA"),
             "is_verified": c.get("verified", True)
         }).execute()
-        print(f"[PASS] Creator: {c['name']} ({creator_uuid})")
+        print(f"[PASS] Creator: {c['name']} ({creator_uuid}) -> User: {mapped_user}")
     except Exception as e:
         print(f"! Creator notice: {e}")
 
