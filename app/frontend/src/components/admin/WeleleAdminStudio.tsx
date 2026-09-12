@@ -60,18 +60,76 @@ export const WeleleAdminStudio: React.FC<WeleleAdminStudioProps> = ({ stories })
   const loadDraft = async (pageId: string) => {
     try {
       const data = await experienceApi.getPreviewExperience(pageId, 'draft', simulatedTime || undefined);
-      setManifest(data);
-      if (data.sections.length > 0 && !selectedSectionId) {
-        setSelectedSectionId(data.sections[0].section_id);
-      }
-      if (data.updated_at) {
-        const d = new Date(data.updated_at);
-        setLastSaved(d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+      if (data && data.sections) {
+        setManifest(data);
+        if (data.sections.length > 0 && !selectedSectionId) {
+          setSelectedSectionId(data.sections[0].section_id);
+        }
+        if (data.updated_at) {
+          const d = new Date(data.updated_at);
+          setLastSaved(d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+        }
+        return;
       }
     } catch (err) {
-      console.error('Failed to load draft:', err);
-      showNotification('Failed to load page layout', 'error');
+      console.warn('Draft preview fetch error, falling back to published live layout:', err);
     }
+
+    // Fallback to public live published experience
+    try {
+      const liveData = await experienceApi.getPageExperience(pageId);
+      if (liveData && liveData.sections) {
+        setManifest(liveData);
+        if (liveData.sections.length > 0 && !selectedSectionId) {
+          setSelectedSectionId(liveData.sections[0].section_id);
+        }
+        return;
+      }
+    } catch (err) {
+      console.warn('Could not load live manifest as fallback:', err);
+    }
+
+    // Client-side fallback manifest so the studio NEVER hangs
+    const fallbackManifest: ExperienceManifest = {
+      page_id: pageId,
+      version: '1.0.0-fallback',
+      status: 'draft',
+      updated_at: new Date().toISOString(),
+      meta: {
+        title: 'Welele African Short Dramas',
+        theme: 'dark_gold_glow',
+        description: 'Micro-drama streaming experience'
+      },
+      sections: [
+        {
+          section_id: 'sec_hero_home',
+          type: 'HERO_CAROUSEL',
+          title: 'Hero Spotlight',
+          is_visible: true,
+          order: 0,
+          config: { auto_play_seconds: 8, aspect_ratio: '9:16', card_size: 'large', show_rank_numbers: false },
+          source: { mode: 'manual', pinned_content_ids: (stories || []).map(s => s.id).slice(0, 5), max_items: 5 },
+          items: (stories || []).slice(0, 3).map((s, idx) => ({
+            slot_id: `slot_hero_${idx + 1}`,
+            content_type: 'series',
+            content_id: s.id,
+            badge: idx === 0 ? 'SPOTLIGHT ORIGINAL' : 'TRENDING',
+            headline_override: s.title,
+            subheadline_override: s.tagline || s.genre,
+            cta_text: 'Watch Now',
+            cta_action: 'STREAM_EPISODE',
+            cta_target: s.episodes?.[0]?.id || 'ep_1',
+            artwork_overrides: {
+              mobile_9_16: s.vertical_poster,
+              desktop_16_9: s.cover_image || s.vertical_poster
+            },
+            is_active: true
+          }))
+        }
+      ]
+    };
+    setManifest(fallbackManifest);
+    setSelectedSectionId('sec_hero_home');
   };
 
   // Load live published experience for comparison
@@ -95,7 +153,12 @@ export const WeleleAdminStudio: React.FC<WeleleAdminStudioProps> = ({ stories })
   };
 
   if (!manifest) {
-    return <div className="p-12 text-center text-welele-muted">Loading Experience Studio...</div>;
+    return (
+      <div className="py-20 text-center text-welele-muted">
+        <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+        <span>Loading Experience Studio...</span>
+      </div>
+    );
   }
 
   const selectedSection = manifest.sections.find((s) => s.section_id === selectedSectionId);

@@ -57,6 +57,10 @@ def preview_page_experience(
             raise HTTPException(status_code=400, detail="Invalid ISO 8601 simulated_time format.")
 
     manifest = ExperienceEngine.resolve_manifest(page_id=page_id, state=state, eval_time=eval_dt)
+    if not manifest:
+        manifest = ExperienceEngine.resolve_manifest(page_id=page_id, state="published", eval_time=eval_dt)
+    if not manifest:
+        manifest = ExperienceEngine.get_default_home_manifest()
     return manifest
 
 @router.put("/page/{page_id}/draft", dependencies=[Depends(require_role(["admin"]))])
