@@ -22,6 +22,8 @@ interface AppContextType {
   switchRole: (targetRole: 'viewer' | 'creator' | 'admin') => Promise<void>;
   isDesktopGateModalOpen: boolean;
   setIsDesktopGateModalOpen: (open: boolean) => void;
+  pendingTargetMode: AppMode | null;
+  setPendingTargetMode: (mode: AppMode | null) => void;
   isLoggedIn: boolean;
   isAuthModalOpen: boolean;
   setIsAuthModalOpen: (open: boolean) => void;
@@ -40,13 +42,13 @@ interface AppContextType {
   currency: string;
   setCurrency: (c: string) => void;
   selectedCarrier: string;
-  setSelectedCarrier: (carrierId: string) => void;
+  setSelectedCarrier: (c: string) => void;
   airtimeBalance: number;
   setAirtimeBalance: React.Dispatch<React.SetStateAction<number>>;
   userPhoneNumber: string;
-  setUserPhoneNumber: (phone: string) => void;
+  setUserPhoneNumber: (p: string) => void;
   autoAirtimeUnlock: boolean;
-  setAutoAirtimeUnlock: (enabled: boolean) => void;
+  setAutoAirtimeUnlock: (val: boolean) => void;
   activePasses: Set<string>;
   quickAirtimeUnlock: (episodeId: string, seriesId: string, amountZar?: number, coinsEquivalent?: number) => Promise<{ success: boolean; message: string; remainingAirtime: number }>;
   purchaseAirtimePass: (pass: AirtimePass) => Promise<{ success: boolean; message: string }>;
@@ -88,6 +90,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [mode, setModeState] = useState<AppMode>('viewer');
+  const [pendingTargetMode, setPendingTargetMode] = useState<AppMode | null>(null);
   const [isDesktopGateModalOpen, setIsDesktopGateModalOpen] = useState<boolean>(false);
 
   // Auth state
@@ -163,25 +166,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setModeState(targetMode);
   };
 
-  // Attempt mode change with desktop gate check and RBAC persona authorization
+  // Attempt mode change with desktop gate check and direct gate access
   const attemptModeChange = (targetMode: AppMode) => {
     if (typeof window !== 'undefined' && window.innerWidth < 768 && targetMode !== 'viewer') {
+      setPendingTargetMode(targetMode);
       setIsDesktopGateModalOpen(true);
       return;
-    }
-
-    if (targetMode === 'creator') {
-      if (user?.role !== 'creator' && user?.role !== 'admin') {
-        setAuthModalTargetRole('creator');
-        setIsAuthModalOpen(true);
-        return;
-      }
-    } else if (targetMode === 'admin') {
-      if (user?.role !== 'admin') {
-        setAuthModalTargetRole('admin');
-        setIsAuthModalOpen(true);
-        return;
-      }
     }
 
     setModeState(targetMode);
@@ -191,43 +181,41 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       if (targetRole === 'admin') {
         const res = await authApi.adminLogin();
-        if (res?.access_token) {
-          localStorage.setItem('welele_auth_token', res.access_token);
-        }
-        setUser((prev) => ({
-          ...prev,
+        login({
+          id: res.user?.id || 'usr_admin_supervisor',
+          name: res.user?.name || 'Welele Operations Admin',
           role: 'admin',
           permissions: ['*'],
           token: res?.access_token
-        }));
+        });
+        setModeState('admin');
       } else if (targetRole === 'creator') {
         const res = await authApi.creatorLogin('creator_zola', '1234');
-        if (res?.access_token) {
-          localStorage.setItem('welele_auth_token', res.access_token);
-        }
-        setUser((prev) => ({
-          ...prev,
+        login({
+          id: res.user?.id || 'usr_creator_zola',
+          name: res.user?.name || 'Zola Dlamini',
           role: 'creator',
           creator_id: 'creator_zola',
           permissions: ['series:create', 'episode:upload', 'ai:storyforge:execute', 'analytics:read:own'],
           token: res?.access_token
-        }));
+        });
+        setModeState('creator');
       } else {
         const res = await authApi.guestLogin(market);
-        if (res?.access_token) {
-          localStorage.setItem('welele_auth_token', res.access_token);
-        }
-        setUser((prev) => ({
-          ...prev,
+        login({
+          id: res.user?.id || 'guest_viewer',
+          name: res.user?.name || 'Guest Viewer',
           role: 'viewer',
           creator_id: undefined,
           permissions: ['stream:episode:free', 'stream:episode:unlock', 'wallet:recharge'],
           token: res?.access_token
-        }));
+        });
+        setModeState('viewer');
       }
     } catch (err) {
       console.warn('Role switch fallback:', err);
       setUser((prev) => ({ ...prev, role: targetRole }));
+      setModeState(targetRole);
     }
   };
 
@@ -464,6 +452,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         switchRole,
         isDesktopGateModalOpen,
         setIsDesktopGateModalOpen,
+        pendingTargetMode,
+        setPendingTargetMode,
         isLoggedIn,
         isAuthModalOpen,
         setIsAuthModalOpen,

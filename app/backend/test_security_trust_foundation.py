@@ -206,6 +206,38 @@ def test_url_tampering_and_route_switching_cannot_bypass_authorization():
 
     print("[PASS] URL/Route Switching Security: Zero capability leakage across unauthenticated, viewer, and creator contexts.")
 
+def test_creator_and_admin_auth_endpoints():
+    """Verifies that /auth/creator/login and /auth/admin/login properly authenticate valid credentials and reject invalid ones."""
+    # 1. Creator Login - Valid PIN
+    res_creator_ok = client.post("/api/auth/creator/login", json={"creator_id": "creator_zola", "studio_pin": "1234"})
+    assert res_creator_ok.status_code == 200
+    assert res_creator_ok.json()["status"] == "success"
+    assert res_creator_ok.json()["user"]["role"] == "creator"
+    assert "access_token" in res_creator_ok.json()
+
+    # 2. Creator Login - Invalid PIN
+    res_creator_bad = client.post("/api/auth/creator/login", json={"creator_id": "creator_zola", "studio_pin": "9999"})
+    assert res_creator_bad.status_code == 401
+    assert "Invalid Showrunner Studio PIN" in res_creator_bad.json()["detail"]
+
+    # 3. Admin Login - Valid Master Key & 2FA
+    res_admin_ok = client.post("/api/auth/admin/login", json={"admin_key": "admin_master_welele_2026", "two_factor_code": "999888"})
+    assert res_admin_ok.status_code == 200
+    assert res_admin_ok.json()["status"] == "success"
+    assert res_admin_ok.json()["user"]["role"] == "admin"
+    assert "access_token" in res_admin_ok.json()
+
+    # 4. Admin Login - Invalid Key
+    res_admin_bad_key = client.post("/api/auth/admin/login", json={"admin_key": "wrong_master_key", "two_factor_code": "999888"})
+    assert res_admin_bad_key.status_code == 401
+    assert "Invalid Administrator Key" in res_admin_bad_key.json()["detail"]
+
+    # 5. Admin Login - Invalid 2FA
+    res_admin_bad_2fa = client.post("/api/auth/admin/login", json={"admin_key": "admin_master_welele_2026", "two_factor_code": "000000"})
+    assert res_admin_bad_2fa.status_code == 401
+
+    print("[PASS] Creator and Admin Auth Endpoints strictly validated.")
+
 if __name__ == "__main__":
     pytest.main(["-v", "backend/test_security_trust_foundation.py"])
 

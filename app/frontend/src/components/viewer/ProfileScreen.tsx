@@ -303,15 +303,38 @@ export const ProfileScreen: React.FC = () => {
           </select>
         </div>
 
-        {/* Verified Creator Portal Shortcut (Only visible to authenticated Showrunners & Admins) */}
-        {(user?.role === 'creator' || user?.role === 'admin') && (
+        {/* Operational Portals */}
+        <div className="pt-2 border-t border-white/5 space-y-2">
+          <span className="text-[10px] text-welele-muted block uppercase font-bold tracking-wider">
+            Operational Workstations
+          </span>
+          
           <button
             onClick={() => attemptModeChange('creator')}
-            className="w-full mt-2 py-3 rounded-[7px] bg-gradient-to-r from-welele-pink to-welele-magenta text-white font-bold text-xs shadow-lg shadow-pink-500/20 hover:opacity-90 flex items-center justify-center gap-2"
+            className="w-full py-2.5 px-3 rounded-[7px] bg-gradient-to-r from-welele-pink/20 to-welele-magenta/20 border border-welele-pink/40 hover:border-welele-pink text-white font-bold text-xs flex items-center justify-between transition-all"
           >
-            <Sparkles className="w-4 h-4" /> Open Creator Studio™ Workstation
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-welele-pink" />
+              <span>Showrunner Studio™ Workstation</span>
+            </div>
+            <span className="text-[10px] px-2 py-0.5 rounded bg-welele-pink/30 text-white font-mono">
+              {user?.role === 'creator' || user?.role === 'admin' ? 'ACTIVE' : 'LOGIN'}
+            </span>
           </button>
-        )}
+
+          <button
+            onClick={() => attemptModeChange('admin')}
+            className="w-full py-2.5 px-3 rounded-[7px] bg-emerald-950/40 border border-emerald-500/40 hover:border-emerald-500 text-white font-bold text-xs flex items-center justify-between transition-all"
+          >
+            <div className="flex items-center gap-2">
+              <Globe className="w-4 h-4 text-emerald-400" />
+              <span>Enterprise Admin Console</span>
+            </div>
+            <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/30 text-emerald-300 font-mono">
+              {user?.role === 'admin' ? 'SUPER_ADMIN' : 'LOGIN'}
+            </span>
+          </button>
+        </div>
 
         {/* Replay Brand Splash Screen Intro */}
         <button
@@ -328,7 +351,7 @@ export const ProfileScreen: React.FC = () => {
           className="w-full py-2.5 rounded-[7px] bg-white/5 hover:bg-white/10 text-white font-semibold text-xs border border-white/10 flex items-center justify-center gap-2"
         >
           <LogIn className="w-3.5 h-3.5 text-welele-orange" />
-          <span>Switch Account / Phone Login</span>
+          <span>Switch Persona / Multi-Role Login</span>
         </button>
       </div>
     </div>

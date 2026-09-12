@@ -1,12 +1,19 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
 import { WeleleLogo } from './WeleleLogo';
-import { Monitor, X, Smartphone, ArrowRight, Video, ShieldCheck } from 'lucide-react';
+import { Monitor, X, Smartphone, ArrowRight, Video, ShieldCheck, ExternalLink } from 'lucide-react';
 
 export const DesktopGateModal: React.FC = () => {
-  const { isDesktopGateModalOpen, setIsDesktopGateModalOpen } = useApp();
+  const { isDesktopGateModalOpen, setIsDesktopGateModalOpen, pendingTargetMode, setMode } = useApp();
 
   if (!isDesktopGateModalOpen) return null;
+
+  const handleProceed = () => {
+    if (pendingTargetMode) {
+      setMode(pendingTargetMode);
+    }
+    setIsDesktopGateModalOpen(false);
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-fade-in">
@@ -27,34 +34,44 @@ export const DesktopGateModal: React.FC = () => {
 
         <div>
           <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#FFA000] block">
-            DESKTOP WORKSTATION REQUIRED
+            WORKSTATION EXPERIENCE
           </span>
           <h3 className="text-base font-black text-white mt-1 font-sans">
-            Creator Hub & Admin Console
+            {pendingTargetMode === 'creator' ? 'Showrunner Studio Workstation' : 'Enterprise Admin Console'}
           </h3>
           <p className="text-xs text-welele-muted mt-2 leading-relaxed">
-            The <b>Creator Studio</b> (4K vertical master uploads, AI multi-language subtitle timelines) and <b>Admin Moderation Console</b> are optimized for desktop workstations.
+            The <b>{pendingTargetMode === 'creator' ? 'Creator Studio' : 'Admin Operations Console'}</b> is optimized for larger desktop displays, but you can also proceed on this device.
           </p>
         </div>
 
         <div className="p-3 rounded-[7px] bg-welele-surface-2 border border-white/5 text-[11px] text-white/90 text-left space-y-1.5">
           <div className="flex items-center gap-2">
             <Video className="w-4 h-4 text-welele-orange shrink-0" />
-            <span>Studio video transcoding & subtitle timeline</span>
+            <span>Multi-language timelines & Story Forge pipelines</span>
           </div>
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span>AI content moderation queue & KYC verification</span>
+            <span>Real-time telemetry, audit trails & KYC verification</span>
           </div>
         </div>
 
-        <button
-          onClick={() => setIsDesktopGateModalOpen(false)}
-          className="w-full py-3 rounded-[7px] font-bold text-xs bg-gradient-welele text-white shadow-lg shadow-orange-500/25 hover:opacity-95 transition-all flex items-center justify-center gap-2"
-        >
-          <Smartphone className="w-4 h-4" />
-          <span>Continue Enjoying Mobile Stories</span>
-        </button>
+        <div className="space-y-2 pt-1">
+          <button
+            onClick={handleProceed}
+            className="w-full py-3 rounded-[7px] font-bold text-xs bg-gradient-welele text-white shadow-lg shadow-orange-500/25 hover:opacity-95 transition-all flex items-center justify-center gap-2"
+          >
+            <ExternalLink className="w-4 h-4" />
+            <span>Proceed to {pendingTargetMode === 'creator' ? 'Creator Studio' : 'Admin Console'}</span>
+          </button>
+
+          <button
+            onClick={() => setIsDesktopGateModalOpen(false)}
+            className="w-full py-2.5 rounded-[7px] font-bold text-xs bg-white/5 hover:bg-white/10 text-welele-muted hover:text-white transition-all flex items-center justify-center gap-2"
+          >
+            <Smartphone className="w-4 h-4" />
+            <span>Stay in Consumer Streaming Mode</span>
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -147,7 +147,9 @@ def creator_login(req: CreatorLoginRequest):
     creator_id = req.creator_id or "creator_zola"
     
     # Check studio PIN / pass
-    if req.studio_pin and req.studio_pin != "1234" and req.password != "welele_studio_pass_2026":
+    is_pin_valid = (req.studio_pin == "1234")
+    is_pass_valid = (req.password == "welele_studio_pass_2026")
+    if not (is_pin_valid or is_pass_valid):
         audit_service.record_trust_event(
             domain="AUTH",
             event_type="auth.failed_login",
@@ -197,7 +199,9 @@ def creator_login(req: CreatorLoginRequest):
 @router.post("/admin/login")
 def admin_login(req: AdminLoginRequest):
     """Authenticates platform executive/operations account and issues a ROLE_ADMIN JWT."""
-    if req.admin_key and req.admin_key != "admin_master_welele_2026" and req.two_factor_code != "999888":
+    is_key_valid = (req.admin_key == "admin_master_welele_2026")
+    is_2fa_valid = (not req.two_factor_code or req.two_factor_code == "999888")
+    if not (is_key_valid and is_2fa_valid):
         audit_service.record_trust_event(
             domain="AUTH",
             event_type="auth.failed_login",
