@@ -14,7 +14,7 @@ interface EntityHierarchyCrumbProps {
 }
 
 export const EntityHierarchyCrumb: React.FC<EntityHierarchyCrumbProps> = ({
-  creatorName = 'Zola Mthembu',
+  creatorName = 'Zola Dlamini',
   creatorVerified = true,
   franchiseCode,
   seriesTitle,

@@ -159,81 +159,73 @@ export const SeriesCommandRoom: React.FC<SeriesCommandRoomProps> = ({
 
   return (
     <div className="space-y-6 pb-24 max-w-7xl mx-auto animate-fade-in text-white">
-      {/* Canonical Entity Hierarchy Crumb */}
-      <div className="p-2.5 rounded-[7px] bg-[#101116] border border-white/5">
-        <EntityHierarchyCrumb
-          franchiseCode={franchiseCode}
-          seriesTitle={series.title}
-          onNavigateSeries={onBack}
-        />
-      </div>
-
-      {/* Show Top Bar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onBack}
-            className="w-9 h-9 rounded-[7px] bg-white/5 hover:bg-white/10 flex items-center justify-center text-white border border-white/10 transition-all cursor-pointer"
-            aria-label="Back to My Shows"
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </button>
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="px-2 py-0.5 rounded-[7px] bg-black/60 border border-white/15 text-welele-gold font-mono text-[10px] font-bold">
-                {franchiseCode}
-              </span>
-              <h1 className="text-xl sm:text-2xl font-black text-white uppercase tracking-tight font-cinematic">
-                {series.title}
-              </h1>
-              <span className="px-2 py-0.5 rounded-[7px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                Live
-              </span>
+      {/* Show Workspace Header Container (Layer 2) */}
+      <div className="p-4 sm:p-5 rounded-[7px] bg-[#14151B] border border-white/10 space-y-4 shadow-lg">
+        {/* Top Row: Back button + Franchise Code + Title + Live Badge + Add Episode CTA */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onBack}
+              className="w-9 h-9 rounded-[7px] bg-white/5 hover:bg-white/10 flex items-center justify-center text-white border border-white/10 transition-all cursor-pointer shrink-0"
+              aria-label="Back to All Shows"
+              title="Back to All Shows"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </button>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="px-2 py-0.5 rounded-[7px] bg-black/60 border border-white/15 text-welele-gold font-mono text-[10px] font-bold">
+                  {franchiseCode}
+                </span>
+                <h1 className="text-xl sm:text-2xl font-black text-white uppercase tracking-tight font-cinematic">
+                  {series.title}
+                </h1>
+                <span className="px-2 py-0.5 rounded-[7px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  Live
+                </span>
+              </div>
+              <p className="text-xs text-welele-muted mt-0.5">
+                {series.genre} • {episodes.length} Episodes {metrics?.under_review_count ? `(${metrics.under_review_count} In Review)` : ''} • {series.language}
+              </p>
             </div>
-            <p className="text-xs text-welele-muted mt-0.5">
-              {series.genre} • {episodes.length} Episodes {metrics?.under_review_count ? `(${metrics.under_review_count} In Review)` : ''} • {series.language}
-            </p>
           </div>
-        </div>
 
-        {/* Hero CTA */}
-        <div className="flex items-center gap-2.5 self-end sm:self-center">
           <button
             onClick={() => onOpenEpisodePipeline(series.id, episodes.length + 1)}
-            className="px-5 py-2.5 rounded-[7px] bg-gradient-to-r from-[#E6007A] to-[#FF2A6D] text-white font-bold text-xs shadow-lg shadow-pink-500/20 flex items-center gap-2 hover:opacity-95 transition-all cursor-pointer"
+            className="px-4 py-2 rounded-[7px] bg-gradient-to-r from-[#E6007A] to-[#FF2A6D] text-white font-bold text-xs shadow-md shadow-pink-500/20 flex items-center gap-1.5 hover:opacity-95 transition-all cursor-pointer shrink-0 self-end sm:self-center"
           >
             <PlusCircle className="w-4 h-4" />
             <span>+ Add Episode</span>
           </button>
         </div>
-      </div>
 
-      {/* Show Workspace Context Navigation */}
-      <div className="border-b border-white/10 flex items-center gap-2 overflow-x-auto pb-1">
-        {[
-          { id: 'episodes', label: `Episodes (${episodes.length})`, icon: Video },
-          { id: 'story', label: 'Story & Artwork', icon: BookOpen },
-          { id: 'insights', label: 'Insights', icon: BarChart3 },
-          { id: 'earnings', label: 'Earnings', icon: Coins },
-        ].map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as ShowTab)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-[7px] text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-                isActive
-                  ? 'bg-pink-500/20 text-white border border-pink-500/40 shadow-sm'
-                  : 'text-welele-muted hover:text-white hover:bg-white/5'
-              }`}
-            >
-              <Icon className={`w-4 h-4 ${isActive ? 'text-[#FF2A6D]' : 'text-welele-muted'}`} />
-              <span>{tab.label}</span>
-            </button>
-          );
-        })}
+        {/* Working Navigation Tabs inside the Show Workspace (Layer 3) */}
+        <div className="border-t border-white/10 pt-3 flex items-center gap-2 overflow-x-auto no-scrollbar">
+          {[
+            { id: 'episodes', label: `Episodes (${episodes.length})`, icon: Video },
+            { id: 'story', label: 'Story & Artwork', icon: BookOpen },
+            { id: 'insights', label: 'Insights', icon: BarChart3 },
+            { id: 'earnings', label: 'Earnings', icon: Coins },
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as ShowTab)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-[7px] text-xs font-bold transition-all whitespace-nowrap cursor-pointer shrink-0 ${
+                  isActive
+                    ? 'bg-gradient-to-r from-[#E6007A] to-[#FF2A6D] text-white shadow-md shadow-pink-500/20'
+                    : 'bg-black/40 text-welele-muted hover:text-white border border-white/5 hover:border-white/10'
+                }`}
+              >
+                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-welele-muted'}`} />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* TAB CONTENT: EPISODES */}

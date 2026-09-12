@@ -89,8 +89,8 @@ export const CreatorStudioShell: React.FC = () => {
     return 'Good evening';
   };
 
-  const creatorName = user?.name?.split(' ')[0] || 'Zola';
-  const creatorHandle = `@${(user?.name || 'Zola Mthembu').toLowerCase().replace(/\s+/g, '_')}`;
+  const creatorName = user?.name || 'Zola Dlamini';
+  const creatorHandle = '@zola_dlamini';
 
   // Canonical 4-Dimensional Readiness Evaluation Contract
   const getShow4DContract = (story: any) => {
@@ -152,21 +152,24 @@ export const CreatorStudioShell: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-24 text-white animate-fade-in max-w-7xl mx-auto px-4">
-      {/* Creator Top Identity & Operational Context Bar */}
-      <div className="p-3.5 rounded-[7px] bg-[#101116] border border-white/10 flex flex-wrap items-center justify-between gap-3 shadow-md">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-[7px] bg-gradient-to-tr from-[#E6007A] to-[#FF2A6D] flex items-center justify-center text-white font-bold text-base shadow">
+      {/* ========================================================================= */}
+      {/* LAYER 1: WHO AM I? + CREATOR COMMAND BAR (GLOBAL CONTEXT & TOOLS) */}
+      {/* ========================================================================= */}
+      <div className="p-4 rounded-[7px] bg-[#101116] border border-white/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-md">
+        {/* Creator Identity Context */}
+        <div className="flex items-center gap-3.5">
+          <div className="w-11 h-11 rounded-[7px] bg-gradient-to-tr from-[#E6007A] to-[#FF2A6D] flex items-center justify-center text-white font-black text-lg shadow-md shrink-0">
             {creatorName.charAt(0)}
           </div>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-bold text-sm text-white">{user?.name || 'Zola Mthembu'}</span>
+              <span className="font-extrabold text-base text-white">{creatorName}</span>
               <span className="text-xs font-mono text-welele-gold font-bold">{creatorHandle}</span>
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[7px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold">
                 <ShieldCheck className="w-3 h-3" /> Verified Showrunner
               </span>
             </div>
-            <div className="flex items-center gap-3 mt-1 text-[11px] text-welele-muted">
+            <div className="flex items-center gap-2.5 mt-1 text-[11px] text-welele-muted">
               <span className="inline-flex items-center gap-1">
                 <Globe className="w-3 h-3 text-welele-gold" /> Market: <strong className="text-white">{market || 'ZA'}</strong> (South Africa)
               </span>
@@ -178,105 +181,91 @@ export const CreatorStudioShell: React.FC = () => {
           </div>
         </div>
 
-        {/* Consumer Switch & Mode Indicator */}
-        <div className="flex items-center gap-2">
+        {/* Creator Command Actions */}
+        <div className="flex items-center gap-2 flex-wrap shrink-0">
           <button
-            onClick={() => attemptModeChange('viewer')}
-            className="px-3 py-1.5 rounded-[7px] bg-white/5 hover:bg-white/10 border border-white/10 text-white hover:text-pink-400 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
-            title="Switch to consumer mobile viewer view"
+            onClick={() => setActiveNavTab('story_forge')}
+            className={`px-3.5 py-2 rounded-[7px] font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm cursor-pointer ${
+              activeNavTab === 'story_forge'
+                ? 'bg-welele-gold text-black shadow-md shadow-amber-500/20'
+                : 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 hover:to-orange-500/30 border border-amber-500/40 text-amber-300'
+            }`}
           >
-            <Tv className="w-3.5 h-3.5 text-pink-400" />
-            <span>Switch to Viewer App</span>
+            <Sparkles className="w-3.5 h-3.5 text-welele-gold" />
+            <span>✨ Story Forge™</span>
           </button>
-        </div>
-      </div>
 
-      {/* Top Level Creator Studio Navigation Bar */}
-      <div className="p-3 rounded-[7px] bg-[#14151B] border border-white/5 flex items-center justify-between gap-4 overflow-x-auto">
-        <div className="flex items-center gap-1.5 shrink-0">
-          {[
-            { id: 'shows', label: 'My Shows', icon: Video },
-            { id: 'story_forge', label: 'Story Forge™', icon: Sparkles, badge: 'AI' },
-            { id: 'insights', label: 'Insights', icon: BarChart3 },
-            { id: 'earnings', label: 'Earnings', icon: Coins },
-          ].map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeNavTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => {
-                  setActiveNavTab(tab.id as SimpleCreatorTab);
-                  if (tab.id !== 'shows') {
-                    setSelectedSeriesId(null);
-                  }
-                }}
-                className={`px-3.5 py-2 rounded-[7px] text-xs font-bold flex items-center gap-2 transition-all whitespace-nowrap ${
-                  isActive
-                    ? 'bg-gradient-to-r from-[#E6007A] to-[#FF2A6D] text-white shadow-lg shadow-pink-500/20'
-                    : 'bg-black/30 text-welele-muted hover:text-white border border-white/5 hover:border-white/10'
-                }`}
-              >
-                <Icon className="w-3.5 h-3.5" />
-                <span>{tab.label}</span>
-                {tab.badge && (
-                  <span className="px-1.5 py-0.2 rounded-[7px] text-[9px] font-extrabold bg-welele-gold text-black">
-                    {tab.badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="flex items-center gap-2.5 shrink-0">
           <button
             onClick={() => setIsCreateShowOpen(true)}
-            className="px-3 py-2 rounded-[7px] bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold text-xs flex items-center gap-1.5 transition-all"
+            className="px-3.5 py-2 rounded-[7px] bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer"
           >
             <PlusCircle className="w-3.5 h-3.5 text-pink-400" />
-            <span className="hidden sm:inline">+ Create Show</span>
+            <span>+ Create Show</span>
           </button>
 
           <button
-            onClick={() => handleOpenPipeline()}
-            className="px-4 py-2 rounded-[7px] bg-gradient-to-r from-[#E6007A] to-[#FF2A6D] text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-pink-500/20 hover:opacity-95 transition-all"
+            onClick={() => handleOpenPipeline(selectedSeriesId || stories[0]?.id)}
+            className="px-4 py-2 rounded-[7px] bg-gradient-to-r from-[#E6007A] to-[#FF2A6D] text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-pink-500/20 hover:opacity-95 transition-all cursor-pointer"
           >
             <PlusCircle className="w-4 h-4" />
             <span>+ Add Episode</span>
           </button>
+
+          <button
+            onClick={() => attemptModeChange('viewer')}
+            className="px-3 py-2 rounded-[7px] bg-white/5 hover:bg-white/10 border border-white/10 text-white hover:text-pink-400 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+            title="Switch to consumer mobile viewer view"
+          >
+            <Tv className="w-3.5 h-3.5 text-pink-400" />
+            <span className="hidden sm:inline">Switch to Viewer App</span>
+          </button>
         </div>
       </div>
 
-      {/* SUB-VIEW: MY SHOWS */}
+      {/* ========================================================================= */}
+      {/* LAYER 2 & 3: WHAT AM I WORKING ON? & WHAT CAN I DO WITH IT? */}
+      {/* ========================================================================= */}
+
+      {/* VIEW: STORY FORGE™ WORKSPACE */}
+      {activeNavTab === 'story_forge' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => setActiveNavTab('shows')}
+              className="text-xs text-welele-muted hover:text-white font-bold flex items-center gap-1.5 cursor-pointer py-1"
+            >
+              ← Back to My Shows
+            </button>
+          </div>
+          <StoryForgeDoorway
+            onSendToProduction={handleForgeHandoff}
+          />
+        </div>
+      )}
+
+      {/* VIEW: SHOWS WORKSPACE */}
       {activeNavTab === 'shows' && (
         <div>
           {selectedSeriesId ? (
+            /* LAYER 2 + 3: ACTIVE SHOW WORKSPACE (Command Room with Embedded Tabs) */
             <SeriesCommandRoom
               seriesId={selectedSeriesId}
               onBack={() => setSelectedSeriesId(null)}
               onOpenEpisodePipeline={(sId, epNum) => handleOpenPipeline(sId, epNum)}
             />
           ) : (
+            /* ALL SHOWS ROSTER (Overview & 4D Readiness Matrix) */
             <div className="space-y-6">
               {/* Creator Greeting & Section Header */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div>
                   <h1 className="text-2xl font-black text-white font-cinematic uppercase tracking-tight">
-                    {getGreeting()}, {creatorName} 👋
+                    {getGreeting()}, {creatorName.split(' ')[0]} 👋
                   </h1>
                   <p className="text-xs text-welele-muted mt-0.5">
-                    Your Shows • Select a show to add episodes, review performance, or update scripts.
+                    Your Shows • Select a show to manage episodes, review audience performance, and track earnings.
                   </p>
                 </div>
-
-                <button
-                  onClick={() => setIsCreateShowOpen(true)}
-                  className="px-4 py-2 rounded-[7px] bg-gradient-to-r from-[#E6007A] to-[#FF2A6D] text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-pink-500/20 hover:opacity-95 transition-all"
-                >
-                  <PlusCircle className="w-4 h-4" />
-                  <span>+ Create Show</span>
-                </button>
               </div>
 
               {/* Show Cards Grid */}
@@ -288,7 +277,8 @@ export const CreatorStudioShell: React.FC = () => {
                   return (
                     <div
                       key={story.id}
-                      className="p-4 rounded-[7px] bg-[#14151B] border border-white/10 hover:border-[#E6007A]/50 transition-all group flex flex-col justify-between"
+                      onClick={() => handleOpenShow(story.id)}
+                      className="p-4 rounded-[7px] bg-[#14151B] border border-white/10 hover:border-[#E6007A]/50 transition-all group flex flex-col justify-between cursor-pointer hover:shadow-xl hover:shadow-pink-500/10"
                     >
                       <div className="space-y-3">
                         <div className="aspect-[9/16] w-full max-h-56 rounded-[7px] overflow-hidden relative">
@@ -350,13 +340,10 @@ export const CreatorStudioShell: React.FC = () => {
                       </div>
 
                       <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between">
-                        <button
-                          onClick={() => handleOpenShow(story.id)}
-                          className="w-full py-2 rounded-[7px] bg-white/5 hover:bg-gradient-to-r hover:from-[#E6007A] hover:to-[#FF2A6D] text-white text-xs font-bold border border-white/10 hover:border-transparent transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                        >
-                          <span>Command Room</span>
+                        <div className="w-full py-2 rounded-[7px] bg-white/5 group-hover:bg-gradient-to-r group-hover:from-[#E6007A] group-hover:to-[#FF2A6D] text-white text-xs font-bold border border-white/10 group-hover:border-transparent transition-all flex items-center justify-center gap-1.5">
+                          <span>Open Show Workspace</span>
                           <ArrowRight className="w-3.5 h-3.5" />
-                        </button>
+                        </div>
                       </div>
                     </div>
                   );
@@ -384,26 +371,6 @@ export const CreatorStudioShell: React.FC = () => {
           )}
         </div>
       )}
-
-      {/* SUB-VIEW: STORY FORGE */}
-      {activeNavTab === 'story_forge' && (
-        <StoryForgeDoorway onSendToProduction={handleForgeHandoff} />
-      )}
-
-      {/* SUB-VIEW: INSIGHTS */}
-      {activeNavTab === 'insights' && (
-        <CreatorDashboard
-          onNavigateToUpload={() => handleOpenPipeline()}
-          onNavigateToSeries={() => {
-            setSelectedSeriesId(null);
-            setActiveNavTab('shows');
-          }}
-          onNavigateToEarnings={() => setActiveNavTab('earnings')}
-        />
-      )}
-
-      {/* SUB-VIEW: EARNINGS */}
-      {activeNavTab === 'earnings' && <CreatorEarnings />}
 
       {/* Add Episode 5-Step Pipeline Modal */}
       <EpisodePipelineModal
