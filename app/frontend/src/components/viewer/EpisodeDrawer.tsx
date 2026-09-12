@@ -1,7 +1,8 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
 import { Story, Episode } from '../../types';
-import { X, Lock, Play, Sparkles } from 'lucide-react';
+import { ProvenanceBadge } from '../common/patterns/ProvenanceBadge';
+import { X, Lock, Play, Sparkles, Film, CheckCircle2 } from 'lucide-react';
 
 interface EpisodeDrawerProps {
   isOpen: boolean;
@@ -28,13 +29,17 @@ export const EpisodeDrawer: React.FC<EpisodeDrawerProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-white/10">
           <div>
-            <h3 className="text-base font-bold text-white flex items-center gap-1.5">
-              Episodes List
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="text-base font-bold text-white flex items-center gap-1.5 font-cinematic">
+                <Film className="w-4 h-4 text-welele-orange" />
+                Episodes Index
+              </h3>
               <span className="text-xs text-welele-muted">
                 ({story.episodes.length} episodes)
               </span>
-            </h3>
-            <p className="text-xs text-welele-orange truncate max-w-[280px]">
+              <ProvenanceBadge tier="MEDIA_OBSERVED" size="sm" label="9:16 VERTICAL" />
+            </div>
+            <p className="text-xs text-welele-orange truncate max-w-[280px] font-semibold mt-0.5">
               {story.title}
             </p>
           </div>

@@ -4,6 +4,7 @@ import { adminApi } from '../../services/api';
 import { ModerationQueue } from './ModerationQueue';
 import { CreatorVerification } from './CreatorVerification';
 import { WeleleAdminStudio } from './WeleleAdminStudio';
+import { ProvenanceBadge } from '../common/patterns/ProvenanceBadge';
 import { Shield, Users, Video, Coins, Activity, CheckCircle, AlertTriangle, Layers } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
@@ -32,13 +33,14 @@ export const AdminDashboard: React.FC = () => {
             <Shield className="w-6 h-6 font-bold" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-xl font-black text-white font-cinematic">Welele Media™ Admin Console</h1>
               <span className="px-2 py-0.5 rounded-[7px] text-[9px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                LIVE
+                LIVE CONTROL PLANE
               </span>
+              <ProvenanceBadge tier="ADMIN_CONTROLLED" size="sm" />
             </div>
-            <p className="text-xs text-welele-muted">Platform rights, AI safety moderation & African payment volume</p>
+            <p className="text-xs text-welele-muted">Platform rights, AI safety moderation, Experience Engine & African payment volume</p>
           </div>
         </div>
 

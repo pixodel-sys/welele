@@ -3,6 +3,7 @@ import { experienceApi } from '../../services/api';
 import { ExperienceManifest, ExperienceSection, SlotItem, SectionType } from '../../types/experience';
 import { Story } from '../../types';
 import { ExperiencePageRenderer } from '../experience/ExperiencePageRenderer';
+import { ProvenanceBadge } from '../common/patterns/ProvenanceBadge';
 import {
   Layers,
   Smartphone,
@@ -563,6 +564,11 @@ export const WeleleAdminStudio: React.FC<WeleleAdminStudioProps> = ({ stories })
                               Hidden
                             </span>
                           )}
+                          <ProvenanceBadge
+                            tier={section.source?.mode === 'algorithmic' ? 'SYSTEM_DERIVED' : 'ADMIN_CONTROLLED'}
+                            label={section.source?.mode === 'algorithmic' ? 'SYSTEM / RULE_BASED' : 'ADMIN_CURATED'}
+                            size="sm"
+                          />
                         </div>
                         <p className="text-xs font-bold truncate mt-0.5">
                           {section.title ||
@@ -699,9 +705,16 @@ export const WeleleAdminStudio: React.FC<WeleleAdminStudioProps> = ({ stories })
 
                 {/* Ingestion Mode */}
                 <div className="space-y-2 pt-2 border-t border-white/10">
-                  <label className="text-[11px] font-bold text-welele-muted block">
-                    Content Ingestion Mode
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-[11px] font-bold text-welele-muted block">
+                      Placement Origin & Ingestion Mode
+                    </label>
+                    <ProvenanceBadge
+                      tier={selectedSection.source.mode === 'algorithmic' ? 'SYSTEM_DERIVED' : 'ADMIN_CONTROLLED'}
+                      label={selectedSection.source.mode === 'algorithmic' ? 'SYSTEM / RULE_BASED' : 'ADMIN_CURATED'}
+                      size="sm"
+                    />
+                  </div>
                   <div className="grid grid-cols-3 gap-1.5 bg-welele-surface p-1 rounded-[7px] border border-white/5 text-xs">
                     {(['manual', 'hybrid', 'algorithmic'] as const).map((mode) => (
                       <button

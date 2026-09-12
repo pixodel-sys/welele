@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { monetizationApi } from '../../services/api';
 import { MoMoPayoutTransaction, PayoutRail } from '../../types';
+import { ProvenanceBadge } from '../common/patterns/ProvenanceBadge';
 import {
   Coins,
   ArrowLeft,
@@ -18,7 +19,8 @@ import {
   FileText,
   Printer,
   X,
-  ExternalLink
+  ExternalLink,
+  Info
 } from 'lucide-react';
 
 interface CreatorEarningsProps {
@@ -161,15 +163,24 @@ export const CreatorEarnings: React.FC<CreatorEarningsProps> = ({ onBack }) => {
       {/* Revenue Snapshot Ribbon */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="p-5 rounded-[7px] bg-[#14151B] border border-white/5 space-y-1">
-          <span className="text-xs text-welele-muted">Unclaimed Coin Balance</span>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-welele-muted">Unclaimed Coin Balance</span>
+            <ProvenanceBadge tier="SYSTEM_DERIVED" size="sm" />
+          </div>
           <div className="text-2xl font-black text-welele-gold font-cinematic">
             🪙 {availableCoins.toLocaleString()}
           </div>
-          <span className="text-[10px] text-welele-muted">From viewer unlocks & creator gifts</span>
+          <div className="flex items-center justify-between text-[10px] text-welele-muted">
+            <span>From viewer unlocks & gifts</span>
+            <span className="text-emerald-400 font-bold">Min 1,000 coins met</span>
+          </div>
         </div>
 
         <div className="p-5 rounded-[7px] bg-[#14151B] border border-white/5 space-y-1">
-          <span className="text-xs text-welele-muted">Est. Net Settlement Value</span>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-welele-muted">Est. Net Settlement Value</span>
+            <ProvenanceBadge tier="SYSTEM_DERIVED" size="sm" />
+          </div>
           <div className="text-2xl font-black text-emerald-400 font-cinematic">
             R {(availableCoins * coinToZarRate * 0.8).toLocaleString(undefined, { minimumFractionDigits: 2 })} ZAR
           </div>
@@ -179,9 +190,31 @@ export const CreatorEarnings: React.FC<CreatorEarningsProps> = ({ onBack }) => {
         </div>
 
         <div className="p-5 rounded-[7px] bg-[#14151B] border border-white/5 space-y-1">
-          <span className="text-xs text-welele-muted">Telco Settlement SLA</span>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-welele-muted">Telco Settlement SLA</span>
+            <ProvenanceBadge tier="EXTERNAL_DATA" size="sm" />
+          </div>
           <div className="text-2xl font-black text-white font-cinematic">Instant / &lt;10 mins</div>
           <span className="text-[10px] text-welele-muted">Automated MoMo & M-Pesa rails</span>
+        </div>
+      </div>
+
+      {/* Carrier Settlement & Billing Disclosure Box */}
+      <div className="p-4 rounded-[7px] bg-welele-surface-2 border border-sky-500/20 text-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+        <div className="flex items-start gap-2.5">
+          <Info className="w-4 h-4 text-sky-400 shrink-0 mt-0.5" />
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-bold text-white">South African Telco & Airtime Pass Settlement Rules</span>
+              <ProvenanceBadge tier="EXTERNAL_DATA" size="sm" />
+            </div>
+            <p className="text-[11px] text-welele-muted">
+              Viewer micropayments made via MTN Airtime Pass or Vodacom Direct Carrier Billing are settled at standard SARB rates minus carrier pass shares. MoMo and Bank EFT payouts remit directly with 15% SARS tax withholding.
+            </p>
+          </div>
+        </div>
+        <div className="px-3 py-1 rounded-[7px] bg-sky-500/10 text-sky-300 text-[10px] font-mono border border-sky-500/30 whitespace-nowrap self-end md:self-center">
+          Threshold: 1,000 Coins (R130 ZAR)
         </div>
       </div>
 

@@ -36,9 +36,14 @@ def test_media_worker_resilience():
     print(f"[PASS] Asynchronous Job Enqueue: Created media job '{job_id}' (Status: {job['status']}).")
 
     # Wait for asynchronous worker thread to complete
-    time.sleep(0.15)
+    completed_job = None
+    for _ in range(30):
+        completed_job = transcoding_service.get_job_status(job_id)
+        if completed_job and completed_job.get("status") == "completed":
+            break
+        time.sleep(0.05)
 
-    completed_job = transcoding_service.get_job_status(job_id)
+    assert completed_job is not None
     assert completed_job["status"] == "completed"
     assert completed_job["attempt"] == 1
     print(f"[PASS] Worker Completion: Media job '{job_id}' completed with status '{completed_job['status']}'.")
@@ -70,12 +75,13 @@ def test_media_worker_resilience():
         simulate_failure_attempts=1 # Fails on attempt 1, recovers on attempt 2
     )
 
-    for _ in range(20):
+    for _ in range(40):
         retry_job_status = transcoding_service.get_job_status(retry_job["id"])
         if retry_job_status and retry_job_status.get("status") == "completed":
             break
         time.sleep(0.05)
 
+    assert retry_job_status is not None
     assert retry_job_status["status"] == "completed"
     assert retry_job_status["attempt"] == 2
     print(f"[PASS] Resilience Retry: Job '{retry_job['id']}' recovered from simulated worker error on attempt {retry_job_status['attempt']}.")
@@ -92,12 +98,13 @@ def test_media_worker_resilience():
         simulate_failure_attempts=5 # Exceeds max retries
     )
 
-    for _ in range(20):
+    for _ in range(40):
         fail_job_status = transcoding_service.get_job_status(fail_job["id"])
         if fail_job_status and fail_job_status.get("status") == "failed":
             break
         time.sleep(0.05)
 
+    assert fail_job_status is not None
     assert fail_job_status["status"] == "failed"
     assert fail_job_status["error"] is not None
     print(f"[PASS] Failure Isolation: Job '{fail_job['id']}' gracefully marked 'failed' after {fail_job_status['attempt']} retries without corrupting system.")
