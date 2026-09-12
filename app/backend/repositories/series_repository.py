@@ -777,12 +777,14 @@ class SeriesRepository(BaseRepository):
             published_cnt = len([e for e in hydrated_eps if e.get("status") == "published"])
             under_review_cnt = len([e for e in hydrated_eps if e.get("status") in ["under_review", "submitted", "pending_review"]])
             draft_cnt = len([e for e in hydrated_eps if e.get("status") == "draft"])
+            archived_cnt = len([e for e in hydrated_eps if e.get("status") == "archived"])
 
             s_copy["episodes"] = hydrated_eps
             s_copy["total_episodes"] = len(hydrated_eps)
             s_copy["published_episodes_count"] = published_cnt
             s_copy["under_review_episodes_count"] = under_review_cnt
             s_copy["draft_episodes_count"] = draft_cnt
+            s_copy["archived_episodes_count"] = archived_cnt
             result.append(s_copy)
 
         return result
@@ -905,6 +907,31 @@ class SeriesRepository(BaseRepository):
             "moderation_feedback": feedback,
             "reviewed_by": reviewer_id,
             "reviewed_at": now_ts,
+            "updated_at": now_ts
+        })
+        return updated
+
+    def archive_episode(
+        self,
+        episode_id: str,
+        actor_id: str = "creator_zola",
+        actor_role: str = "creator"
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Atomic Non-Destructive Operational Retirement:
+        Transitions episode status to 'archived' while preserving all telemetry,
+        ledger, audit, entitlements, and storage lineage.
+        """
+        now_ts = datetime.now(timezone.utc).isoformat()
+        episodes = self.local_get("episodes")
+        target_ep = next((e for e in episodes if e.get("id") == episode_id), None)
+        if not target_ep:
+            return None
+
+        updated = self.local_update("episodes", "id", episode_id, {
+            "status": "archived",
+            "archived_by": actor_id,
+            "archived_at": now_ts,
             "updated_at": now_ts
         })
         return updated

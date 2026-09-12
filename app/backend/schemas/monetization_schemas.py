@@ -34,6 +34,7 @@ class PayoutRequest(BaseModel):
     currency: str
     payout_method: str
     account_details: str
+    idempotency_key: Optional[str] = None
 
 class AirtimeChargeRequest(BaseModel):
     user_id: str

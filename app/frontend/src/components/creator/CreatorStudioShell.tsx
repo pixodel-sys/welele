@@ -92,22 +92,62 @@ export const CreatorStudioShell: React.FC = () => {
   const creatorName = user?.name?.split(' ')[0] || 'Zola';
   const creatorHandle = `@${(user?.name || 'Zola Mthembu').toLowerCase().replace(/\s+/g, '_')}`;
 
-  // Helper to derive 4-dimensional readiness state
-  const getShowReadiness = (story: any): 'READY' | 'READY_WITH_WARNINGS' | 'NEEDS_INPUT' | 'BLOCKED' => {
+  // Canonical 4-Dimensional Readiness Evaluation Contract
+  const getShow4DContract = (story: any) => {
     const epCount = story.episodes?.length || story.total_episodes || 0;
-    if (epCount === 0) return 'NEEDS_INPUT';
-    if (!story.vertical_poster || !story.synopsis) return 'NEEDS_INPUT';
-    if (story.under_review_episodes_count > 0) return 'READY_WITH_WARNINGS';
-    return 'READY';
-  };
-
-  // Helper to derive audience state deterministically
-  const getAudienceState = (story: any): string => {
+    const underReviewCount = story.under_review_episodes_count || (story.episodes?.filter((e: any) => e.status === 'under_review').length || 0);
+    const hasStory = Boolean(story.synopsis && story.title);
+    const hasMedia = epCount > 0;
+    const hasRights = Boolean(story.creator_id || story.ip_id);
     const views = story.total_views || story.views || 0;
-    if (views === 0) return 'NO AUDIENCE DATA YET';
-    if (views < 1000) return 'COLLECTING EVIDENCE';
-    if (views < 10000) return 'EARLY SIGNAL';
-    return 'MEASURED';
+
+    // Overall Readiness
+    let readiness: 'READY' | 'READY_WITH_WARNINGS' | 'NEEDS_INPUT' | 'BLOCKED' = 'READY';
+    if (!hasStory) {
+      readiness = 'BLOCKED';
+    } else if (!hasMedia) {
+      readiness = 'NEEDS_INPUT';
+    } else if (underReviewCount > 0) {
+      readiness = 'READY_WITH_WARNINGS';
+    }
+
+    // Audience Evidence State
+    let audienceState = 'NO AUDIENCE DATA YET';
+    let audienceColor = 'bg-zinc-500';
+    if (views > 0 && views < 1000) {
+      audienceState = 'COLLECTING EVIDENCE';
+      audienceColor = 'bg-amber-400';
+    } else if (views >= 1000 && views < 10000) {
+      audienceState = 'EARLY SIGNAL';
+      audienceColor = 'bg-emerald-400';
+    } else if (views >= 10000) {
+      audienceState = 'MEASURED';
+      audienceColor = 'bg-sky-400';
+    }
+
+    return {
+      readiness,
+      storyDimension: {
+        state: hasStory ? 'READY' : 'NEEDS_INPUT',
+        label: hasStory ? 'Story: Ready' : 'Story: Incomplete',
+        dotColor: hasStory ? 'bg-emerald-400' : 'bg-red-400'
+      },
+      mediaDimension: {
+        state: epCount === 0 ? 'NEEDS_INPUT' : (underReviewCount > 0 ? 'WARNINGS' : 'READY'),
+        label: epCount === 0 ? 'Media: Empty' : (underReviewCount > 0 ? `Media: ${underReviewCount} in review` : 'Media: 9:16 HD'),
+        dotColor: epCount === 0 ? 'bg-amber-400' : (underReviewCount > 0 ? 'bg-amber-300' : 'bg-emerald-400')
+      },
+      rightsDimension: {
+        state: hasRights ? 'READY' : 'NEEDS_INPUT',
+        label: hasRights ? 'Rights: Declared' : 'Rights: Unset',
+        dotColor: hasRights ? 'bg-emerald-400' : 'bg-amber-400'
+      },
+      audienceDimension: {
+        state: audienceState,
+        label: audienceState,
+        dotColor: audienceColor
+      }
+    };
   };
 
   return (
@@ -242,9 +282,8 @@ export const CreatorStudioShell: React.FC = () => {
               {/* Show Cards Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
                 {(creatorShows.length > 0 ? creatorShows : stories).map((story) => {
-                  const readiness = getShowReadiness(story);
+                  const contract4d = getShow4DContract(story);
                   const franchiseCode = story.franchise_code || `IP-WEL-${story.id.replace(/[^a-zA-Z0-9]/g, '').slice(-4).toUpperCase()}`;
-                  const audienceState = getAudienceState(story);
 
                   return (
                     <div
@@ -264,7 +303,7 @@ export const CreatorStudioShell: React.FC = () => {
                             </span>
                           </div>
                           <div className="absolute top-2 right-2">
-                            <ReadinessBadge level={readiness} size="sm" />
+                            <ReadinessBadge level={contract4d.readiness} size="sm" />
                           </div>
                         </div>
 
@@ -273,8 +312,8 @@ export const CreatorStudioShell: React.FC = () => {
                             <span className="text-[10px] font-mono text-welele-muted uppercase">
                               {story.genre}
                             </span>
-                            <span className="text-[10px] font-mono text-emerald-400/90 font-semibold">
-                              {audienceState}
+                            <span className="text-[10px] font-mono text-welele-gold font-semibold">
+                              {contract4d.audienceDimension.label}
                             </span>
                           </div>
                           <h3 className="text-base font-black text-white group-hover:text-[#FF2A6D] truncate uppercase tracking-tight">
@@ -289,23 +328,23 @@ export const CreatorStudioShell: React.FC = () => {
                           </p>
                         </div>
 
-                        {/* 4-Dimensional Readiness Snapshot */}
+                        {/* Canonical 4-Dimensional Readiness Snapshot */}
                         <div className="p-2.5 rounded-[7px] bg-black/40 border border-white/5 grid grid-cols-2 gap-1.5 text-[10px]">
-                          <div className="flex items-center gap-1 text-white/70">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                            <span>Story: Ready</span>
+                          <div className="flex items-center gap-1.5 text-white/80">
+                            <span className={`w-1.5 h-1.5 rounded-full ${contract4d.storyDimension.dotColor}`} />
+                            <span className="truncate">{contract4d.storyDimension.label}</span>
                           </div>
-                          <div className="flex items-center gap-1 text-white/70">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                            <span>Media: 9:16 HD</span>
+                          <div className="flex items-center gap-1.5 text-white/80">
+                            <span className={`w-1.5 h-1.5 rounded-full ${contract4d.mediaDimension.dotColor}`} />
+                            <span className="truncate">{contract4d.mediaDimension.label}</span>
                           </div>
-                          <div className="flex items-center gap-1 text-white/70">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                            <span>Rights: Declared</span>
+                          <div className="flex items-center gap-1.5 text-white/80">
+                            <span className={`w-1.5 h-1.5 rounded-full ${contract4d.rightsDimension.dotColor}`} />
+                            <span className="truncate">{contract4d.rightsDimension.label}</span>
                           </div>
-                          <div className="flex items-center gap-1 text-white/70">
-                            <span className="w-1.5 h-1.5 rounded-full bg-welele-gold" />
-                            <span className="truncate">{audienceState}</span>
+                          <div className="flex items-center gap-1.5 text-white/80">
+                            <span className={`w-1.5 h-1.5 rounded-full ${contract4d.audienceDimension.dotColor}`} />
+                            <span className="truncate">{contract4d.audienceDimension.label}</span>
                           </div>
                         </div>
                       </div>

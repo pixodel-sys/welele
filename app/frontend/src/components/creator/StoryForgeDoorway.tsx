@@ -198,14 +198,17 @@ export const StoryForgeDoorway: React.FC<StoryForgeDoorwayProps> = ({ onSendToPr
 
   const [isPersistingPackage, setIsPersistingPackage] = useState(false);
   const [persistedPackageId, setPersistedPackageId] = useState<string | null>(null);
+  const [persistError, setPersistError] = useState<string | null>(null);
 
   const handleAcceptAndHandoff = async () => {
     setIsPersistingPackage(true);
+    setPersistError(null);
     try {
       const matchingStory = stories.find((s) => s.title.toLowerCase().includes(storyPackage.series_title.toLowerCase())) || stories[0];
-      const ipId = matchingStory?.id || 'ip_queen_of_jozi';
+      const ipId = matchingStory?.ip_id || 'ip_blood_ties';
 
       const payload = {
+        ip_id: ipId,
         package_title: storyPackage.series_title,
         version: '1.0.0',
         creator_id: 'creator_zola',
@@ -213,28 +216,29 @@ export const StoryForgeDoorway: React.FC<StoryForgeDoorwayProps> = ({ onSendToPr
         beats: storyPackage.beats,
         dialogues: storyPackage.dialogue || [],
         cliffhanger_prompt: storyPackage.cliffhanger_prompt,
-        ai_model_used: aiStatus.model
+        ai_model_used: aiStatus.model,
+        human_approved: true
       };
 
       const res = await ipApi.saveStoryPackage(ipId, payload);
       const pkg = res?.package;
-      const canonicalPackageId = pkg?.id || `sfp_${Date.now().toString(36)}`;
-      setPersistedPackageId(canonicalPackageId);
+      if (!pkg || !pkg.id) {
+        throw new Error('Failed to obtain canonical persisted package ID from backend.');
+      }
+
+      setPersistedPackageId(pkg.id);
 
       onSendToProduction({
         ...storyPackage,
-        package_id: canonicalPackageId,
+        package_id: pkg.id,
+        lineage_hash: pkg.lineage_hash,
         ip_id: ipId,
         series_id: matchingStory?.id,
         status: 'accepted'
       });
-    } catch (err) {
-      console.warn('Persisting story package fallback:', err);
-      onSendToProduction({
-        ...storyPackage,
-        package_id: `sfp_${Date.now().toString(36)}`,
-        status: 'accepted'
-      });
+    } catch (err: any) {
+      console.error('[StoryForge] Failed to persist canonical package:', err);
+      setPersistError(err?.message || 'Failed to persist Story Forge package to canonical database.');
     } finally {
       setIsPersistingPackage(false);
     }
@@ -308,13 +312,21 @@ export const StoryForgeDoorway: React.FC<StoryForgeDoorwayProps> = ({ onSendToPr
           </p>
         </div>
 
-        <button
-          onClick={() => onSendToProduction(storyPackage)}
-          className="px-5 py-2.5 rounded-[7px] bg-gradient-to-r from-[#E6007A] to-[#FF2A6D] text-white font-bold text-xs shadow-lg shadow-pink-500/20 flex items-center gap-2 hover:brightness-110 active:scale-95 transition-all shrink-0"
-        >
-          <Send className="w-4 h-4" />
-          <span>EXPORT TO EPISODE PIPELINE</span>
-        </button>
+        <div className="flex flex-col items-end gap-1">
+          <button
+            onClick={handleAcceptAndHandoff}
+            disabled={isPersistingPackage}
+            className="px-5 py-2.5 rounded-[7px] bg-gradient-to-r from-[#E6007A] to-[#FF2A6D] text-white font-bold text-xs shadow-lg shadow-pink-500/20 flex items-center gap-2 hover:brightness-110 active:scale-95 transition-all shrink-0 disabled:opacity-50"
+          >
+            <Send className="w-4 h-4" />
+            <span>{isPersistingPackage ? 'PERSISTING & ACCEPTING...' : 'EXPORT TO EPISODE PIPELINE'}</span>
+          </button>
+          {persistError && (
+            <span className="text-[10px] text-red-400 font-medium">
+              {persistError}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Generation Engine Top Bar */}

@@ -107,6 +107,22 @@ def get_creator_episodes(creator_id: str, status: str = Query(None), auth_user: 
 
     return {"episodes": filtered, "total": len(filtered)}
 
+@router.get("/{creator_id}/transactions", dependencies=[Depends(require_role(["creator", "admin"]))])
+def get_creator_transactions(creator_id: str, auth_user: dict = Depends(get_current_user)):
+    """
+    Projects canonical persisted payment_transactions for the creator without creating a second store.
+    """
+    enforce_tenant_access(auth_user, creator_id, domain="COMMERCE", action="view transactions")
+    from database import db
+    all_txs = db.get("transactions")
+    creator_txs = [tx for tx in all_txs if tx.get("creator_id") == creator_id]
+    creator_txs.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+    return {
+        "creator_id": creator_id,
+        "total": len(creator_txs),
+        "transactions": creator_txs
+    }
+
 @router.get("/series/{series_id}/workspace", dependencies=[Depends(require_role(["creator", "admin"]))])
 def get_series_workspace(series_id: str, auth_user: dict = Depends(get_current_user)):
     """Series Command Room workspace data with retention & coin metrics."""

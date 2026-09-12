@@ -401,6 +401,13 @@ class ExperienceEngine:
                     # Merge story data into slot
                     item_resolved = copy.deepcopy(item)
                     item_resolved["story"] = story
+                    
+                    # Sanitize CTA target if pointing to an archived episode
+                    if item_resolved.get("cta_action") == "STREAM_EPISODE" and item_resolved.get("cta_target"):
+                        pub_ep_ids = [e["id"] for e in story.get("episodes", []) if e.get("status") == "published"]
+                        if item_resolved["cta_target"] not in pub_ep_ids:
+                            item_resolved["cta_target"] = pub_ep_ids[0] if pub_ep_ids else None
+
                     resolved_items.append(item_resolved)
                 elif item.get("content_type") == "promo":
                     resolved_items.append(item)

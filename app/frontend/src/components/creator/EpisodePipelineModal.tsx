@@ -482,6 +482,28 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
                 </select>
               </div>
 
+              {/* Canonical Story Forge Package Lineage Badge */}
+              {canonicalPackageId && (
+                <div className="p-3 rounded-[7px] bg-black/40 border border-pink-500/30 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <div>
+                      <span className="text-[11px] font-bold text-white block">
+                        Canonical Story Package Linked: <code className="text-pink-400 font-mono">{canonicalPackageId}</code>
+                      </span>
+                      {initialPackageData?.lineage_hash && (
+                        <span className="text-[10px] text-welele-muted font-mono block">
+                          SHA-256 Hash: {initialPackageData.lineage_hash.slice(0, 16)}...
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-[7px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold uppercase tracking-wider">
+                    Accepted State
+                  </span>
+                </div>
+              )}
+
               {/* Episode Number */}
               <div>
                 <label className="text-xs font-bold text-white block mb-1">Episode Number</label>

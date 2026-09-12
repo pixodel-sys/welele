@@ -5,12 +5,14 @@ cliffhanger detection, and subtitles.
 """
 
 from typing import Optional
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from database import db
 from repositories.ledger_repository import ledger_repository
 from repositories.series_repository import series_repository
 from services.storage_service import storage_service
 from services.ledger_service import ledger_service
+from services.rbac_service import require_role, get_current_user, enforce_tenant_access
+from services.audit_service import audit_service
 
 router = APIRouter(prefix="/episodes", tags=["Episodes & Streaming"])
 
@@ -20,14 +22,16 @@ def get_episode_stream(
     episode_id: str,
     user_id: Optional[str] = "user_sa_01"
 ):
-    story = series_repository.get_series_detail(series_id)
+    all_episodes = series_repository.local_get("episodes")
+    all_series = series_repository.local_get("series")
+    story = next((s for s in all_series if s["id"] == series_id), None)
     if not story:
         stories = db.get("stories")
         story = next((s for s in stories if s["id"] == series_id), None)
         if not story:
             raise HTTPException(status_code=404, detail="Series not found")
     
-    episode = next((ep for ep in story.get("episodes", []) if ep["id"] == episode_id), None)
+    episode = next((ep for ep in all_episodes if ep["id"] == episode_id and ep.get("series_id") == series_id), None)
     if not episode:
         raise HTTPException(status_code=404, detail="Episode not found")
     
@@ -38,6 +42,14 @@ def get_episode_stream(
     db_unlocks = db.get("unlocked_episodes") or []
     all_unlocks = ledger_unlocks + db_unlocks
     is_unlocked = is_free or any(u.get("user_id") == user_id and u.get("episode_id") == episode_id for u in all_unlocks)
+
+    # Commercial & Lifecycle Policy Gate for Archived Content:
+    # If episode is ARCHIVED, playback is permitted ONLY IF the viewer holds an existing paid entitlement.
+    if episode.get("status") == "archived" and not is_unlocked:
+        raise HTTPException(
+            status_code=403,
+            detail="This episode has been retired/archived from public distribution."
+        )
 
     # Resolve media asset identity & storage lineage
     all_media = series_repository.local_get("media_assets")
@@ -60,10 +72,8 @@ def get_episode_stream(
     else:
         stream_url = storage_service.get_stream_url(storage_key or f"masters/{series_id}/{episode_id}.mp4", adaptive_hls=False)
 
-
     renditions = storage_service.generate_adaptive_renditions(stream_url)
     hls_manifest = storage_service.get_stream_url(storage_key or stream_url, adaptive_hls=True)
-
 
     return {
         "series_id": series_id,
@@ -91,16 +101,25 @@ def unlock_episode(
     user_id: str = Query(..., description="User ID"),
     method: str = Query("COINS", description="Unlock method: COINS, AIRTIME_DCB, VIP_PASS")
 ):
-    story = series_repository.get_series_detail(series_id)
+    all_episodes = series_repository.local_get("episodes")
+    all_series = series_repository.local_get("series")
+    story = next((s for s in all_series if s["id"] == series_id), None)
     if not story:
         stories = db.get("stories")
         story = next((s for s in stories if s["id"] == series_id), None)
         if not story:
             raise HTTPException(status_code=404, detail="Series not found")
     
-    episode = next((ep for ep in story.get("episodes", []) if ep["id"] == episode_id), None)
+    episode = next((ep for ep in all_episodes if ep["id"] == episode_id and ep.get("series_id") == series_id), None)
     if not episode:
         raise HTTPException(status_code=404, detail="Episode not found")
+
+    # Commercial Policy Gate: Prohibit new purchases/unlocks of archived episodes
+    if episode.get("status") == "archived":
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot purchase or unlock an archived episode. This content has been retired from circulation."
+        )
 
     coin_price = episode.get("coin_price", 5) if method == "COINS" else 0
     success, message, unlock_record = ledger_service.unlock_episode(
@@ -129,4 +148,63 @@ def unlock_episode(
         "message": message,
         "unlock": unlock_record,
         "remaining_balance": balance["total_usable_coins"]
+    }
+
+
+@router.post("/{series_id}/{episode_id}/archive", dependencies=[Depends(require_role(["creator", "admin"]))])
+def archive_episode(
+    series_id: str,
+    episode_id: str,
+    auth_user: dict = Depends(get_current_user)
+):
+    """
+    Atomic Episode Lifecycle Transition: REQUEST -> Authenticate -> RBAC -> State Validation -> Persist status=archived -> Audit Log
+    """
+    all_series = series_repository.local_get("series")
+    target_series = next((s for s in all_series if s["id"] == series_id), None)
+    if not target_series:
+        raise HTTPException(status_code=404, detail="Series not found")
+
+    actor_role = auth_user.get("role", "creator")
+    creator_id = target_series.get("creator_id")
+    enforce_tenant_access(auth_user, creator_id, domain="CONTENT", action="archive episode")
+
+    all_episodes = series_repository.local_get("episodes")
+    target_ep = next((e for e in all_episodes if e["id"] == episode_id and e.get("series_id") == series_id), None)
+    if not target_ep:
+        raise HTTPException(status_code=404, detail="Episode not found")
+
+    if target_ep.get("status") == "archived":
+        return {
+            "success": True,
+            "message": "Episode is already archived.",
+            "episode": target_ep
+        }
+
+    before_status = target_ep.get("status", "published")
+
+    # Atomic Update to Archived State
+    updated = series_repository.archive_episode(
+        episode_id=episode_id,
+        actor_id=auth_user.get("sub", creator_id),
+        actor_role=actor_role
+    )
+
+    # Immutable Audit Log
+    audit_service.record_trust_event(
+        domain="CONTENT",
+        event_type="content.episode_archived",
+        actor_id=auth_user.get("sub", creator_id),
+        actor_role=actor_role,
+        target_type="episode",
+        target_id=episode_id,
+        before_state={"status": before_status},
+        after_state={"status": "archived", "series_id": series_id},
+        metadata={"series_title": target_series.get("title"), "episode_number": target_ep.get("episode_number")}
+    )
+
+    return {
+        "success": True,
+        "message": f"Episode {target_ep.get('episode_number')} of '{target_series.get('title')}' successfully retired to ARCHIVED state.",
+        "episode": updated
     }

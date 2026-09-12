@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { monetizationApi, walletApi } from '../../services/api';
+import { monetizationApi, walletApi, creatorApi } from '../../services/api';
 import { MoMoPayoutTransaction, PayoutRail } from '../../types';
 import { ProvenanceBadge } from '../common/patterns/ProvenanceBadge';
 import {
@@ -49,6 +49,22 @@ export const CreatorEarnings: React.FC<CreatorEarningsProps> = ({ onBack }) => {
   const [isJournalOpen, setIsJournalOpen] = useState(false);
   const [journalEntries, setJournalEntries] = useState<any[]>([]);
   const [loadingJournal, setLoadingJournal] = useState(false);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [loadingTransactions, setLoadingTransactions] = useState(false);
+
+  const fetchTransactions = async () => {
+    setLoadingTransactions(true);
+    try {
+      const res = await creatorApi.getTransactions('creator_zola');
+      if (res?.transactions) {
+        setTransactions(res.transactions);
+      }
+    } catch (err) {
+      console.error('[CreatorEarnings] Error fetching transactions:', err);
+    } finally {
+      setLoadingTransactions(false);
+    }
+  };
 
   useEffect(() => {
     walletApi.getLedger('creator_zola', 100).then((res) => {
@@ -56,49 +72,8 @@ export const CreatorEarnings: React.FC<CreatorEarningsProps> = ({ onBack }) => {
         setJournalEntries(res.ledger);
       }
     }).catch(() => {});
+    fetchTransactions();
   }, []);
-
-  // Transaction Ledger State
-  const [transactions, setTransactions] = useState<MoMoPayoutTransaction[]>([
-    {
-      id: 'tx_98214',
-      transaction_ref: 'WLE-MOMO-20260901-841',
-      invoice_number: 'INV-2026-09-0012',
-      creator_id: 'creator_1',
-      creator_name: 'Sipho Dlamini',
-      rail: 'momo',
-      provider_name: 'MTN Mobile Money',
-      account_identifier: '+27 83 555 0192',
-      coins_redeemed: 50000,
-      gross_amount_zar: 6500.0,
-      platform_fee_zar: 325.0,
-      tax_withholding_zar: 926.25,
-      net_payout_zar: 5248.75,
-      currency: 'ZAR',
-      status: 'completed',
-      created_at: '2026-09-01 14:22',
-      settled_at: '2026-09-01 14:28'
-    },
-    {
-      id: 'tx_98190',
-      transaction_ref: 'WLE-MPESA-20260824-219',
-      invoice_number: 'INV-2026-08-0094',
-      creator_id: 'creator_1',
-      creator_name: 'Sipho Dlamini',
-      rail: 'mpesa',
-      provider_name: 'Vodacom M-Pesa',
-      account_identifier: '+27 72 444 8190',
-      coins_redeemed: 30000,
-      gross_amount_zar: 3900.0,
-      platform_fee_zar: 195.0,
-      tax_withholding_zar: 555.75,
-      net_payout_zar: 3149.25,
-      currency: 'ZAR',
-      status: 'completed',
-      created_at: '2026-08-24 10:15',
-      settled_at: '2026-08-24 10:20'
-    }
-  ]);
 
   // Calculations
   const coinToZarRate = 0.13; // R0.13 per coin
@@ -118,33 +93,33 @@ export const CreatorEarnings: React.FC<CreatorEarningsProps> = ({ onBack }) => {
     setIsProcessing(true);
     setStatusMsg(null);
 
-    setTimeout(() => {
-      const newTx: MoMoPayoutTransaction = {
-        id: 'tx_' + Date.now().toString().slice(-5),
-        transaction_ref: `WLE-${payoutRail.toUpperCase()}-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.floor(Math.random() * 900 + 100)}`,
-        invoice_number: `INV-2026-09-00${transactions.length + 13}`,
-        creator_id: 'creator_1',
-        creator_name: accountName,
-        rail: payoutRail,
-        provider_name: payoutProvider,
-        account_identifier: accountIdentifier,
-        coins_redeemed: amountCoins,
-        gross_amount_zar: grossZar,
-        platform_fee_zar: platformFee,
-        tax_withholding_zar: taxWithholding,
-        net_payout_zar: netZar,
+    try {
+      const idempotencyKey = `payout_idemp_${Date.now()}_${amountCoins}`;
+      const res = await creatorApi.requestPayout({
+        creator_id: 'creator_zola',
+        amount_coins: amountCoins,
+        amount_local: Number(netZar.toFixed(2)),
         currency: 'ZAR',
-        status: 'completed',
-        created_at: new Date().toISOString().replace('T', ' ').slice(0, 16),
-        settled_at: new Date().toISOString().replace('T', ' ').slice(0, 16)
-      };
+        payout_method: `${payoutProvider} (${accountIdentifier})`,
+        account_details: `${accountName} - ${accountIdentifier}`,
+        idempotency_key: idempotencyKey
+      });
 
-      setAvailableCoins((prev) => prev - amountCoins);
-      setTransactions([newTx, ...transactions]);
-      setSelectedInvoice(newTx);
+      if (res.success) {
+        if (res.remaining_coin_balance !== undefined) {
+          setAvailableCoins(res.remaining_coin_balance);
+        }
+        await fetchTransactions();
+        setStatusMsg(`Payout of R${netZar.toFixed(2)} ZAR requested via ${payoutProvider}. Status: Settlement Pending (External Rails Unproven).`);
+      } else {
+        setStatusMsg(res.message || 'Failed to submit payout request.');
+      }
+    } catch (err: any) {
+      console.error('[CreatorEarnings] Payout error:', err);
+      setStatusMsg(err?.response?.data?.detail || err?.message || 'Payout request failed.');
+    } finally {
       setIsProcessing(false);
-      setStatusMsg(`Payout of R${netZar.toFixed(2)} ZAR dispatched successfully via ${payoutProvider}!`);
-    }, 1200);
+    }
   };
 
   return (
@@ -417,48 +392,63 @@ export const CreatorEarnings: React.FC<CreatorEarningsProps> = ({ onBack }) => {
       <div className="p-5 rounded-[7px] bg-[#14151B] border border-white/5 space-y-4">
         <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
           <FileText className="w-4 h-4 text-welele-gold" />
-          Recent Payout Statements & Tax Invoices ({transactions.length})
+          Recent Payout Statements & Canonical Ledger Records ({transactions.length})
         </h3>
 
+        {loadingTransactions && (
+          <div className="text-xs text-welele-muted py-4 text-center">Loading transactions...</div>
+        )}
+
+        {!loadingTransactions && transactions.length === 0 && (
+          <div className="p-4 rounded-[7px] bg-[#0B0C10] border border-white/5 text-center text-xs text-welele-muted">
+            No payout requests recorded yet. Your requested payouts and double-entry settlements will appear here.
+          </div>
+        )}
+
         <div className="space-y-2">
-          {transactions.map((tx) => (
-            <div
-              key={tx.id}
-              className="p-3.5 rounded-[7px] bg-[#0B0C10] border border-white/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 hover:border-white/15 transition-all text-xs"
-            >
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-white">{tx.provider_name}</span>
-                  <span className="px-2 py-0.5 rounded-[7px] text-[10px] font-mono bg-emerald-500/20 text-emerald-400">
-                    {tx.status.toUpperCase()}
-                  </span>
-                  <span className="text-welele-muted text-[10px] font-mono">{tx.invoice_number}</span>
+          {transactions.map((tx) => {
+            const displayMethod = tx.method || tx.provider_name || 'Mobile Money';
+            const displayAmount = tx.amount_local || tx.net_payout_zar || 0;
+            const displayCoins = tx.coins || tx.coins_redeemed || 0;
+            const displayStatus = tx.status || 'processing';
+            const displaySettlement = tx.settlement_status || (displayStatus === 'completed' ? 'Settled' : 'Settlement Pending (External Rails Unproven)');
+            const displayIdemp = tx.idempotency_key || tx.transaction_ref || tx.id;
+
+            return (
+              <div
+                key={tx.id}
+                className="p-3.5 rounded-[7px] bg-[#0B0C10] border border-white/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 hover:border-white/15 transition-all text-xs"
+              >
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-bold text-white">{displayMethod}</span>
+                    <span className={`px-2 py-0.5 rounded-[7px] text-[10px] font-mono font-bold ${
+                      displayStatus === 'completed' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-300'
+                    }`}>
+                      {displayStatus.toUpperCase()}
+                    </span>
+                    <span className="text-[10px] text-welele-muted font-mono bg-white/5 px-2 py-0.5 rounded">
+                      {displaySettlement}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-welele-muted mt-1 font-mono">
+                    ID: <span className="text-white/80">{tx.id}</span> • Key: <span className="text-pink-300">{displayIdemp.slice(0, 16)}...</span> • {new Date(tx.created_at || Date.now()).toLocaleString()}
+                  </div>
                 </div>
-                <div className="text-[11px] text-welele-muted mt-0.5">
-                  Ref: <span className="font-mono text-white/80">{tx.transaction_ref}</span> • {tx.account_identifier} • {tx.created_at}
+
+                <div className="flex items-center gap-4 self-end sm:self-center">
+                  <div className="text-right">
+                    <div className="font-bold text-emerald-400 font-cinematic text-sm">
+                      +R {Number(displayAmount).toFixed(2)} ZAR
+                    </div>
+                    <div className="text-[10px] text-welele-muted">
+                      🪙 {Number(displayCoins).toLocaleString()} coins
+                    </div>
+                  </div>
                 </div>
               </div>
-
-              <div className="flex items-center gap-4 self-end sm:self-center">
-                <div className="text-right">
-                  <div className="font-bold text-emerald-400 font-cinematic text-sm">
-                    +R {tx.net_payout_zar.toFixed(2)} ZAR
-                  </div>
-                  <div className="text-[10px] text-welele-muted">
-                    🪙 {tx.coins_redeemed.toLocaleString()} coins
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => setSelectedInvoice(tx)}
-                  className="px-3 py-1.5 rounded-[7px] bg-white/5 hover:bg-white/10 text-white font-bold text-xs border border-white/10 flex items-center gap-1.5 transition-all"
-                >
-                  <FileText className="w-3.5 h-3.5 text-welele-gold" />
-                  <span>Invoice</span>
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 

@@ -413,6 +413,22 @@ export const creatorApi = {
       return { success: true, episode: payload };
     }
   },
+  getTransactions: async (creatorId: string) => {
+    const res = await API.get(`/creators/${creatorId}/transactions`);
+    return res.data;
+  },
+  requestPayout: async (payload: {
+    creator_id: string;
+    amount_coins: number;
+    amount_local: number;
+    currency: string;
+    payout_method: string;
+    account_details: string;
+    idempotency_key?: string;
+  }) => {
+    const res = await API.post('/monetization/payout', payload);
+    return res.data;
+  },
 };
 
 export const aiApi = {

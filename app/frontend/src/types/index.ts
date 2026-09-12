@@ -11,7 +11,8 @@ export type EpisodeStatus =
   | 'scheduled'
   | 'published'
   | 'changes_requested'
-  | 'rejected';
+  | 'rejected'
+  | 'archived';
 
 export interface PreflightHealth {
   aspect_ratio_ok: boolean;
