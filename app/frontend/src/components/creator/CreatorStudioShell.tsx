@@ -42,6 +42,7 @@ export const CreatorStudioShell: React.FC = () => {
   const [isCreateShowOpen, setIsCreateShowOpen] = useState<boolean>(false);
   const [pipelineSeriesId, setPipelineSeriesId] = useState<string | undefined>(undefined);
   const [pipelineEpisodeNumber, setPipelineEpisodeNumber] = useState<number | undefined>(undefined);
+  const [pipelinePackageData, setPipelinePackageData] = useState<any>(undefined);
 
   // AI Connection Status
   const [aiStatus, setAiStatus] = useState<AIStatus | null>(null);
@@ -62,9 +63,10 @@ export const CreatorStudioShell: React.FC = () => {
     fetchCreatorShows();
   }, [user]);
 
-  const handleOpenPipeline = (seriesId?: string, episodeNumber?: number) => {
+  const handleOpenPipeline = (seriesId?: string, episodeNumber?: number, packageData?: any) => {
     setPipelineSeriesId(seriesId || stories[0]?.id);
     setPipelineEpisodeNumber(episodeNumber);
+    setPipelinePackageData(packageData);
     setIsPipelineOpen(true);
   };
 
@@ -73,8 +75,10 @@ export const CreatorStudioShell: React.FC = () => {
     setActiveNavTab('shows');
   };
 
-  const handleForgeHandoff = (_forgedPackage: any) => {
-    handleOpenPipeline(stories[0]?.id, (stories[0]?.episodes?.length || 0) + 1);
+  const handleForgeHandoff = (forgedPackage: any) => {
+    const targetSeriesId = forgedPackage?.series_id || stories[0]?.id;
+    const targetEpNum = (stories.find(s => s.id === targetSeriesId)?.episodes?.length || 0) + 1;
+    handleOpenPipeline(targetSeriesId, targetEpNum, forgedPackage);
   };
 
   // Determine time-based greeting
@@ -377,6 +381,7 @@ export const CreatorStudioShell: React.FC = () => {
         }}
         initialSeriesId={pipelineSeriesId}
         initialEpisodeNumber={pipelineEpisodeNumber}
+        initialPackageData={pipelinePackageData}
       />
 
       {/* Create Show Modal */}

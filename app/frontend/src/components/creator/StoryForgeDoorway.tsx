@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
-import { storyForgeApi, aiApi } from '../../services/api';
+import { storyForgeApi, aiApi, ipApi } from '../../services/api';
 import { StoryBeat, DialogueLine, CharacterBibleItem, StoryForgeScript, AIStatus } from '../../types';
 import { ProvenanceBadge } from '../common/patterns/ProvenanceBadge';
 import {
@@ -193,6 +193,50 @@ export const StoryForgeDoorway: React.FC<StoryForgeDoorwayProps> = ({ onSendToPr
       // Handled in api fallback
     } finally {
       setIsForging(false);
+    }
+  };
+
+  const [isPersistingPackage, setIsPersistingPackage] = useState(false);
+  const [persistedPackageId, setPersistedPackageId] = useState<string | null>(null);
+
+  const handleAcceptAndHandoff = async () => {
+    setIsPersistingPackage(true);
+    try {
+      const matchingStory = stories.find((s) => s.title.toLowerCase().includes(storyPackage.series_title.toLowerCase())) || stories[0];
+      const ipId = matchingStory?.id || 'ip_queen_of_jozi';
+
+      const payload = {
+        package_title: storyPackage.series_title,
+        version: '1.0.0',
+        creator_id: 'creator_zola',
+        target_duration_seconds: storyPackage.target_duration_seconds,
+        beats: storyPackage.beats,
+        dialogues: storyPackage.dialogue || [],
+        cliffhanger_prompt: storyPackage.cliffhanger_prompt,
+        ai_model_used: aiStatus.model
+      };
+
+      const res = await ipApi.saveStoryPackage(ipId, payload);
+      const pkg = res?.package;
+      const canonicalPackageId = pkg?.id || `sfp_${Date.now().toString(36)}`;
+      setPersistedPackageId(canonicalPackageId);
+
+      onSendToProduction({
+        ...storyPackage,
+        package_id: canonicalPackageId,
+        ip_id: ipId,
+        series_id: matchingStory?.id,
+        status: 'accepted'
+      });
+    } catch (err) {
+      console.warn('Persisting story package fallback:', err);
+      onSendToProduction({
+        ...storyPackage,
+        package_id: `sfp_${Date.now().toString(36)}`,
+        status: 'accepted'
+      });
+    } finally {
+      setIsPersistingPackage(false);
     }
   };
 
@@ -506,10 +550,12 @@ export const StoryForgeDoorway: React.FC<StoryForgeDoorwayProps> = ({ onSendToPr
                 "{storyPackage.cliffhanger_prompt}"
               </p>
               <button
-                onClick={() => onSendToProduction(storyPackage)}
-                className="w-full py-2.5 rounded-[7px] bg-gradient-to-r from-[#E6007A] to-[#FF2A6D] text-white font-bold text-xs flex items-center justify-center gap-2 shadow"
+                onClick={handleAcceptAndHandoff}
+                disabled={isPersistingPackage}
+                className="w-full py-2.5 rounded-[7px] bg-gradient-to-r from-[#E6007A] to-[#FF2A6D] text-white font-bold text-xs flex items-center justify-center gap-2 shadow cursor-pointer disabled:opacity-50"
               >
-                <span>Push to Production Draft</span>
+                <Sparkles className="w-4 h-4" />
+                <span>{isPersistingPackage ? 'Persisting Story Package (ID)...' : 'Accept & Hand Off to Pipeline'}</span>
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>

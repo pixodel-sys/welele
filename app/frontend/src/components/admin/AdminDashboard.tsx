@@ -4,13 +4,14 @@ import { adminApi } from '../../services/api';
 import { ModerationQueue } from './ModerationQueue';
 import { CreatorVerification } from './CreatorVerification';
 import { WeleleAdminStudio } from './WeleleAdminStudio';
+import { AuditChainInspector } from './AuditChainInspector';
 import { ProvenanceBadge } from '../common/patterns/ProvenanceBadge';
-import { Shield, Users, Video, Coins, Activity, CheckCircle, AlertTriangle, Layers } from 'lucide-react';
+import { Shield, Users, Video, Coins, Activity, CheckCircle, AlertTriangle, Layers, Lock } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
   const { stories } = useApp();
   const [metrics, setMetrics] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'studio' | 'moderation' | 'verification'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'studio' | 'moderation' | 'verification' | 'audit'>('overview');
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
@@ -86,6 +87,17 @@ export const AdminDashboard: React.FC = () => {
             }`}
           >
             Creator KYC
+          </button>
+          <button
+            onClick={() => setActiveTab('audit')}
+            className={`px-3 py-1.5 rounded-[7px] font-semibold transition-all flex items-center gap-1.5 ${
+              activeTab === 'audit'
+                ? 'bg-emerald-500 text-black font-bold'
+                : 'text-welele-muted hover:text-white'
+            }`}
+          >
+            <Lock className="w-3.5 h-3.5" />
+            Audit Ledger (SHA-256)
           </button>
         </div>
       </div>
@@ -171,6 +183,7 @@ export const AdminDashboard: React.FC = () => {
       {activeTab === 'studio' && <WeleleAdminStudio stories={stories} />}
       {activeTab === 'moderation' && <ModerationQueue />}
       {activeTab === 'verification' && <CreatorVerification />}
+      {activeTab === 'audit' && <AuditChainInspector />}
     </div>
   );
 };
