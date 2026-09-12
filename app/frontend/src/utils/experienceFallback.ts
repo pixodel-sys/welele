@@ -4,17 +4,17 @@ import { DEFAULT_STORIES } from '../services/mockData';
 
 export const DEFAULT_BRAND_IDENT_CONFIG: BrandIdentConfig = {
   play_brand_ident: true,
-  brand_ident_url: '/videos/welele_ident.mp4',
+  brand_ident_url: '/videos/welele_ident_v2.mp4',
   brand_ident_duration: 5.2,
   ident_frequency: 5, // Launch default: 5 (First episode of session + every 5th subsequent)
   failsafe_buffer: 1.0, // Configurable failsafe watchdog margin
   experience_rule: 'standard',
   asset: {
-    id: 'welele-brand-ident',
+    id: 'welele-brand-ident-v2',
     asset_type: 'sonic_visual_ident',
-    name: 'Welele Sonic Visual Ident',
-    url: '/videos/welele_ident.mp4',
-    version: 1,
+    name: 'Welele Sonic Visual Ident v2',
+    url: '/videos/welele_ident_v2.mp4',
+    version: 2,
     active: true,
     duration: 5.2,
   },

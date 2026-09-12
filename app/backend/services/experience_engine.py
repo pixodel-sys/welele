@@ -23,17 +23,17 @@ class ExperienceEngine:
         """Canonical Global Platform Brand Ident configuration."""
         return {
             "play_brand_ident": True,
-            "brand_ident_url": "/videos/welele_ident.mp4",
+            "brand_ident_url": "/videos/welele_ident_v2.mp4",
             "brand_ident_duration": 5.2,
             "ident_frequency": 5,
             "failsafe_buffer": 1.0,
             "experience_rule": "standard",
             "asset": {
-                "id": "welele-brand-ident",
+                "id": "welele-brand-ident-v2",
                 "asset_type": "sonic_visual_ident",
-                "name": "Welele Sonic Visual Ident",
-                "url": "/videos/welele_ident.mp4",
-                "version": 1,
+                "name": "Welele Sonic Visual Ident v2",
+                "url": "/videos/welele_ident_v2.mp4",
+                "version": 2,
                 "active": True,
                 "duration": 5.2
             }

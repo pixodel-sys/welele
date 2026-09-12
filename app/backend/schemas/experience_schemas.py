@@ -78,17 +78,17 @@ class ExperienceSection(BaseModel):
     end_at: Optional[str] = None
 
 class BrandAsset(BaseModel):
-    id: str = "welele-brand-ident"
+    id: str = "welele-brand-ident-v2"
     asset_type: Literal["sonic_visual_ident", "originals_ident", "welcome_ident", "campaign_ident"] = "sonic_visual_ident"
-    name: str = "Welele Sonic Visual Ident"
-    url: str = "/videos/welele_ident.mp4"
-    version: int = 1
+    name: str = "Welele Sonic Visual Ident v2"
+    url: str = "/videos/welele_ident_v2.mp4"
+    version: int = 2
     active: bool = True
     duration: float = 5.2
 
 class BrandIdentConfig(BaseModel):
     play_brand_ident: bool = True
-    brand_ident_url: str = "/videos/welele_ident.mp4"
+    brand_ident_url: str = "/videos/welele_ident_v2.mp4"
     brand_ident_duration: Optional[float] = 5.2
     ident_frequency: int = 5
     failsafe_buffer: float = 1.0
