@@ -126,16 +126,16 @@ def get_creator_transactions(creator_id: str, auth_user: dict = Depends(get_curr
 @router.get("/series/{series_id}/workspace", dependencies=[Depends(require_role(["creator", "admin"]))])
 def get_series_workspace(series_id: str, auth_user: dict = Depends(get_current_user)):
     """Series Command Room workspace data with retention & coin metrics."""
-    series = series_repository.get_creator_series_detail(series_id)
+    all_series = series_repository.local_get("series")
+    series = next((s for s in all_series if s["id"] == series_id), None)
     if not series:
-        all_series = series_repository.local_get("series")
-        series = next((s for s in all_series if s["id"] == series_id), None)
-        if not series:
-            raise HTTPException(status_code=404, detail="Series not found")
+        raise HTTPException(status_code=404, detail="Series not found")
 
     enforce_tenant_access(auth_user, series.get("creator_id"), domain="CONTENT", action="access series workspace")
 
-    series_episodes = series.get("episodes", [])
+    all_episodes = series_repository.local_get("episodes")
+    series_episodes = [e for e in all_episodes if e.get("series_id") == series_id]
+    series_episodes.sort(key=lambda x: x.get("episode_number", 1))
 
     published_count = len([e for e in series_episodes if e.get("status") == "published"])
     under_review_count = len([e for e in series_episodes if e.get("status") in ["under_review", "submitted", "pending_review"]])
