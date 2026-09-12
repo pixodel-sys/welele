@@ -301,6 +301,48 @@
       "status": "active",
       "created_at": "2026-09-12T13:31:04.843353+00:00",
       "updated_at": "2026-09-12T13:31:04.843353+00:00"
+    },
+    {
+      "id": "ip_59786a57",
+      "title": "Jozi Gold Rush a7c6a0",
+      "franchise_code": "IP-JGR-A7C6A0",
+      "logline": "A gritty tactical gold courier thriller across the M2 highway.",
+      "synopsis": "Full synopsis of gold transit syndicates in modern Johannesburg.",
+      "genre": "Action & Crime Thriller",
+      "primary_language": "isiZulu",
+      "master_owner_id": "creator_zola",
+      "global_valuation_usd": 0.0,
+      "status": "active",
+      "created_at": "2026-09-12T13:39:05.776587+00:00",
+      "updated_at": "2026-09-12T13:39:05.776587+00:00"
+    },
+    {
+      "id": "ip_48612541",
+      "title": "The Royal Ledger 55b7a8",
+      "franchise_code": "MZANSI_55B7A8",
+      "logline": "An ancestral dynasty's fortune is contested under Sandton and KwaZulu skies.",
+      "synopsis": "Full narrative story world involving multi-generational corporate and cultural power struggles.",
+      "genre": "Drama",
+      "primary_language": "isiZulu",
+      "master_owner_id": "creator_zola",
+      "global_valuation_usd": 0.0,
+      "status": "active",
+      "created_at": "2026-09-12T13:39:14.391276+00:00",
+      "updated_at": "2026-09-12T13:39:14.391276+00:00"
+    },
+    {
+      "id": "ip_5f1cd322",
+      "title": "Queen of Jozi: Golden Crown",
+      "franchise_code": "IP-QUEEN-JOZI",
+      "logline": "A nightlife queenpin navigates high-stakes corporate espionage and street loyalty.",
+      "synopsis": "Set in the exclusive clubs of Rosebank and hidden underground vaults of Braamfontein.",
+      "genre": "High Fashion Crime Drama",
+      "primary_language": "isiZulu",
+      "master_owner_id": "creator_lerato",
+      "global_valuation_usd": 0.0,
+      "status": "active",
+      "created_at": "2026-09-12T13:39:50.553308+00:00",
+      "updated_at": "2026-09-12T13:39:50.553308+00:00"
     }
   ],
   "story_worlds": [
@@ -393,6 +435,26 @@
       "mythology_and_rules": "Loyalty to the house supersedes blood; club receipts hide offshore banking routing.",
       "cultural_context": "High-fashion urban glam with deep township grit.",
       "created_at": "2026-09-12T13:31:04.843353+00:00"
+    },
+    {
+      "id": "sw_d75a4ca9",
+      "ip_id": "ip_48612541",
+      "world_name": "Sandton Dynasty",
+      "geographical_setting": "Sandton & Eshowe, South Africa",
+      "time_period": "Contemporary",
+      "mythology_and_rules": "Customary royal law vs modern boardroom voting.",
+      "cultural_context": "isiZulu vernacular, elite Jozi high-stakes finance.",
+      "created_at": "2026-09-12T13:39:14.391276+00:00"
+    },
+    {
+      "id": "sw_88c0699e",
+      "ip_id": "ip_5f1cd322",
+      "world_name": "The Jozi Nightlife Syndicate",
+      "geographical_setting": "Rosebank & Braamfontein, Johannesburg",
+      "time_period": "Contemporary",
+      "mythology_and_rules": "Loyalty to the house supersedes blood; club receipts hide offshore banking routing.",
+      "cultural_context": "High-fashion urban glam with deep township grit.",
+      "created_at": "2026-09-12T13:39:50.553308+00:00"
     }
   ],
   "character_bibles": [
@@ -491,6 +553,30 @@
       "signature_quote": "In my club, even the shadows pay tax.",
       "avatar_url": null,
       "created_at": "2026-09-12T13:31:04.843353+00:00"
+    },
+    {
+      "id": "char_3e11e006",
+      "ip_id": "ip_48612541",
+      "name": "Princess Nandi",
+      "role": "protagonist",
+      "archetype": "The Visionary Sovereign",
+      "secret_motivation": "Restore the ancestral estate without compromising family integrity.",
+      "fatal_flaw": "Overly trusting of old family confidants.",
+      "signature_quote": null,
+      "avatar_url": null,
+      "created_at": "2026-09-12T13:39:14.391276+00:00"
+    },
+    {
+      "id": "char_8007c23a",
+      "ip_id": "ip_5f1cd322",
+      "name": "Queen Nomsa",
+      "role": "protagonist",
+      "archetype": "The Sovereign Nightclub Queen",
+      "secret_motivation": "Protect her sister from the diamond cartel.",
+      "fatal_flaw": "Trusts her head of security too deeply.",
+      "signature_quote": "In my club, even the shadows pay tax.",
+      "avatar_url": null,
+      "created_at": "2026-09-12T13:39:50.553308+00:00"
     }
   ],
   "rights_ledger": [
@@ -661,6 +747,54 @@
       "contract_ref": "WELELE-QJ-002",
       "is_active": true,
       "created_at": "2026-09-12T13:31:04.843353+00:00"
+    },
+    {
+      "id": "rights_f7aaaed7",
+      "ip_id": "ip_48612541",
+      "beneficiary_user_id": "creator_zola",
+      "stakeholder_role": "Showrunner",
+      "royalty_split_pct": 70.0,
+      "territory": "GLOBAL",
+      "medium": "ALL_MEDIA",
+      "contract_ref": "CTR-IP-55b7a8",
+      "is_active": true,
+      "created_at": "2026-09-12T13:39:14.391276+00:00"
+    },
+    {
+      "id": "rights_26df9d99",
+      "ip_id": "ip_48612541",
+      "beneficiary_user_id": "welele_platform",
+      "stakeholder_role": "Co-Producer",
+      "royalty_split_pct": 30.0,
+      "territory": "GLOBAL",
+      "medium": "ALL_MEDIA",
+      "contract_ref": "CTR-PLT-55b7a8",
+      "is_active": true,
+      "created_at": "2026-09-12T13:39:14.391276+00:00"
+    },
+    {
+      "id": "rights_5303f45a",
+      "ip_id": "ip_5f1cd322",
+      "beneficiary_user_id": "creator_lerato",
+      "stakeholder_role": "Showrunner",
+      "royalty_split_pct": 60.0,
+      "territory": "GLOBAL",
+      "medium": "ALL_MEDIA",
+      "contract_ref": "WELELE-QJ-001",
+      "is_active": true,
+      "created_at": "2026-09-12T13:39:50.553308+00:00"
+    },
+    {
+      "id": "rights_49f4f9b3",
+      "ip_id": "ip_5f1cd322",
+      "beneficiary_user_id": "creator_zola",
+      "stakeholder_role": "Co-Producer",
+      "royalty_split_pct": 40.0,
+      "territory": "GLOBAL",
+      "medium": "ALL_MEDIA",
+      "contract_ref": "WELELE-QJ-002",
+      "is_active": true,
+      "created_at": "2026-09-12T13:39:50.553308+00:00"
     }
   ],
   "story_forge_packages": [
@@ -1263,6 +1397,206 @@
       "human_approved": true,
       "lineage_hash": "d70252b4d1e496f75d93f668fa19ac71fd593c79c59d2756d11f5b183f0f310e",
       "created_at": "2026-09-12T13:31:04.417022+00:00"
+    },
+    {
+      "id": "sfp_ffb302d3",
+      "ip_id": "ip_blood_ties",
+      "creator_id": "creator_zola",
+      "package_title": "Season 2: The Alexandra Heist",
+      "story_world_id": null,
+      "character_ids": [],
+      "episode_target": 1,
+      "version": "v1.0.0",
+      "target_duration_seconds": 90,
+      "beats_json": [
+        {
+          "timestamp_seconds": 0,
+          "label": "Opening Hook",
+          "intensity": 8,
+          "action_description": "A luxury armored van breaks down in Alexandra."
+        },
+        {
+          "timestamp_seconds": 45,
+          "label": "Midpoint Confrontation",
+          "intensity": 9,
+          "action_description": "Lerato discovers her brother cut the brake line."
+        },
+        {
+          "timestamp_seconds": 88,
+          "label": "Cliffhanger Paywall",
+          "intensity": 10,
+          "action_description": "Laser sights pinpoint the master safe.",
+          "cliffhanger_trigger": true
+        }
+      ],
+      "dialogues_json": [
+        {
+          "speaker": "Sipho",
+          "original_text": "The money belongs to the rank.",
+          "dialect_code": "zu",
+          "dialect_label": "isiZulu"
+        }
+      ],
+      "cliffhanger_prompt": "Will Sipho crack the digital lock before security breaches the alley?",
+      "ai_model_used": "gemini-3.7-flash",
+      "human_approved": true,
+      "lineage_hash": "edc37857aa27acaa21b743ede5bbab2d61d1d0dbce7e8daf08c34ba8a11c60ca",
+      "created_at": "2026-09-12T13:38:54.844815+00:00"
+    },
+    {
+      "id": "sfp_481eeb94",
+      "ip_id": "ip_48612541",
+      "creator_id": "creator_zola",
+      "package_title": "The Royal Ledger Season 1 Narrative Beats",
+      "story_world_id": null,
+      "character_ids": [],
+      "episode_target": 1,
+      "version": "v1.0.0",
+      "target_duration_seconds": 90,
+      "beats_json": [
+        {
+          "beat_number": 1,
+          "title": "The Boardroom Ambush",
+          "dramatic_hook": "Nandi discovers the forged signature before the shareholder vote.",
+          "estimated_duration_seconds": 65,
+          "target_cliffhanger_seconds": 58,
+          "cliffhanger_hook": "The DNA envelope is handed to the chairman."
+        }
+      ],
+      "dialogues_json": [
+        {
+          "speaker": "Princess Nandi",
+          "line": "You cannot sell what does not belong to your name."
+        }
+      ],
+      "cliffhanger_prompt": "Will the board ratify the contract before sunrise?",
+      "ai_model_used": "gemini-1.5-flash",
+      "human_approved": true,
+      "lineage_hash": "bb779c1863f36883b58c16fa3015f3bab27bc93d4da4876651adbe48739c3990",
+      "created_at": "2026-09-12T13:39:17.548816+00:00"
+    },
+    {
+      "id": "sfp_c80486c7",
+      "ip_id": "ip_blood_ties",
+      "creator_id": "creator_zola",
+      "package_title": "Blood Ties - Episode 4: The Midnight Safe",
+      "story_world_id": "sw_blood_ties_01",
+      "character_ids": [
+        "char_bt_01",
+        "char_bt_02"
+      ],
+      "episode_target": 4,
+      "version": "v1.0.0",
+      "target_duration_seconds": 90,
+      "beats_json": [
+        {
+          "timestamp": 0,
+          "label": "Hook",
+          "description": "Sipho discovers the safe has been breached."
+        },
+        {
+          "timestamp": 45,
+          "label": "Climax",
+          "description": "Lerato holds the unsealed court document."
+        }
+      ],
+      "dialogues_json": [
+        {
+          "speaker": "Sipho",
+          "text": "Who gave you the combination to my father's safe?"
+        },
+        {
+          "speaker": "Lerato",
+          "text": "He gave it to me himself before he died."
+        }
+      ],
+      "cliffhanger_prompt": "Will Lerato show the signature on the codicil?",
+      "ai_model_used": "gemini-1.5-flash",
+      "human_approved": true,
+      "lineage_hash": "82f39765fe2c7cb83b6f214a86f60f06efa655ebba67d1f0a839a7f02ae2641c",
+      "created_at": "2026-09-12T13:39:49.318107+00:00"
+    },
+    {
+      "id": "sfp_654cac91",
+      "ip_id": "ip_blood_ties",
+      "creator_id": "creator_zola",
+      "package_title": "Blood Ties - Episode 4: The Midnight Safe",
+      "story_world_id": "sw_blood_ties_01",
+      "character_ids": [
+        "char_bt_02",
+        "char_bt_01"
+      ],
+      "episode_target": 4,
+      "version": "v1.0.0",
+      "target_duration_seconds": 90,
+      "beats_json": [
+        {
+          "timestamp": 0,
+          "label": "Hook",
+          "description": "Sipho discovers the safe has been breached."
+        },
+        {
+          "timestamp": 45,
+          "label": "Climax",
+          "description": "Lerato holds the unsealed court document."
+        }
+      ],
+      "dialogues_json": [
+        {
+          "speaker": "Sipho",
+          "text": "Who gave you the combination to my father's safe?"
+        },
+        {
+          "speaker": "Lerato",
+          "text": "He gave it to me himself before he died."
+        }
+      ],
+      "cliffhanger_prompt": "Will Lerato show the signature on the codicil?",
+      "ai_model_used": "gemini-1.5-flash",
+      "human_approved": true,
+      "lineage_hash": "82f39765fe2c7cb83b6f214a86f60f06efa655ebba67d1f0a839a7f02ae2641c",
+      "created_at": "2026-09-12T13:39:49.833468+00:00"
+    },
+    {
+      "id": "sfp_ba0bba39",
+      "ip_id": "ip_blood_ties",
+      "creator_id": "creator_zola",
+      "package_title": "Blood Ties - Episode 4: The Midnight Safe",
+      "story_world_id": "sw_blood_ties_01",
+      "character_ids": [
+        "char_bt_01",
+        "char_bt_02"
+      ],
+      "episode_target": 4,
+      "version": "v1.0.0",
+      "target_duration_seconds": 90,
+      "beats_json": [
+        {
+          "timestamp": 0,
+          "label": "Hook",
+          "description": "Sipho discovers the safe has been breached."
+        },
+        {
+          "timestamp": 45,
+          "label": "Climax",
+          "description": "Lerato holds the unsealed court document."
+        }
+      ],
+      "dialogues_json": [
+        {
+          "speaker": "Sipho",
+          "text": "Who gave you the combination?"
+        },
+        {
+          "speaker": "Lerato",
+          "text": "He gave it to me himself before he died."
+        }
+      ],
+      "cliffhanger_prompt": "Will Lerato show the signature on the codicil?",
+      "ai_model_used": "gemini-1.5-flash",
+      "human_approved": true,
+      "lineage_hash": "d70252b4d1e496f75d93f668fa19ac71fd593c79c59d2756d11f5b183f0f310e",
+      "created_at": "2026-09-12T13:39:50.150887+00:00"
     }
   ],
   "stories": [
@@ -2185,7 +2519,7 @@
       "vertical_poster": "/posters/blood_ties.jpg",
       "genre": "Drama • Family • Betrayal",
       "rating": 4.98,
-      "total_episodes": 16,
+      "total_episodes": 20,
       "free_episodes": 2,
       "coin_price_per_episode": 5,
       "is_published": true,
@@ -2912,7 +3246,7 @@
       "vertical_poster": "/posters/blood_ties.jpg",
       "genre": "Revenge",
       "rating": 5.0,
-      "total_episodes": 0,
+      "total_episodes": 1,
       "free_episodes": 2,
       "coin_price_per_episode": 5,
       "is_published": true,
@@ -2926,6 +3260,85 @@
       "tags": [],
       "created_at": "2026-09-12T13:31:22.870798+00:00",
       "updated_at": "2026-09-12T13:31:22.870798+00:00"
+    },
+    {
+      "id": "story_1296e85b",
+      "ip_id": "ip_blood_ties",
+      "season_number": 1,
+      "title": "Jozi Gold Rush: Season 1 a7c6a0",
+      "tagline": "Gold always demands blood in Jozi.",
+      "synopsis": "Season 1 of the high stakes courier drama.",
+      "cover_image": "/banners/blood_ties_banner.jpg",
+      "vertical_poster": "/posters/blood_ties.jpg",
+      "genre": "Action • Crime",
+      "rating": 5.0,
+      "total_episodes": 1,
+      "free_episodes": 2,
+      "coin_price_per_episode": 5,
+      "is_published": true,
+      "creator_id": "creator_zola",
+      "creator_name": "Zola Dlamini",
+      "creator_avatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80",
+      "available_languages": [
+        "English",
+        "isiZulu"
+      ],
+      "tags": [],
+      "created_at": "2026-09-12T13:39:06.860714+00:00",
+      "updated_at": "2026-09-12T13:39:06.860714+00:00"
+    },
+    {
+      "id": "story_b03c26fe",
+      "ip_id": "ip_48612541",
+      "season_number": 1,
+      "title": "The Royal Ledger Series 55b7a8",
+      "tagline": "Two worlds. One unforgettable royal heartbeat.",
+      "synopsis": "Ancestral duty meets modern high finance in Johannesburg.",
+      "cover_image": "/posters/blood_ties.jpg",
+      "vertical_poster": "/posters/blood_ties.jpg",
+      "genre": "Drama",
+      "rating": 5.0,
+      "total_episodes": 1,
+      "free_episodes": 0,
+      "coin_price_per_episode": 5,
+      "is_published": true,
+      "creator_id": "creator_zola",
+      "creator_name": "Zola Dlamini",
+      "creator_avatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80",
+      "available_languages": [
+        "isiZulu",
+        "English"
+      ],
+      "tags": [],
+      "created_at": "2026-09-12T13:39:18.981297+00:00",
+      "updated_at": "2026-09-12T13:39:18.981297+00:00",
+      "free_episodes_count": 0
+    },
+    {
+      "id": "story_7d2ed481",
+      "ip_id": "ip_blood_ties",
+      "season_number": 1,
+      "title": "Zola's Midnight Dynasty",
+      "tagline": "Welele Original Microdrama",
+      "synopsis": "",
+      "cover_image": "/banners/blood_ties_banner.jpg",
+      "vertical_poster": "/posters/blood_ties.jpg",
+      "genre": "Revenge",
+      "rating": 5.0,
+      "total_episodes": 0,
+      "free_episodes": 2,
+      "coin_price_per_episode": 5,
+      "is_published": true,
+      "creator_id": "creator_zola",
+      "creator_name": "Zola Dlamini",
+      "creator_avatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80",
+      "available_languages": [
+        "English",
+        "isiZulu"
+      ],
+      "tags": [],
+      "created_at": "2026-09-12T13:40:09.107788+00:00",
+      "updated_at": "2026-09-12T13:40:09.107788+00:00"
     }
   ],
   "creators": [
@@ -2939,7 +3352,7 @@
       "verified": true,
       "followers_count": 420000,
       "total_views": 8420000,
-      "coin_earnings": 284165,
+      "coin_earnings": 284185,
       "payout_balance": 1890.0
     },
     {
@@ -4149,14 +4562,229 @@
       "coin_price": 0,
       "cliffhanger_time_seconds": 0,
       "cliffhanger_hook": null,
-      "status": "under_review",
+      "status": "published",
       "preflight_health": null,
       "created_at": "2026-09-12T13:31:23.845633+00:00",
-      "updated_at": "2026-09-12T13:31:25.213066+00:00",
+      "updated_at": "2026-09-12T13:40:12.716371+00:00",
       "video_url": "/videos/welele_placeholder.mp4",
       "storage_key": "masters/story_5ee92df9/ep_46189f11.mp4",
       "media_asset_id": "media_ep_46189f11",
-      "submitted_at": "2026-09-12T13:31:25.213066+00:00"
+      "submitted_at": "2026-09-12T13:31:25.213066+00:00",
+      "moderation_decision": "approved",
+      "moderation_feedback": null,
+      "reviewed_by": "admin_supervisor",
+      "reviewed_at": "2026-09-12T13:40:12.716371+00:00"
+    },
+    {
+      "id": "ep_382736ac",
+      "series_id": "story_blood_ties",
+      "story_package_id": null,
+      "episode_number": 18,
+      "title": "The Secret Will Revealed",
+      "synopsis": "The hidden codicil is presented at midnight, catching the Khumalo board off guard.",
+      "duration_seconds": 68,
+      "is_free": false,
+      "coin_price": 5,
+      "cliffhanger_time_seconds": 58,
+      "cliffhanger_hook": "Who authorized her DNA test before the funeral?",
+      "status": "published",
+      "preflight_health": {
+        "aspect_ratio_ok": true,
+        "aspect_ratio_label": "1080 × 1920 (9:16)",
+        "duration_ok": true,
+        "duration_seconds": 68,
+        "audio_detected": true,
+        "thumbnail_present": true,
+        "cliffhanger_marker_ok": true,
+        "cliffhanger_time_seconds": 58,
+        "cliffhanger_hook_copy": "Who authorized her DNA test before the funeral?",
+        "captions_present": true
+      },
+      "created_at": "2026-09-12T13:38:51.196539+00:00",
+      "updated_at": "2026-09-12T13:38:53.390013+00:00",
+      "video_url": "/videos/welele_placeholder.mp4",
+      "storage_key": "masters/story_blood_ties/ep_382736ac.mp4",
+      "media_asset_id": "media_ep_382736ac",
+      "submitted_at": "2026-09-12T13:38:52.614923+00:00",
+      "moderation_decision": "approved",
+      "moderation_feedback": null,
+      "reviewed_by": "admin_supervisor",
+      "reviewed_at": "2026-09-12T13:38:53.390013+00:00"
+    },
+    {
+      "id": "ep_f900679a",
+      "series_id": "story_blood_ties",
+      "story_package_id": null,
+      "episode_number": 5,
+      "title": "The Alexandra Heist: Breach",
+      "synopsis": "The convoy is surrounded as midnight sirens echo across the northern corridor.",
+      "duration_seconds": 85,
+      "is_free": false,
+      "coin_price": 5,
+      "cliffhanger_time_seconds": 75,
+      "cliffhanger_hook": "Will Sipho crack the digital lock before security breaches the alley?",
+      "status": "published",
+      "preflight_health": {
+        "aspect_ratio_ok": true,
+        "aspect_ratio_label": "1080 × 1920 (9:16)",
+        "duration_ok": true,
+        "duration_seconds": 85,
+        "audio_detected": true,
+        "thumbnail_present": true,
+        "cliffhanger_marker_ok": true,
+        "cliffhanger_time_seconds": 75,
+        "cliffhanger_hook_copy": "Will Sipho crack the digital lock before security breaches the alley?",
+        "captions_present": true
+      },
+      "created_at": "2026-09-12T13:38:55.826727+00:00",
+      "updated_at": "2026-09-12T13:38:57.779342+00:00",
+      "video_url": "/videos/welele_placeholder.mp4",
+      "storage_key": "masters/story_blood_ties/ep_f900679a.mp4",
+      "media_asset_id": "media_ep_f900679a",
+      "submitted_at": "2026-09-12T13:38:57.090941+00:00",
+      "moderation_decision": "approved",
+      "moderation_feedback": null,
+      "reviewed_by": "admin_supervisor",
+      "reviewed_at": "2026-09-12T13:38:57.779342+00:00"
+    },
+    {
+      "id": "ep_019d1321",
+      "series_id": "story_blood_ties",
+      "story_package_id": null,
+      "episode_number": 20,
+      "title": "The Midnight Ledger Ep 20",
+      "synopsis": "A midnight safe audit uncovers the missing Khumalo shares.",
+      "duration_seconds": 75,
+      "is_free": false,
+      "coin_price": 5,
+      "cliffhanger_time_seconds": 68,
+      "cliffhanger_hook": "The thumbprint scanner accepts the wrong heir.",
+      "status": "published",
+      "preflight_health": {
+        "aspect_ratio_ok": true,
+        "duration_ok": true,
+        "audio_detected": true,
+        "thumbnail_present": true,
+        "cliffhanger_marker_ok": true,
+        "captions_present": true
+      },
+      "created_at": "2026-09-12T13:39:00.889188+00:00",
+      "updated_at": "2026-09-12T13:39:03.163381+00:00",
+      "video_url": "https://pub-9197ad3d07f84cfb9be91c9c440dfab5.r2.dev/masters/story_blood_ties/ep_020_f3468b.mp4",
+      "storage_key": "masters/story_blood_ties/ep_020_f3468b.mp4",
+      "media_asset_id": "media_ep_019d1321",
+      "submitted_at": "2026-09-12T13:39:02.364318+00:00",
+      "moderation_decision": "approved",
+      "moderation_feedback": null,
+      "reviewed_by": "admin_supervisor",
+      "reviewed_at": "2026-09-12T13:39:03.163381+00:00"
+    },
+    {
+      "id": "ep_a7894758",
+      "series_id": "story_1296e85b",
+      "story_package_id": null,
+      "episode_number": 1,
+      "title": "The First Run",
+      "synopsis": "The armored courier crosses the bridge before sunrise.",
+      "duration_seconds": 75,
+      "is_free": false,
+      "coin_price": 5,
+      "cliffhanger_time_seconds": 65,
+      "cliffhanger_hook": "The security beacon was switched to emergency frequency.",
+      "status": "published",
+      "preflight_health": null,
+      "created_at": "2026-09-12T13:39:07.813441+00:00",
+      "updated_at": "2026-09-12T13:39:09.822762+00:00",
+      "video_url": "/videos/ocean_waves.mp4",
+      "storage_key": "masters/story_1296e85b/ep_a7894758.mp4",
+      "media_asset_id": "media_ep_a7894758",
+      "submitted_at": "2026-09-12T13:39:09.171120+00:00",
+      "moderation_decision": "approved",
+      "moderation_feedback": null,
+      "reviewed_by": "admin_supervisor",
+      "reviewed_at": "2026-09-12T13:39:09.822762+00:00"
+    },
+    {
+      "id": "ep_ec75b59a",
+      "series_id": "story_b03c26fe",
+      "story_package_id": null,
+      "episode_number": 1,
+      "title": "The Boardroom Ambush",
+      "synopsis": "Nandi uncovers the hidden codicil right before the vote.",
+      "duration_seconds": 65,
+      "is_free": false,
+      "coin_price": 5,
+      "cliffhanger_time_seconds": 58,
+      "cliffhanger_hook": "The chairman reveals the sealed DNA envelope.",
+      "status": "published",
+      "preflight_health": {
+        "aspect_ratio_ok": true,
+        "aspect_ratio_label": "1080 × 1920 (9:16)",
+        "duration_ok": true,
+        "duration_seconds": 65,
+        "audio_detected": true,
+        "thumbnail_present": true,
+        "cliffhanger_marker_ok": true,
+        "cliffhanger_time_seconds": 58,
+        "cliffhanger_hook_copy": "The chairman reveals the sealed DNA envelope.",
+        "captions_present": true
+      },
+      "created_at": "2026-09-12T13:39:21.640738+00:00",
+      "updated_at": "2026-09-12T13:39:23.926616+00:00",
+      "video_url": "https://pub-9197ad3d07f84cfb9be91c9c440dfab5.r2.dev/masters/story_b03c26fe/ep_001_d6dd8d.mp4",
+      "storage_key": "masters/story_b03c26fe/ep_001_d6dd8d.mp4",
+      "media_asset_id": "media_ep_ec75b59a",
+      "submitted_at": "2026-09-12T13:39:23.173951+00:00",
+      "moderation_decision": "approved",
+      "moderation_feedback": null,
+      "reviewed_by": "admin_supervisor",
+      "reviewed_at": "2026-09-12T13:39:23.926616+00:00"
+    },
+    {
+      "id": "ep_e219b9a9",
+      "series_id": "story_blood_ties",
+      "story_package_id": null,
+      "episode_number": 6,
+      "title": "The True Heir Unveiled",
+      "synopsis": "The blood lineage is proven beyond doubt.",
+      "duration_seconds": 90,
+      "is_free": false,
+      "coin_price": 5,
+      "cliffhanger_time_seconds": 82,
+      "cliffhanger_hook": "The real contract is signed.",
+      "status": "published",
+      "preflight_health": null,
+      "created_at": "2026-09-12T13:39:59.476241+00:00",
+      "updated_at": "2026-09-12T13:40:02.600858+00:00",
+      "video_url": "https://pub-9197ad3d07f84cfb9be91c9c440dfab5.r2.dev/masters/story_blood_ties/ep_006_f19bd5.mp4",
+      "storage_key": "masters/story_blood_ties/ep_006_f19bd5.mp4",
+      "media_asset_id": "media_ep_e219b9a9",
+      "submitted_at": "2026-09-12T13:40:01.164962+00:00",
+      "moderation_decision": "approved",
+      "moderation_feedback": null,
+      "reviewed_by": "admin_chief",
+      "reviewed_at": "2026-09-12T13:40:02.600858+00:00"
+    },
+    {
+      "id": "ep_b93710ae",
+      "series_id": "story_7d2ed481",
+      "story_package_id": null,
+      "episode_number": 1,
+      "title": "The Oath",
+      "synopsis": "",
+      "duration_seconds": 75,
+      "is_free": true,
+      "coin_price": 0,
+      "cliffhanger_time_seconds": 0,
+      "cliffhanger_hook": null,
+      "status": "under_review",
+      "preflight_health": null,
+      "created_at": "2026-09-12T13:40:10.042449+00:00",
+      "updated_at": "2026-09-12T13:40:11.393245+00:00",
+      "video_url": "/videos/welele_placeholder.mp4",
+      "storage_key": "masters/story_7d2ed481/ep_b93710ae.mp4",
+      "media_asset_id": "media_ep_b93710ae",
+      "submitted_at": "2026-09-12T13:40:11.393245+00:00"
     }
   ],
   "media_assets": [
@@ -5289,6 +5917,181 @@
       },
       "created_at": "2026-09-12T13:31:24.211614+00:00",
       "updated_at": "2026-09-12T13:31:24.211614+00:00"
+    },
+    {
+      "id": "media_ep_382736ac",
+      "episode_id": "ep_382736ac",
+      "storage_key": "masters/story_blood_ties/ep_382736ac.mp4",
+      "master_video_url": "/videos/welele_placeholder.mp4",
+      "hls_master_manifest_url": "https://cdn.welele.media/hls/masters/story_blood_ties/ep_382736ac.mp4/master.m3u8",
+      "thumbnail_url": "/posters/blood_ties.jpg",
+      "duration_seconds": 68,
+      "transcoding_status": "READY",
+      "renditions_json": {
+        "1080p": "https://cdn.welele.media/hls/masters/story_blood_ties/ep_382736ac.mp4/1080p.m3u8",
+        "720p": "https://cdn.welele.media/hls/masters/story_blood_ties/ep_382736ac.mp4/720p.m3u8",
+        "480p": "https://cdn.welele.media/hls/masters/story_blood_ties/ep_382736ac.mp4/480p.m3u8"
+      },
+      "created_at": "2026-09-12T13:38:51.643834+00:00",
+      "updated_at": "2026-09-12T13:38:51.643834+00:00"
+    },
+    {
+      "id": "media_ep_f900679a",
+      "episode_id": "ep_f900679a",
+      "storage_key": "masters/story_blood_ties/ep_f900679a.mp4",
+      "master_video_url": "/videos/welele_placeholder.mp4",
+      "hls_master_manifest_url": "https://cdn.welele.media/hls/masters/story_blood_ties/ep_f900679a.mp4/master.m3u8",
+      "thumbnail_url": "/posters/blood_ties.jpg",
+      "duration_seconds": 85,
+      "transcoding_status": "READY",
+      "renditions_json": {
+        "1080p": "https://cdn.welele.media/hls/masters/story_blood_ties/ep_f900679a.mp4/1080p.m3u8",
+        "720p": "https://cdn.welele.media/hls/masters/story_blood_ties/ep_f900679a.mp4/720p.m3u8",
+        "480p": "https://cdn.welele.media/hls/masters/story_blood_ties/ep_f900679a.mp4/480p.m3u8"
+      },
+      "created_at": "2026-09-12T13:38:56.126694+00:00",
+      "updated_at": "2026-09-12T13:38:56.126694+00:00"
+    },
+    {
+      "id": "media_ep_019d1321",
+      "episode_id": "ep_019d1321",
+      "storage_key": "masters/story_blood_ties/ep_020_f3468b.mp4",
+      "master_video_url": "https://pub-9197ad3d07f84cfb9be91c9c440dfab5.r2.dev/masters/story_blood_ties/ep_020_f3468b.mp4",
+      "hls_master_manifest_url": "https://cdn.welele.media/hls/masters/story_blood_ties/ep_020_f3468b.mp4/master.m3u8",
+      "thumbnail_url": "/posters/blood_ties.jpg",
+      "duration_seconds": 75,
+      "transcoding_status": "READY",
+      "renditions_json": {
+        "1080p": "https://cdn.welele.media/hls/masters/story_blood_ties/ep_020_f3468b.mp4/1080p.m3u8",
+        "720p": "https://cdn.welele.media/hls/masters/story_blood_ties/ep_020_f3468b.mp4/720p.m3u8",
+        "480p": "https://cdn.welele.media/hls/masters/story_blood_ties/ep_020_f3468b.mp4/480p.m3u8"
+      },
+      "created_at": "2026-09-12T13:39:01.220894+00:00",
+      "updated_at": "2026-09-12T13:39:01.220894+00:00"
+    },
+    {
+      "id": "media_ep_a7894758",
+      "episode_id": "ep_a7894758",
+      "storage_key": "masters/story_1296e85b/ep_a7894758.mp4",
+      "master_video_url": "/videos/ocean_waves.mp4",
+      "hls_master_manifest_url": "https://cdn.welele.media/hls/masters/story_1296e85b/ep_a7894758.mp4/master.m3u8",
+      "thumbnail_url": "/posters/blood_ties.jpg",
+      "duration_seconds": 75,
+      "transcoding_status": "READY",
+      "renditions_json": {
+        "1080p": "https://cdn.welele.media/hls/masters/story_1296e85b/ep_a7894758.mp4/1080p.m3u8",
+        "720p": "https://cdn.welele.media/hls/masters/story_1296e85b/ep_a7894758.mp4/720p.m3u8",
+        "480p": "https://cdn.welele.media/hls/masters/story_1296e85b/ep_a7894758.mp4/480p.m3u8"
+      },
+      "created_at": "2026-09-12T13:39:08.116214+00:00",
+      "updated_at": "2026-09-12T13:39:08.116214+00:00"
+    },
+    {
+      "id": "media_ep_ec75b59a",
+      "episode_id": "ep_ec75b59a",
+      "storage_key": "masters/story_b03c26fe/ep_001_d6dd8d.mp4",
+      "master_video_url": "https://pub-9197ad3d07f84cfb9be91c9c440dfab5.r2.dev/masters/story_b03c26fe/ep_001_d6dd8d.mp4",
+      "hls_master_manifest_url": "https://cdn.welele.media/hls/masters/story_b03c26fe/ep_001_d6dd8d.mp4/master.m3u8",
+      "thumbnail_url": "/posters/blood_ties.jpg",
+      "duration_seconds": 65,
+      "transcoding_status": "READY",
+      "renditions_json": {
+        "1080p": "https://cdn.welele.media/hls/masters/story_b03c26fe/ep_001_d6dd8d.mp4/1080p.m3u8",
+        "720p": "https://cdn.welele.media/hls/masters/story_b03c26fe/ep_001_d6dd8d.mp4/720p.m3u8",
+        "480p": "https://cdn.welele.media/hls/masters/story_b03c26fe/ep_001_d6dd8d.mp4/480p.m3u8"
+      },
+      "created_at": "2026-09-12T13:39:22.048960+00:00",
+      "updated_at": "2026-09-12T13:39:22.048960+00:00"
+    },
+    {
+      "id": "media_ep_test_334266",
+      "episode_id": "ep_test_334266",
+      "storage_key": "masters/ep_test_334266.mp4",
+      "master_video_url": "https://r2.welele.tv/masters/scene_raw_01.mp4",
+      "hls_master_manifest_url": "https://cdn.welele.media/hls/masters/ep_test_334266.mp4/master.m3u8",
+      "thumbnail_url": "https://r2.welele.tv/thumbs/poster_916.jpg",
+      "duration_seconds": 80.0,
+      "transcoding_status": "READY",
+      "renditions_json": {
+        "1080p": "https://cdn.welele.media/hls/masters/ep_test_334266.mp4/1080p.m3u8",
+        "720p": "https://cdn.welele.media/hls/masters/ep_test_334266.mp4/720p.m3u8",
+        "480p": "https://cdn.welele.media/hls/masters/ep_test_334266.mp4/480p.m3u8"
+      },
+      "created_at": "2026-09-12T13:39:52.915563+00:00",
+      "updated_at": "2026-09-12T13:39:54.941723+00:00",
+      "status": "ready",
+      "hls_master_manifest": "https://cdn.welele.tv/hls/media_ep_test_334266_master.m3u8"
+    },
+    {
+      "id": "media_ep_retry_8cc5d5",
+      "episode_id": "ep_retry_8cc5d5",
+      "storage_key": "masters/ep_retry_8cc5d5.mp4",
+      "master_video_url": "https://r2.welele.tv/masters/scene_retry.mp4",
+      "hls_master_manifest_url": "https://cdn.welele.media/hls/masters/ep_retry_8cc5d5.mp4/master.m3u8",
+      "thumbnail_url": null,
+      "duration_seconds": 80.0,
+      "transcoding_status": "READY",
+      "renditions_json": {
+        "1080p": "https://cdn.welele.media/hls/masters/ep_retry_8cc5d5.mp4/1080p.m3u8",
+        "720p": "https://cdn.welele.media/hls/masters/ep_retry_8cc5d5.mp4/720p.m3u8",
+        "480p": "https://cdn.welele.media/hls/masters/ep_retry_8cc5d5.mp4/480p.m3u8"
+      },
+      "created_at": "2026-09-12T13:39:55.009186+00:00",
+      "updated_at": "2026-09-12T13:39:57.075156+00:00",
+      "status": "ready",
+      "hls_master_manifest": "https://cdn.welele.tv/hls/media_ep_retry_8cc5d5_master.m3u8"
+    },
+    {
+      "id": "media_ep_fail_2d0955",
+      "episode_id": "ep_fail_2d0955",
+      "storage_key": "masters/ep_fail_2d0955.mp4",
+      "master_video_url": "https://r2.welele.tv/masters/corrupt_video.mp4",
+      "hls_master_manifest_url": "https://cdn.welele.media/hls/masters/ep_fail_2d0955.mp4/master.m3u8",
+      "thumbnail_url": null,
+      "duration_seconds": 80.0,
+      "transcoding_status": "READY",
+      "renditions_json": {
+        "1080p": "https://cdn.welele.media/hls/masters/ep_fail_2d0955.mp4/1080p.m3u8",
+        "720p": "https://cdn.welele.media/hls/masters/ep_fail_2d0955.mp4/720p.m3u8",
+        "480p": "https://cdn.welele.media/hls/masters/ep_fail_2d0955.mp4/480p.m3u8"
+      },
+      "created_at": "2026-09-12T13:39:57.075456+00:00",
+      "updated_at": "2026-09-12T13:39:58.363792+00:00",
+      "status": "failed"
+    },
+    {
+      "id": "media_ep_e219b9a9",
+      "episode_id": "ep_e219b9a9",
+      "storage_key": "masters/story_blood_ties/ep_006_f19bd5.mp4",
+      "master_video_url": "https://pub-9197ad3d07f84cfb9be91c9c440dfab5.r2.dev/masters/story_blood_ties/ep_006_f19bd5.mp4",
+      "hls_master_manifest_url": "https://cdn.welele.media/hls/masters/story_blood_ties/ep_006_f19bd5.mp4/master.m3u8",
+      "thumbnail_url": "https://cdn.welele.media/posters/blood_ties.jpg",
+      "duration_seconds": 90,
+      "transcoding_status": "READY",
+      "renditions_json": {
+        "1080p": "https://cdn.welele.media/hls/masters/story_blood_ties/ep_006_f19bd5.mp4/1080p.m3u8",
+        "720p": "https://cdn.welele.media/hls/masters/story_blood_ties/ep_006_f19bd5.mp4/720p.m3u8",
+        "480p": "https://cdn.welele.media/hls/masters/story_blood_ties/ep_006_f19bd5.mp4/480p.m3u8"
+      },
+      "created_at": "2026-09-12T13:39:59.808277+00:00",
+      "updated_at": "2026-09-12T13:39:59.808277+00:00"
+    },
+    {
+      "id": "media_ep_b93710ae",
+      "episode_id": "ep_b93710ae",
+      "storage_key": "masters/story_7d2ed481/ep_b93710ae.mp4",
+      "master_video_url": "/videos/welele_placeholder.mp4",
+      "hls_master_manifest_url": "https://cdn.welele.media/hls/masters/story_7d2ed481/ep_b93710ae.mp4/master.m3u8",
+      "thumbnail_url": "/posters/blood_ties.jpg",
+      "duration_seconds": 75,
+      "transcoding_status": "READY",
+      "renditions_json": {
+        "1080p": "https://cdn.welele.media/hls/masters/story_7d2ed481/ep_b93710ae.mp4/1080p.m3u8",
+        "720p": "https://cdn.welele.media/hls/masters/story_7d2ed481/ep_b93710ae.mp4/720p.m3u8",
+        "480p": "https://cdn.welele.media/hls/masters/story_7d2ed481/ep_b93710ae.mp4/480p.m3u8"
+      },
+      "created_at": "2026-09-12T13:40:10.391314+00:00",
+      "updated_at": "2026-09-12T13:40:10.391314+00:00"
     }
   ],
   "media_jobs": [
@@ -5447,6 +6250,45 @@
       "idempotency_key": "job_idemp_d3491c9d",
       "created_at": "2026-09-12T13:31:12.130758+00:00",
       "updated_at": "2026-09-12T13:31:12.732944+00:00"
+    },
+    {
+      "id": "job_3eda3b8c24",
+      "media_asset_id": "media_ep_test_334266",
+      "provider": "CloudflareStream",
+      "status": "completed",
+      "attempt": 1,
+      "started_at": "2026-09-12T13:39:53.270581+00:00",
+      "completed_at": "2026-09-12T13:39:54.876984+00:00",
+      "error": null,
+      "idempotency_key": "idemp_media_media_ep_test_334266",
+      "created_at": "2026-09-12T13:39:53.270581+00:00",
+      "updated_at": "2026-09-12T13:39:54.876984+00:00"
+    },
+    {
+      "id": "job_b96da1efdd",
+      "media_asset_id": "media_ep_retry_8cc5d5",
+      "provider": "CloudflareStream",
+      "status": "completed",
+      "attempt": 2,
+      "started_at": "2026-09-12T13:39:55.316673+00:00",
+      "completed_at": "2026-09-12T13:39:56.998258+00:00",
+      "error": null,
+      "idempotency_key": "job_idemp_7185ff02",
+      "created_at": "2026-09-12T13:39:55.316673+00:00",
+      "updated_at": "2026-09-12T13:39:56.998258+00:00"
+    },
+    {
+      "id": "job_18e030e63c",
+      "media_asset_id": "media_ep_fail_2d0955",
+      "provider": "CloudflareStream",
+      "status": "failed",
+      "attempt": 2,
+      "started_at": "2026-09-12T13:39:57.574833+00:00",
+      "completed_at": null,
+      "error": "Transcoding worker transient network error (attempt 2/2)",
+      "idempotency_key": "job_idemp_c86393f6",
+      "created_at": "2026-09-12T13:39:57.574833+00:00",
+      "updated_at": "2026-09-12T13:39:58.280809+00:00"
     }
   ],
   "media_renditions": [
@@ -5719,6 +6561,66 @@
       "bitrate": 800000,
       "playlist_url": "https://cdn.welele.tv/renditions/media_ep_retry_f5d858_480p.m3u8",
       "created_at": "2026-09-12T13:31:11.361337+00:00"
+    },
+    {
+      "id": "rend_43dc66bf",
+      "media_asset_id": "media_ep_test_334266",
+      "profile": "1080p",
+      "width": 1080,
+      "height": 1920,
+      "bitrate": 3500000,
+      "playlist_url": "https://cdn.welele.tv/renditions/media_ep_test_334266_1080p.m3u8",
+      "created_at": "2026-09-12T13:39:53.887029+00:00"
+    },
+    {
+      "id": "rend_4d849d42",
+      "media_asset_id": "media_ep_test_334266",
+      "profile": "720p",
+      "width": 720,
+      "height": 1280,
+      "bitrate": 1800000,
+      "playlist_url": "https://cdn.welele.tv/renditions/media_ep_test_334266_720p.m3u8",
+      "created_at": "2026-09-12T13:39:54.209180+00:00"
+    },
+    {
+      "id": "rend_f5f7afb1",
+      "media_asset_id": "media_ep_test_334266",
+      "profile": "480p",
+      "width": 480,
+      "height": 854,
+      "bitrate": 800000,
+      "playlist_url": "https://cdn.welele.tv/renditions/media_ep_test_334266_480p.m3u8",
+      "created_at": "2026-09-12T13:39:54.562258+00:00"
+    },
+    {
+      "id": "rend_6bdfb9b8",
+      "media_asset_id": "media_ep_retry_8cc5d5",
+      "profile": "1080p",
+      "width": 1080,
+      "height": 1920,
+      "bitrate": 3500000,
+      "playlist_url": "https://cdn.welele.tv/renditions/media_ep_retry_8cc5d5_1080p.m3u8",
+      "created_at": "2026-09-12T13:39:56.028507+00:00"
+    },
+    {
+      "id": "rend_6ddcd580",
+      "media_asset_id": "media_ep_retry_8cc5d5",
+      "profile": "720p",
+      "width": 720,
+      "height": 1280,
+      "bitrate": 1800000,
+      "playlist_url": "https://cdn.welele.tv/renditions/media_ep_retry_8cc5d5_720p.m3u8",
+      "created_at": "2026-09-12T13:39:56.360831+00:00"
+    },
+    {
+      "id": "rend_5853d0db",
+      "media_asset_id": "media_ep_retry_8cc5d5",
+      "profile": "480p",
+      "width": 480,
+      "height": 854,
+      "bitrate": 800000,
+      "playlist_url": "https://cdn.welele.tv/renditions/media_ep_retry_8cc5d5_480p.m3u8",
+      "created_at": "2026-09-12T13:39:56.676451+00:00"
     }
   ],
   "users": [
@@ -5853,20 +6755,20 @@
     {
       "id": "w_ba9d2689e1",
       "user_id": "viewer_auth_test_user",
-      "coin_balance": 100,
+      "coin_balance": 95,
       "bonus_coins": 0,
       "lifetime_coins_purchased": 0,
-      "lifetime_coins_spent": 25,
-      "updated_at": "2026-09-12T13:30:22.643356+00:00"
+      "lifetime_coins_spent": 30,
+      "updated_at": "2026-09-12T13:39:04.634487+00:00"
     },
     {
       "id": "w_0577d1fe32",
       "user_id": "user_sa_01",
-      "coin_balance": 90,
+      "coin_balance": 85,
       "bonus_coins": 0,
       "lifetime_coins_purchased": 0,
-      "lifetime_coins_spent": 35,
-      "updated_at": "2026-09-12T13:30:28.816037+00:00"
+      "lifetime_coins_spent": 40,
+      "updated_at": "2026-09-12T13:39:11.110752+00:00"
     },
     {
       "id": "w_2e536870fb",
@@ -5899,19 +6801,19 @@
       "id": "w_94282f4a98",
       "user_id": "user_sa_viewer_99",
       "coin_balance": 100,
-      "bonus_coins": 10,
+      "bonus_coins": 5,
       "lifetime_coins_purchased": 0,
-      "lifetime_coins_spent": 15,
-      "updated_at": "2026-09-12T13:30:40.327152+00:00"
+      "lifetime_coins_spent": 20,
+      "updated_at": "2026-09-12T13:39:25.474127+00:00"
     },
     {
       "id": "w_a30a6f99d5",
       "user_id": "viewer_test_99",
       "coin_balance": 100,
-      "bonus_coins": 10,
+      "bonus_coins": 5,
       "lifetime_coins_purchased": 0,
-      "lifetime_coins_spent": 15,
-      "updated_at": "2026-09-12T13:31:17.296782+00:00"
+      "lifetime_coins_spent": 20,
+      "updated_at": "2026-09-12T13:40:04.153895+00:00"
     },
     {
       "id": "w_b94dcf5608",
@@ -5966,6 +6868,33 @@
       "lifetime_coins_purchased": 0,
       "lifetime_coins_spent": 0,
       "updated_at": "2026-09-12T13:30:06.704582+00:00"
+    },
+    {
+      "id": "w_c672b2136d",
+      "user_id": "test_user_8b2afdef",
+      "coin_balance": 100,
+      "bonus_coins": 0,
+      "lifetime_coins_purchased": 0,
+      "lifetime_coins_spent": 25,
+      "updated_at": "2026-09-12T13:38:42.074875+00:00"
+    },
+    {
+      "id": "w_6fae6a8e29",
+      "user_id": "viewer_test_8ca82d",
+      "coin_balance": 275,
+      "bonus_coins": 25,
+      "lifetime_coins_purchased": 175,
+      "lifetime_coins_spent": 0,
+      "updated_at": "2026-09-12T13:38:47.594291+00:00"
+    },
+    {
+      "id": "w_3cbf2a01f4",
+      "user_id": "guest_125aa790",
+      "coin_balance": 100,
+      "bonus_coins": 25,
+      "lifetime_coins_purchased": 0,
+      "lifetime_coins_spent": 0,
+      "updated_at": "2026-09-12T13:38:49.271789+00:00"
     }
   ],
   "coin_ledger": [
@@ -6671,6 +7600,149 @@
       "idempotency_key": "idemp_unl_viewer_test_99_ep_7427d3f6",
       "description": "Unlocked episode ep_7427d3f6 of series story_blood_ties",
       "created_at": "2026-09-12T13:31:17.370882+00:00"
+    },
+    {
+      "id": "ledg_a4b19c5616",
+      "wallet_id": "w_c672b2136d",
+      "user_id": "test_user_8b2afdef",
+      "amount": 125,
+      "balance_before": 0,
+      "balance_after": 125,
+      "transaction_type": "ONBOARDING_REWARD",
+      "reference_id": "ref_welcome_bonus",
+      "idempotency_key": "idemp_onboard_test_user_8b2afdef",
+      "description": "Welcome onboarding coins (100 Base + 25 Bonus)",
+      "created_at": "2026-09-12T13:38:41.272528+00:00"
+    },
+    {
+      "id": "ledg_13b89edb0b",
+      "wallet_id": "w_c672b2136d",
+      "user_id": "test_user_8b2afdef",
+      "amount": -15,
+      "balance_before": 125,
+      "balance_after": 110,
+      "transaction_type": "EPISODE_UNLOCK",
+      "reference_id": "ep_bt_3",
+      "idempotency_key": "idemp_test_1_test_user_8b2afdef",
+      "description": "Unlocked Episode 3",
+      "created_at": "2026-09-12T13:38:41.710911+00:00"
+    },
+    {
+      "id": "ledg_fe918630ef",
+      "wallet_id": "w_c672b2136d",
+      "user_id": "test_user_8b2afdef",
+      "amount": -10,
+      "balance_before": 110,
+      "balance_after": 100,
+      "transaction_type": "EPISODE_UNLOCK",
+      "reference_id": "ep_bt_4",
+      "idempotency_key": "idemp_repeat_test_user_8b2afdef",
+      "description": "Debited 10 coins for EPISODE_UNLOCK",
+      "created_at": "2026-09-12T13:38:42.147870+00:00"
+    },
+    {
+      "id": "ledg_2a0af624d7",
+      "wallet_id": "w_6fae6a8e29",
+      "user_id": "viewer_test_8ca82d",
+      "amount": 125,
+      "balance_before": 0,
+      "balance_after": 125,
+      "transaction_type": "ONBOARDING_REWARD",
+      "reference_id": "ref_welcome_bonus",
+      "idempotency_key": "idemp_onboard_viewer_test_8ca82d",
+      "description": "Welcome onboarding coins (100 Base + 25 Bonus)",
+      "created_at": "2026-09-12T13:38:42.794476+00:00"
+    },
+    {
+      "id": "ledg_d74d9a7078",
+      "wallet_id": "w_6fae6a8e29",
+      "user_id": "viewer_test_8ca82d",
+      "amount": 50,
+      "balance_before": 125,
+      "balance_after": 175,
+      "transaction_type": "TOPUP_VODACOM_DCB",
+      "reference_id": "voda_tx_1161e9a3",
+      "idempotency_key": "pay_vodacom_dcb_voda_tx_1161e9a3",
+      "description": "Settled ZAR 10.00 via vodacom_dcb",
+      "created_at": "2026-09-12T13:38:43.234156+00:00"
+    },
+    {
+      "id": "ledg_70f9a2de53",
+      "wallet_id": "w_6fae6a8e29",
+      "user_id": "viewer_test_8ca82d",
+      "amount": 125,
+      "balance_before": 175,
+      "balance_after": 300,
+      "transaction_type": "TOPUP_PEACH_PAYMENTS",
+      "reference_id": "peach_tx_7fa67b54",
+      "idempotency_key": "pay_peach_payments_peach_tx_7fa67b54",
+      "description": "Settled ZAR 25.00 via peach_payments",
+      "created_at": "2026-09-12T13:38:47.701336+00:00"
+    },
+    {
+      "id": "ledg_2f2b9525fa",
+      "wallet_id": "w_3cbf2a01f4",
+      "user_id": "guest_125aa790",
+      "amount": 125,
+      "balance_before": 0,
+      "balance_after": 125,
+      "transaction_type": "ONBOARDING_REWARD",
+      "reference_id": "ref_welcome_bonus",
+      "idempotency_key": "idemp_onboard_guest_125aa790",
+      "description": "Welcome onboarding coins (100 Base + 25 Bonus)",
+      "created_at": "2026-09-12T13:38:49.608679+00:00"
+    },
+    {
+      "id": "ledg_5c2ffdf4c4",
+      "wallet_id": "w_ba9d2689e1",
+      "user_id": "viewer_auth_test_user",
+      "amount": -5,
+      "balance_before": 100,
+      "balance_after": 95,
+      "transaction_type": "EPISODE_UNLOCK",
+      "reference_id": "ep_019d1321",
+      "idempotency_key": "idemp_unl_viewer_auth_test_user_ep_019d1321",
+      "description": "Unlocked episode ep_019d1321 of series story_blood_ties",
+      "created_at": "2026-09-12T13:39:04.713927+00:00"
+    },
+    {
+      "id": "ledg_b683864f24",
+      "wallet_id": "w_0577d1fe32",
+      "user_id": "user_sa_01",
+      "amount": -5,
+      "balance_before": 90,
+      "balance_after": 85,
+      "transaction_type": "EPISODE_UNLOCK",
+      "reference_id": "ep_a7894758",
+      "idempotency_key": "idemp_unl_user_sa_01_ep_a7894758",
+      "description": "Unlocked episode ep_a7894758 of series story_1296e85b",
+      "created_at": "2026-09-12T13:39:11.190949+00:00"
+    },
+    {
+      "id": "ledg_186e0b580a",
+      "wallet_id": "w_94282f4a98",
+      "user_id": "user_sa_viewer_99",
+      "amount": -5,
+      "balance_before": 110,
+      "balance_after": 105,
+      "transaction_type": "EPISODE_UNLOCK",
+      "reference_id": "ep_ec75b59a",
+      "idempotency_key": "idemp_unl_user_sa_viewer_99_ep_ec75b59a",
+      "description": "Unlocked episode ep_ec75b59a of series story_b03c26fe",
+      "created_at": "2026-09-12T13:39:25.542478+00:00"
+    },
+    {
+      "id": "ledg_12f63581ee",
+      "wallet_id": "w_a30a6f99d5",
+      "user_id": "viewer_test_99",
+      "amount": -5,
+      "balance_before": 110,
+      "balance_after": 105,
+      "transaction_type": "EPISODE_UNLOCK",
+      "reference_id": "ep_e219b9a9",
+      "idempotency_key": "idemp_unl_viewer_test_99_ep_e219b9a9",
+      "description": "Unlocked episode ep_e219b9a9 of series story_blood_ties",
+      "created_at": "2026-09-12T13:40:04.237740+00:00"
     }
   ],
   "payment_events": [
@@ -6943,6 +8015,96 @@
       "idempotency_key": "pay_peach_payments_peach_tx_7c43d8c1",
       "ledger_transaction_id": "ledg_a3a0871e13",
       "received_at": "2026-09-12T13:30:04.701614+00:00"
+    },
+    {
+      "id": "pe_d545182a52",
+      "provider": "vodacom_dcb",
+      "provider_transaction_id": "voda_tx_1161e9a3",
+      "event_type": "AIRTIME_DCB_CHARGE",
+      "user_id": "viewer_test_8ca82d",
+      "amount_fiat": 10.0,
+      "currency": "ZAR",
+      "coins_grant": 50,
+      "signature_verified": true,
+      "payload_hash": "3fbbc9129e754d49f6c565f1f09daec547519077e1234d4d69cf3833f3082e5b",
+      "normalized_payload": {
+        "provider": "vodacom_dcb",
+        "provider_transaction_id": "voda_tx_1161e9a3",
+        "event_type": "AIRTIME_DCB_CHARGE",
+        "amount_fiat": 10.0,
+        "currency": "ZAR",
+        "user_id": "viewer_test_8ca82d",
+        "coins_grant": 50,
+        "target_id": null,
+        "target_type": "COINS",
+        "raw_payload_hash": "3fbbc9129e754d49f6c565f1f09daec547519077e1234d4d69cf3833f3082e5b",
+        "signature_verified": true,
+        "status": "SUCCESS"
+      },
+      "processing_status": "SUCCESS",
+      "idempotency_key": "pay_vodacom_dcb_voda_tx_1161e9a3",
+      "ledger_transaction_id": "ledg_d74d9a7078",
+      "received_at": "2026-09-12T13:38:43.532759+00:00"
+    },
+    {
+      "id": "pe_ae3568769b",
+      "provider": "vodacom_dcb",
+      "provider_transaction_id": "voda_tx_1161e9a3",
+      "event_type": "AIRTIME_DCB_CHARGE",
+      "user_id": "viewer_test_8ca82d",
+      "amount_fiat": 500.0,
+      "currency": "ZAR",
+      "coins_grant": 50,
+      "signature_verified": false,
+      "payload_hash": "51716f6170d5f6b4158a0651e42dc5a323fbb260726bea28f40226ce2a971382",
+      "normalized_payload": {
+        "provider": "vodacom_dcb",
+        "provider_transaction_id": "voda_tx_1161e9a3",
+        "event_type": "AIRTIME_DCB_CHARGE",
+        "amount_fiat": 500.0,
+        "currency": "ZAR",
+        "user_id": "viewer_test_8ca82d",
+        "coins_grant": 50,
+        "target_id": null,
+        "target_type": "COINS",
+        "raw_payload_hash": "51716f6170d5f6b4158a0651e42dc5a323fbb260726bea28f40226ce2a971382",
+        "signature_verified": false,
+        "status": "SUCCESS"
+      },
+      "processing_status": "FAILED_SIGNATURE",
+      "idempotency_key": null,
+      "ledger_transaction_id": null,
+      "received_at": "2026-09-12T13:38:47.230208+00:00"
+    },
+    {
+      "id": "pe_1ceaff995d",
+      "provider": "peach_payments",
+      "provider_transaction_id": "peach_tx_7fa67b54",
+      "event_type": "CARD_EFT_CHECKOUT",
+      "user_id": "viewer_test_8ca82d",
+      "amount_fiat": 25.0,
+      "currency": "ZAR",
+      "coins_grant": 125,
+      "signature_verified": true,
+      "payload_hash": "3101cc5e2ab7be18f9afa364e39a8b22f378d0da47e8b3761c64b6a92c649e11",
+      "normalized_payload": {
+        "provider": "peach_payments",
+        "provider_transaction_id": "peach_tx_7fa67b54",
+        "event_type": "CARD_EFT_CHECKOUT",
+        "amount_fiat": 25.0,
+        "currency": "ZAR",
+        "user_id": "viewer_test_8ca82d",
+        "coins_grant": 125,
+        "target_id": null,
+        "target_type": "COINS",
+        "raw_payload_hash": "3101cc5e2ab7be18f9afa364e39a8b22f378d0da47e8b3761c64b6a92c649e11",
+        "signature_verified": true,
+        "status": "SUCCESS"
+      },
+      "processing_status": "SUCCESS",
+      "idempotency_key": "pay_peach_payments_peach_tx_7fa67b54",
+      "ledger_transaction_id": "ledg_70f9a2de53",
+      "received_at": "2026-09-12T13:38:48.084067+00:00"
     }
   ],
   "unlocked_episodes": [
@@ -7116,6 +8278,42 @@
       "unlock_method": "COINS",
       "coins_spent": 5,
       "unlocked_at": "2026-09-12T13:31:17.685605+00:00"
+    },
+    {
+      "id": "unl_3f04bd581c",
+      "user_id": "viewer_auth_test_user",
+      "episode_id": "ep_019d1321",
+      "series_id": "story_blood_ties",
+      "unlock_method": "COINS",
+      "coins_spent": 5,
+      "unlocked_at": "2026-09-12T13:39:05.078941+00:00"
+    },
+    {
+      "id": "unl_32917866db",
+      "user_id": "user_sa_01",
+      "episode_id": "ep_a7894758",
+      "series_id": "story_1296e85b",
+      "unlock_method": "COINS",
+      "coins_spent": 5,
+      "unlocked_at": "2026-09-12T13:39:11.477665+00:00"
+    },
+    {
+      "id": "unl_6da1aa1fa9",
+      "user_id": "user_sa_viewer_99",
+      "episode_id": "ep_ec75b59a",
+      "series_id": "story_b03c26fe",
+      "unlock_method": "COINS",
+      "coins_spent": 5,
+      "unlocked_at": "2026-09-12T13:39:25.893092+00:00"
+    },
+    {
+      "id": "unl_4ecaca5f56",
+      "user_id": "viewer_test_99",
+      "episode_id": "ep_e219b9a9",
+      "series_id": "story_blood_ties",
+      "unlock_method": "COINS",
+      "coins_spent": 5,
+      "unlocked_at": "2026-09-12T13:40:04.586170+00:00"
     }
   ],
   "payment_transactions": [],
@@ -7567,6 +8765,15 @@
       "text": "This cliffhanger is insane!",
       "likes": 0,
       "time_ago": "Just now"
+    },
+    {
+      "id": "c_891a5cd8",
+      "episode_id": "ep_bt_1",
+      "user_name": "Lerato Khumalo",
+      "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80",
+      "text": "This cliffhanger is insane!",
+      "likes": 0,
+      "time_ago": "Just now"
     }
   ],
   "reactions": [
@@ -7882,7 +9089,7 @@
       "version": "1.0.0",
       "status": "draft",
       "published_at": "2026-08-01T00:00:00Z",
-      "updated_at": "2026-09-12T13:30:30.814048+00:00",
+      "updated_at": "2026-09-12T13:39:12.432997+00:00",
       "meta": {
         "title": "Welele™ | Curated African Dramas",
         "theme": "dark_gold_glow",
@@ -8463,10 +9670,10 @@
     },
     {
       "page_id": "home",
-      "version": "2026.09.12.v887",
+      "version": "2026.09.12.v414",
       "status": "published",
-      "published_at": "2026-09-12T13:31:27.930040+00:00",
-      "updated_at": "2026-09-12T13:31:27.930040+00:00",
+      "published_at": "2026-09-12T13:40:14.718311+00:00",
+      "updated_at": "2026-09-12T13:40:14.718311+00:00",
       "meta": {
         "title": "Welele™ | Curated African Dramas",
         "theme": "dark_gold_glow",
@@ -11902,6 +13109,958 @@
       "device_type": "mobile_pwa",
       "metadata": {},
       "created_at": "2026-09-12T13:31:38.927423+00:00"
+    },
+    {
+      "id": "evt_3f71f24807",
+      "event_name": "episode_started",
+      "user_id": "user_sa_viewer_99",
+      "session_id": "sess_telemetry_55b7a8",
+      "ip_id": "ip_48612541",
+      "series_id": "story_b03c26fe",
+      "episode_id": "ep_ec75b59a",
+      "playback_second": 0,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:26.725083+00:00"
+    },
+    {
+      "id": "evt_e599148dc0",
+      "event_name": "heartbeat",
+      "user_id": "user_sa_viewer_99",
+      "session_id": "sess_telemetry_55b7a8",
+      "ip_id": "ip_48612541",
+      "series_id": "story_b03c26fe",
+      "episode_id": "ep_ec75b59a",
+      "playback_second": 15,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:27.095439+00:00"
+    },
+    {
+      "id": "evt_3541f4b050",
+      "event_name": "heartbeat",
+      "user_id": "user_sa_viewer_99",
+      "session_id": "sess_telemetry_55b7a8",
+      "ip_id": "ip_48612541",
+      "series_id": "story_b03c26fe",
+      "episode_id": "ep_ec75b59a",
+      "playback_second": 30,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:27.486287+00:00"
+    },
+    {
+      "id": "evt_4eb7e181a8",
+      "event_name": "cliffhanger_reached",
+      "user_id": "user_sa_viewer_99",
+      "session_id": "sess_telemetry_55b7a8",
+      "ip_id": "ip_48612541",
+      "series_id": "story_b03c26fe",
+      "episode_id": "ep_ec75b59a",
+      "playback_second": 58,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:27.783098+00:00"
+    },
+    {
+      "id": "evt_49c1ae0a62",
+      "event_name": "unlock_completed",
+      "user_id": "user_sa_viewer_99",
+      "session_id": "sess_telemetry_55b7a8",
+      "ip_id": "ip_48612541",
+      "series_id": "story_b03c26fe",
+      "episode_id": "ep_ec75b59a",
+      "playback_second": 58,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:28.135171+00:00"
+    },
+    {
+      "id": "evt_7f2a76a00e",
+      "event_name": "episode_started",
+      "user_id": null,
+      "session_id": "sess_clean_0",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_intel_a17462",
+      "playback_second": 0,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:28.546263+00:00"
+    },
+    {
+      "id": "evt_65356300ed",
+      "event_name": "heartbeat",
+      "user_id": null,
+      "session_id": "sess_clean_0",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_intel_a17462",
+      "playback_second": 20,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:29.011072+00:00"
+    },
+    {
+      "id": "evt_b2ee71e985",
+      "event_name": "heartbeat",
+      "user_id": null,
+      "session_id": "sess_clean_0",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_intel_a17462",
+      "playback_second": 45,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:29.360141+00:00"
+    },
+    {
+      "id": "evt_1003492a54",
+      "event_name": "cliffhanger_reached",
+      "user_id": null,
+      "session_id": "sess_clean_0",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_intel_a17462",
+      "playback_second": 65,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:29.725951+00:00"
+    },
+    {
+      "id": "evt_693e52d4b6",
+      "event_name": "episode_started",
+      "user_id": null,
+      "session_id": "sess_clean_1",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_intel_a17462",
+      "playback_second": 0,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:30.083172+00:00"
+    },
+    {
+      "id": "evt_18e35844be",
+      "event_name": "heartbeat",
+      "user_id": null,
+      "session_id": "sess_clean_1",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_intel_a17462",
+      "playback_second": 20,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:30.400203+00:00"
+    },
+    {
+      "id": "evt_87347ffa82",
+      "event_name": "heartbeat",
+      "user_id": null,
+      "session_id": "sess_clean_1",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_intel_a17462",
+      "playback_second": 45,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:30.732207+00:00"
+    },
+    {
+      "id": "evt_813b9a1a18",
+      "event_name": "cliffhanger_reached",
+      "user_id": null,
+      "session_id": "sess_clean_1",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_intel_a17462",
+      "playback_second": 65,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:31.053740+00:00"
+    },
+    {
+      "id": "evt_5173101047",
+      "event_name": "episode_started",
+      "user_id": null,
+      "session_id": "sess_clean_2",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_intel_a17462",
+      "playback_second": 0,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:31.360646+00:00"
+    },
+    {
+      "id": "evt_ec66acee91",
+      "event_name": "heartbeat",
+      "user_id": null,
+      "session_id": "sess_clean_2",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_intel_a17462",
+      "playback_second": 20,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:31.714670+00:00"
+    },
+    {
+      "id": "evt_c889b7e034",
+      "event_name": "heartbeat",
+      "user_id": null,
+      "session_id": "sess_clean_2",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_intel_a17462",
+      "playback_second": 45,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:32.045488+00:00"
+    },
+    {
+      "id": "evt_01b4af25bc",
+      "event_name": "cliffhanger_reached",
+      "user_id": null,
+      "session_id": "sess_clean_2",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_intel_a17462",
+      "playback_second": 65,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:32.360170+00:00"
+    },
+    {
+      "id": "evt_f8d5280af6",
+      "event_name": "episode_started",
+      "user_id": null,
+      "session_id": "sess_clean_3",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_intel_a17462",
+      "playback_second": 0,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:32.672521+00:00"
+    },
+    {
+      "id": "evt_278b7e4080",
+      "event_name": "heartbeat",
+      "user_id": null,
+      "session_id": "sess_clean_3",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_intel_a17462",
+      "playback_second": 20,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:33.001337+00:00"
+    },
+    {
+      "id": "evt_07463af682",
+      "event_name": "heartbeat",
+      "user_id": null,
+      "session_id": "sess_clean_3",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_intel_a17462",
+      "playback_second": 45,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:33.303362+00:00"
+    },
+    {
+      "id": "evt_ba7442c53d",
+      "event_name": "cliffhanger_reached",
+      "user_id": null,
+      "session_id": "sess_clean_3",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_intel_a17462",
+      "playback_second": 65,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:33.640560+00:00"
+    },
+    {
+      "id": "evt_f5f223d063",
+      "event_name": "episode_started",
+      "user_id": null,
+      "session_id": "sess_clean_4",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_intel_a17462",
+      "playback_second": 0,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:33.958425+00:00"
+    },
+    {
+      "id": "evt_076705dc74",
+      "event_name": "heartbeat",
+      "user_id": null,
+      "session_id": "sess_clean_4",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_intel_a17462",
+      "playback_second": 20,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:34.277044+00:00"
+    },
+    {
+      "id": "evt_05c8848fc7",
+      "event_name": "episode_started",
+      "user_id": null,
+      "session_id": "sess_clean_5",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_intel_a17462",
+      "playback_second": 0,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:34.597039+00:00"
+    },
+    {
+      "id": "evt_a3ee5006db",
+      "event_name": "heartbeat",
+      "user_id": null,
+      "session_id": "sess_clean_5",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_intel_a17462",
+      "playback_second": 20,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:34.918624+00:00"
+    },
+    {
+      "id": "evt_d3bd1d8d28",
+      "event_name": "episode_started",
+      "user_id": null,
+      "session_id": "sess_clean_6",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_intel_a17462",
+      "playback_second": 0,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:35.269945+00:00"
+    },
+    {
+      "id": "evt_7774c9f59e",
+      "event_name": "heartbeat",
+      "user_id": null,
+      "session_id": "sess_clean_6",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_intel_a17462",
+      "playback_second": 20,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:35.597397+00:00"
+    },
+    {
+      "id": "evt_88044a6215",
+      "event_name": "episode_started",
+      "user_id": null,
+      "session_id": "sess_clean_7",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_intel_a17462",
+      "playback_second": 0,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:35.959229+00:00"
+    },
+    {
+      "id": "evt_c6181b1d3b",
+      "event_name": "heartbeat",
+      "user_id": null,
+      "session_id": "sess_clean_7",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_intel_a17462",
+      "playback_second": 20,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:36.275836+00:00"
+    },
+    {
+      "id": "evt_0602db6051",
+      "event_name": "episode_started",
+      "user_id": null,
+      "session_id": "sess_clean_8",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_intel_a17462",
+      "playback_second": 0,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:36.598752+00:00"
+    },
+    {
+      "id": "evt_6e2549b717",
+      "event_name": "heartbeat",
+      "user_id": null,
+      "session_id": "sess_clean_8",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_intel_a17462",
+      "playback_second": 20,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:36.908902+00:00"
+    },
+    {
+      "id": "evt_f7ddf898b3",
+      "event_name": "episode_started",
+      "user_id": null,
+      "session_id": "sess_clean_9",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_intel_a17462",
+      "playback_second": 0,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:37.245234+00:00"
+    },
+    {
+      "id": "evt_d2e988d1e1",
+      "event_name": "heartbeat",
+      "user_id": null,
+      "session_id": "sess_clean_9",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_intel_a17462",
+      "playback_second": 20,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:37.558523+00:00"
+    },
+    {
+      "id": "evt_6bea683de3",
+      "event_name": "episode_started",
+      "user_id": null,
+      "session_id": "sess_buf_0",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_buffer_24080f",
+      "playback_second": 0,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:38.530296+00:00"
+    },
+    {
+      "id": "evt_2bb305ae44",
+      "event_name": "heartbeat",
+      "user_id": null,
+      "session_id": "sess_buf_0",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_buffer_24080f",
+      "playback_second": 20,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:38.837088+00:00"
+    },
+    {
+      "id": "evt_81bc4024d0",
+      "event_name": "buffer_start",
+      "user_id": null,
+      "session_id": "sess_buf_0",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_buffer_24080f",
+      "playback_second": 35,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:39.159121+00:00"
+    },
+    {
+      "id": "evt_5e3f340437",
+      "event_name": "episode_started",
+      "user_id": null,
+      "session_id": "sess_buf_1",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_buffer_24080f",
+      "playback_second": 0,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:39.483247+00:00"
+    },
+    {
+      "id": "evt_7e5019f8c0",
+      "event_name": "heartbeat",
+      "user_id": null,
+      "session_id": "sess_buf_1",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_buffer_24080f",
+      "playback_second": 20,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:39.798349+00:00"
+    },
+    {
+      "id": "evt_758d4cabbe",
+      "event_name": "buffer_start",
+      "user_id": null,
+      "session_id": "sess_buf_1",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_buffer_24080f",
+      "playback_second": 35,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:40.108300+00:00"
+    },
+    {
+      "id": "evt_4dfd086e24",
+      "event_name": "episode_started",
+      "user_id": null,
+      "session_id": "sess_buf_2",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_buffer_24080f",
+      "playback_second": 0,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:40.438563+00:00"
+    },
+    {
+      "id": "evt_f05d9b55ca",
+      "event_name": "heartbeat",
+      "user_id": null,
+      "session_id": "sess_buf_2",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_buffer_24080f",
+      "playback_second": 20,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:40.755825+00:00"
+    },
+    {
+      "id": "evt_2db227b7e8",
+      "event_name": "buffer_start",
+      "user_id": null,
+      "session_id": "sess_buf_2",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_buffer_24080f",
+      "playback_second": 35,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:41.060860+00:00"
+    },
+    {
+      "id": "evt_2dfc638c39",
+      "event_name": "episode_started",
+      "user_id": null,
+      "session_id": "sess_buf_3",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_buffer_24080f",
+      "playback_second": 0,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:41.407343+00:00"
+    },
+    {
+      "id": "evt_f4762cf170",
+      "event_name": "heartbeat",
+      "user_id": null,
+      "session_id": "sess_buf_3",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_buffer_24080f",
+      "playback_second": 20,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:41.725484+00:00"
+    },
+    {
+      "id": "evt_fe918556b8",
+      "event_name": "buffer_start",
+      "user_id": null,
+      "session_id": "sess_buf_3",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_buffer_24080f",
+      "playback_second": 35,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:42.057036+00:00"
+    },
+    {
+      "id": "evt_64d46b5653",
+      "event_name": "episode_started",
+      "user_id": null,
+      "session_id": "sess_buf_4",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_buffer_24080f",
+      "playback_second": 0,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:42.355875+00:00"
+    },
+    {
+      "id": "evt_ffad36a616",
+      "event_name": "heartbeat",
+      "user_id": null,
+      "session_id": "sess_buf_4",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_buffer_24080f",
+      "playback_second": 20,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:42.676106+00:00"
+    },
+    {
+      "id": "evt_edfc2380d2",
+      "event_name": "buffer_start",
+      "user_id": null,
+      "session_id": "sess_buf_4",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_buffer_24080f",
+      "playback_second": 35,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:42.969593+00:00"
+    },
+    {
+      "id": "evt_4deedae469",
+      "event_name": "episode_started",
+      "user_id": null,
+      "session_id": "sess_buf_5",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_buffer_24080f",
+      "playback_second": 0,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:43.320393+00:00"
+    },
+    {
+      "id": "evt_aad09c78e2",
+      "event_name": "heartbeat",
+      "user_id": null,
+      "session_id": "sess_buf_5",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_buffer_24080f",
+      "playback_second": 20,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:43.635346+00:00"
+    },
+    {
+      "id": "evt_057c7a3a5b",
+      "event_name": "buffer_start",
+      "user_id": null,
+      "session_id": "sess_buf_5",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_buffer_24080f",
+      "playback_second": 35,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:43.957896+00:00"
+    },
+    {
+      "id": "evt_68d9ce119f",
+      "event_name": "episode_started",
+      "user_id": null,
+      "session_id": "sess_buf_6",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_buffer_24080f",
+      "playback_second": 0,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:44.276062+00:00"
+    },
+    {
+      "id": "evt_6531a8094c",
+      "event_name": "heartbeat",
+      "user_id": null,
+      "session_id": "sess_buf_6",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_buffer_24080f",
+      "playback_second": 20,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:44.595979+00:00"
+    },
+    {
+      "id": "evt_fada6afe6a",
+      "event_name": "buffer_start",
+      "user_id": null,
+      "session_id": "sess_buf_6",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_buffer_24080f",
+      "playback_second": 35,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:44.924503+00:00"
+    },
+    {
+      "id": "evt_54c4fe5c67",
+      "event_name": "episode_started",
+      "user_id": null,
+      "session_id": "sess_buf_7",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_buffer_24080f",
+      "playback_second": 0,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:45.226181+00:00"
+    },
+    {
+      "id": "evt_19e4c8affe",
+      "event_name": "heartbeat",
+      "user_id": null,
+      "session_id": "sess_buf_7",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_buffer_24080f",
+      "playback_second": 20,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:46.074370+00:00"
+    },
+    {
+      "id": "evt_d3294d9fdc",
+      "event_name": "buffer_start",
+      "user_id": null,
+      "session_id": "sess_buf_7",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_buffer_24080f",
+      "playback_second": 35,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:46.623550+00:00"
+    },
+    {
+      "id": "evt_36504e23ac",
+      "event_name": "episode_started",
+      "user_id": null,
+      "session_id": "sess_buf_8",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_buffer_24080f",
+      "playback_second": 0,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:47.152782+00:00"
+    },
+    {
+      "id": "evt_3bd2e26ea4",
+      "event_name": "heartbeat",
+      "user_id": null,
+      "session_id": "sess_buf_8",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_buffer_24080f",
+      "playback_second": 20,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:47.501532+00:00"
+    },
+    {
+      "id": "evt_6d5b9c705f",
+      "event_name": "buffer_start",
+      "user_id": null,
+      "session_id": "sess_buf_8",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_buffer_24080f",
+      "playback_second": 35,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:47.941212+00:00"
+    },
+    {
+      "id": "evt_7a19ad7bda",
+      "event_name": "episode_started",
+      "user_id": null,
+      "session_id": "sess_buf_9",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_buffer_24080f",
+      "playback_second": 0,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:48.280420+00:00"
+    },
+    {
+      "id": "evt_b722bbae2a",
+      "event_name": "heartbeat",
+      "user_id": null,
+      "session_id": "sess_buf_9",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_buffer_24080f",
+      "playback_second": 20,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:48.594253+00:00"
+    },
+    {
+      "id": "evt_4c8b2e55de",
+      "event_name": "buffer_start",
+      "user_id": null,
+      "session_id": "sess_buf_9",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_buffer_24080f",
+      "playback_second": 35,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:39:48.979385+00:00"
+    },
+    {
+      "id": "evt_2d20b6cfae",
+      "event_name": "episode_started",
+      "user_id": null,
+      "session_id": "sess_b78636c0",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_bt_1",
+      "playback_second": 0,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:40:25.180090+00:00"
+    },
+    {
+      "id": "evt_8441209be4",
+      "event_name": "heartbeat",
+      "user_id": null,
+      "session_id": "sess_b78636c0",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_bt_1",
+      "playback_second": 15,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:40:25.543257+00:00"
+    },
+    {
+      "id": "evt_f048b4ee22",
+      "event_name": "heartbeat",
+      "user_id": null,
+      "session_id": "sess_b78636c0",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_bt_1",
+      "playback_second": 30,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:40:25.897917+00:00"
+    },
+    {
+      "id": "evt_db7674d028",
+      "event_name": "cliffhanger_reached",
+      "user_id": null,
+      "session_id": "sess_b78636c0",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_bt_1",
+      "playback_second": 58,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:40:26.276276+00:00"
+    },
+    {
+      "id": "evt_0bb3565994",
+      "event_name": "unlock_completed",
+      "user_id": null,
+      "session_id": "sess_b78636c0",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_bt_1",
+      "playback_second": 58,
+      "region_code": "ZA",
+      "device_type": "mobile_pwa",
+      "metadata": {},
+      "created_at": "2026-09-12T13:40:26.608716+00:00"
     }
   ],
   "intelligence_evidence": [
@@ -12009,6 +14168,41 @@
         }
       ],
       "created_at": "2026-09-12T13:30:52.092668+00:00"
+    },
+    {
+      "id": "evid_0196394c17",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_intel_a17462",
+      "analysis_version": "v2.1-evidence",
+      "sample_size": 10,
+      "cliffhanger_conversion_pct": 50.0,
+      "technical_health": {
+        "buffering_ratio": 0.0,
+        "is_healthy": true
+      },
+      "narrative_drops_detected": 2,
+      "diagnostics": [
+        {
+          "time_range": "20s–25s",
+          "start_second": 20,
+          "end_second": 25,
+          "drop_percentage": 60.0,
+          "classification": "CONFIRMED_NARRATIVE_DROP",
+          "confidence_score": 0.88,
+          "sample_size": 10
+        },
+        {
+          "time_range": "65s–70s",
+          "start_second": 65,
+          "end_second": 70,
+          "drop_percentage": 40.0,
+          "classification": "CONFIRMED_NARRATIVE_DROP",
+          "confidence_score": 0.88,
+          "sample_size": 10
+        }
+      ],
+      "created_at": "2026-09-12T13:39:37.882356+00:00"
     }
   ],
   "intelligence_recommendations": [
@@ -12062,6 +14256,23 @@
       "prescription_text": "Evidence confirms a 60.0% audience drop at 20s–25s. For upcoming episodes, introduce a high-stakes dialogue revelation or secret conflict before second 20.",
       "is_actionable": true,
       "created_at": "2026-09-12T13:30:52.092668+00:00"
+    },
+    {
+      "id": "rec_b032133467",
+      "evidence_id": "evid_0196394c17",
+      "ip_id": "ip_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_intel_a17462",
+      "metric": "RETENTION_DROP_PACING",
+      "time_range": "20s–25s",
+      "cohort": "ALL_VIEWERS_ZA",
+      "sample_size": 10,
+      "confidence": 0.88,
+      "analysis_version": "v2.1-evidence",
+      "model_version": "gemini-1.5-flash-intelligence",
+      "prescription_text": "Evidence confirms a 60.0% audience drop at 20s–25s. For upcoming episodes, introduce a high-stakes dialogue revelation or secret conflict before second 20.",
+      "is_actionable": true,
+      "created_at": "2026-09-12T13:39:37.882356+00:00"
     }
   ],
   "security_audit_ledger": [
@@ -18339,6 +20550,1500 @@
       "previous_hash": "b01371afa9cbfdc76f08706a76446dcf70919e570f4b8838ad9b41c71d355d7e",
       "entry_hash": "82267787c81eea7a80e245b43f9fb9c7bee02a7b555fefa73678077033c5751a",
       "timestamp": "2026-09-12T13:31:37.039425+00:00"
+    },
+    {
+      "sequence_id": 267,
+      "event_id": "aud_a5135500fec4",
+      "domain": "COMMERCE",
+      "event_type": "commerce.payment_received",
+      "actor_id": "viewer_test_8ca82d",
+      "actor_role": "viewer",
+      "target_type": "wallet",
+      "target_id": "viewer_test_8ca82d",
+      "before_state": {},
+      "after_state": {
+        "coins_granted": 50,
+        "amount_fiat": 10.0,
+        "currency": "ZAR"
+      },
+      "metadata": {
+        "provider": "vodacom_dcb",
+        "provider_tx": "voda_tx_1161e9a3",
+        "ledger_tx": "ledg_d74d9a7078"
+      },
+      "payload_hash": "0edcb867c661a2680a192178ffaba42a8d5a10158a793a1c46a70170461a30ed",
+      "previous_hash": "82267787c81eea7a80e245b43f9fb9c7bee02a7b555fefa73678077033c5751a",
+      "entry_hash": "de969d9c596b747c664ff627ac9de1b722c568415f6887d8d7a883d0f8633d57",
+      "timestamp": "2026-09-12T13:38:43.881131+00:00"
+    },
+    {
+      "sequence_id": 268,
+      "event_id": "aud_b4eef900b2bf",
+      "domain": "COMMERCE",
+      "event_type": "commerce.payment_received",
+      "actor_id": "viewer_test_8ca82d",
+      "actor_role": "viewer",
+      "target_type": "wallet",
+      "target_id": "viewer_test_8ca82d",
+      "before_state": {},
+      "after_state": {
+        "coins_granted": 125,
+        "amount_fiat": 25.0,
+        "currency": "ZAR"
+      },
+      "metadata": {
+        "provider": "peach_payments",
+        "provider_tx": "peach_tx_7fa67b54",
+        "ledger_tx": "ledg_70f9a2de53"
+      },
+      "payload_hash": "adcf87613c896911bbe9039496df249fed3db704f611e52188a842dd3dfc379f",
+      "previous_hash": "de969d9c596b747c664ff627ac9de1b722c568415f6887d8d7a883d0f8633d57",
+      "entry_hash": "63b7a768e07f48c2bc9a0ec6002937457b7cdfaa0795b311d69cffbe6f331e87",
+      "timestamp": "2026-09-12T13:38:48.443809+00:00"
+    },
+    {
+      "sequence_id": 269,
+      "event_id": "aud_afceca4a14ab",
+      "domain": "AUTH",
+      "event_type": "auth.guest_session",
+      "actor_id": "guest_125aa790",
+      "actor_role": "viewer",
+      "target_type": "guest_session",
+      "target_id": "guest_125aa790",
+      "before_state": {},
+      "after_state": {
+        "market": "ZA",
+        "device_id": null
+      },
+      "metadata": {
+        "onboarding": "frictionless_trial"
+      },
+      "payload_hash": "6d6affb4afb2c4de50cf514714b75340f43672e130a0520c624e3d9992ebcbfc",
+      "previous_hash": "63b7a768e07f48c2bc9a0ec6002937457b7cdfaa0795b311d69cffbe6f331e87",
+      "entry_hash": "ed8eb7c9bbe75ed0f2a3c1adaedd016c0d0f840e49e883fa6a65aecba51e252a",
+      "timestamp": "2026-09-12T13:38:49.994610+00:00"
+    },
+    {
+      "sequence_id": 270,
+      "event_id": "aud_11447cd1182e",
+      "domain": "CONTENT",
+      "event_type": "content.episode_created",
+      "actor_id": "creator_zola",
+      "actor_role": "creator",
+      "target_type": "episode",
+      "target_id": "ep_382736ac",
+      "before_state": {},
+      "after_state": {
+        "title": "The Secret Will Revealed",
+        "series_id": "story_blood_ties",
+        "duration": 68,
+        "status": "under_review"
+      },
+      "metadata": {
+        "preflight_checks": {
+          "aspect_ratio_ok": true,
+          "aspect_ratio_label": "1080 × 1920 (9:16)",
+          "duration_ok": true,
+          "duration_seconds": 68,
+          "audio_detected": true,
+          "thumbnail_present": true,
+          "cliffhanger_marker_ok": true,
+          "cliffhanger_time_seconds": 58,
+          "cliffhanger_hook_copy": "Who authorized her DNA test before the funeral?",
+          "captions_present": true
+        }
+      },
+      "payload_hash": "ead2430e0efae36606b097533b3514becf8fdabdfd9bde13ea448a9091a3b60e",
+      "previous_hash": "ed8eb7c9bbe75ed0f2a3c1adaedd016c0d0f840e49e883fa6a65aecba51e252a",
+      "entry_hash": "23546f9033453443c6be5326f5c0b0b224b6f659c30e4e5adb62683fe39d6040",
+      "timestamp": "2026-09-12T13:38:52.027251+00:00"
+    },
+    {
+      "sequence_id": 271,
+      "event_id": "aud_0187bcde576e",
+      "domain": "CONTENT",
+      "event_type": "content.episode_submitted",
+      "actor_id": "creator_zola",
+      "actor_role": "creator",
+      "target_type": "episode_moderation_queue",
+      "target_id": "ep_382736ac",
+      "before_state": {},
+      "after_state": {
+        "status": "under_review",
+        "series_id": "story_blood_ties"
+      },
+      "metadata": {
+        "cliffhanger_hook": "Who authorized her DNA test before the funeral?",
+        "moderation_ticket": "MOD-2736AC"
+      },
+      "payload_hash": "1e3520d403533987f1e12adf7ec8d47aaf5cda59e8fe3c81813050b603ec5256",
+      "previous_hash": "23546f9033453443c6be5326f5c0b0b224b6f659c30e4e5adb62683fe39d6040",
+      "entry_hash": "15789e2ae0093be38a1dc452e08aeb44d86e8b95f9d2c40fca7ef4d49709b754",
+      "timestamp": "2026-09-12T13:38:52.697252+00:00"
+    },
+    {
+      "sequence_id": 272,
+      "event_id": "aud_d4a6b59c5c33",
+      "domain": "CONTENT",
+      "event_type": "content.moderation_decision",
+      "actor_id": "admin_supervisor",
+      "actor_role": "admin",
+      "target_type": "episode",
+      "target_id": "ep_382736ac",
+      "before_state": {
+        "status": "under_review"
+      },
+      "after_state": {
+        "status": "published",
+        "moderation_decision": "approved",
+        "reviewer_id": "admin_supervisor"
+      },
+      "metadata": {
+        "item_id": "mod_ep_382736ac",
+        "action": "approve"
+      },
+      "payload_hash": "fd774fbe175b1a277d02919db6ba43601773e62860ba91752300c3677f94727e",
+      "previous_hash": "15789e2ae0093be38a1dc452e08aeb44d86e8b95f9d2c40fca7ef4d49709b754",
+      "entry_hash": "3dc225bbc3c0a628ada831f1962e0ad9cf0a97984e539fa5bf36d02ff0b957e6",
+      "timestamp": "2026-09-12T13:38:53.550177+00:00"
+    },
+    {
+      "sequence_id": 273,
+      "event_id": "aud_6fa55379d55d",
+      "domain": "CONTENT",
+      "event_type": "content.publication",
+      "actor_id": "admin_supervisor",
+      "actor_role": "admin",
+      "target_type": "episode",
+      "target_id": "ep_382736ac",
+      "before_state": {},
+      "after_state": {
+        "status": "published",
+        "is_live": true
+      },
+      "metadata": {
+        "series_id": "story_blood_ties"
+      },
+      "payload_hash": "9843bc19dd942798c469c25317d3ad1a53e72b86bf534b06cfb0543c55fa170e",
+      "previous_hash": "3dc225bbc3c0a628ada831f1962e0ad9cf0a97984e539fa5bf36d02ff0b957e6",
+      "entry_hash": "f9925fe9a8c7b7294b4f1e4f5bc5fa7fb93b5feeb0b27497be832a38dba1d9c9",
+      "timestamp": "2026-09-12T13:38:54.212996+00:00"
+    },
+    {
+      "sequence_id": 274,
+      "event_id": "aud_bed16b2a2ec2",
+      "domain": "IP",
+      "event_type": "ip.story_package_created",
+      "actor_id": "creator_zola",
+      "actor_role": "creator",
+      "target_type": "story_package",
+      "target_id": "sfp_ffb302d3",
+      "before_state": {},
+      "after_state": {
+        "package_title": "Season 2: The Alexandra Heist",
+        "version": "v1.0.0",
+        "ip_id": "ip_blood_ties"
+      },
+      "metadata": {
+        "beats_count": 3,
+        "ai_model": "gemini-3.7-flash"
+      },
+      "payload_hash": "c59a933e83557fa0a4eb481bb995a93e83b351afbbbdc975270de594b2172678",
+      "previous_hash": "f9925fe9a8c7b7294b4f1e4f5bc5fa7fb93b5feeb0b27497be832a38dba1d9c9",
+      "entry_hash": "1a2d70462a59ff1bb5a2ce96f3c40ec6804d0b535c5aeaac264821ac6b4dc7b8",
+      "timestamp": "2026-09-12T13:38:55.151013+00:00"
+    },
+    {
+      "sequence_id": 275,
+      "event_id": "aud_12564de634ef",
+      "domain": "CONTENT",
+      "event_type": "content.episode_created",
+      "actor_id": "creator_zola",
+      "actor_role": "creator",
+      "target_type": "episode",
+      "target_id": "ep_f900679a",
+      "before_state": {},
+      "after_state": {
+        "title": "The Alexandra Heist: Breach",
+        "series_id": "story_blood_ties",
+        "duration": 85,
+        "status": "under_review"
+      },
+      "metadata": {
+        "preflight_checks": {
+          "aspect_ratio_ok": true,
+          "aspect_ratio_label": "1080 × 1920 (9:16)",
+          "duration_ok": true,
+          "duration_seconds": 85,
+          "audio_detected": true,
+          "thumbnail_present": true,
+          "cliffhanger_marker_ok": true,
+          "cliffhanger_time_seconds": 75,
+          "cliffhanger_hook_copy": "Will Sipho crack the digital lock before security breaches the alley?",
+          "captions_present": true
+        }
+      },
+      "payload_hash": "98886f3c27c322e3e987ce4f81c5e79734fa6aa9426a078bd95ef549456266a8",
+      "previous_hash": "1a2d70462a59ff1bb5a2ce96f3c40ec6804d0b535c5aeaac264821ac6b4dc7b8",
+      "entry_hash": "4f861b471f2e04ce73cd7f253bf1857c9680af6a071cd2bdf6ce0a6b415ae7dd",
+      "timestamp": "2026-09-12T13:38:56.516902+00:00"
+    },
+    {
+      "sequence_id": 276,
+      "event_id": "aud_4ad8eb7cda4b",
+      "domain": "CONTENT",
+      "event_type": "content.episode_submitted",
+      "actor_id": "creator_zola",
+      "actor_role": "creator",
+      "target_type": "episode_moderation_queue",
+      "target_id": "ep_f900679a",
+      "before_state": {},
+      "after_state": {
+        "status": "under_review",
+        "series_id": "story_blood_ties"
+      },
+      "metadata": {
+        "cliffhanger_hook": "Will Sipho crack the digital lock before security breaches the alley?",
+        "moderation_ticket": "MOD-00679A"
+      },
+      "payload_hash": "e167ae2d5543daddd53baee8a6109fd58a6e8d58f5aebaa4f9e2e03805201e39",
+      "previous_hash": "4f861b471f2e04ce73cd7f253bf1857c9680af6a071cd2bdf6ce0a6b415ae7dd",
+      "entry_hash": "a1946549433b453ad94ccbd88452270ecb9acb8d08db626ba1257199181e7952",
+      "timestamp": "2026-09-12T13:38:57.158373+00:00"
+    },
+    {
+      "sequence_id": 277,
+      "event_id": "aud_816de01b02c7",
+      "domain": "CONTENT",
+      "event_type": "content.moderation_decision",
+      "actor_id": "admin_supervisor",
+      "actor_role": "admin",
+      "target_type": "episode",
+      "target_id": "ep_f900679a",
+      "before_state": {
+        "status": "under_review"
+      },
+      "after_state": {
+        "status": "published",
+        "moderation_decision": "approved",
+        "reviewer_id": "admin_supervisor"
+      },
+      "metadata": {
+        "item_id": "mod_ep_f900679a",
+        "action": "approve"
+      },
+      "payload_hash": "70f167856dc98fbd6b4312d97bd9b656a89e77d561a491a3cfe803af4e34f544",
+      "previous_hash": "a1946549433b453ad94ccbd88452270ecb9acb8d08db626ba1257199181e7952",
+      "entry_hash": "f6e6b6d8ad81019532728c18bef739dfb6112136b27855f64c36afad332cc541",
+      "timestamp": "2026-09-12T13:38:57.850092+00:00"
+    },
+    {
+      "sequence_id": 278,
+      "event_id": "aud_09b4ce42d06d",
+      "domain": "CONTENT",
+      "event_type": "content.publication",
+      "actor_id": "admin_supervisor",
+      "actor_role": "admin",
+      "target_type": "episode",
+      "target_id": "ep_f900679a",
+      "before_state": {},
+      "after_state": {
+        "status": "published",
+        "is_live": true
+      },
+      "metadata": {
+        "series_id": "story_blood_ties"
+      },
+      "payload_hash": "9843bc19dd942798c469c25317d3ad1a53e72b86bf534b06cfb0543c55fa170e",
+      "previous_hash": "f6e6b6d8ad81019532728c18bef739dfb6112136b27855f64c36afad332cc541",
+      "entry_hash": "e2010f01930a66c6c690265292e1c361febd2a25c94e53959652f2cfee5a06ae",
+      "timestamp": "2026-09-12T13:38:58.436057+00:00"
+    },
+    {
+      "sequence_id": 279,
+      "event_id": "aud_622fd813990a",
+      "domain": "CONTENT",
+      "event_type": "content.episode_created",
+      "actor_id": "creator_zola",
+      "actor_role": "creator",
+      "target_type": "episode",
+      "target_id": "ep_019d1321",
+      "before_state": {},
+      "after_state": {
+        "title": "The Midnight Ledger Ep 20",
+        "series_id": "story_blood_ties",
+        "duration": 75,
+        "status": "under_review"
+      },
+      "metadata": {
+        "preflight_checks": {
+          "aspect_ratio_ok": true,
+          "duration_ok": true,
+          "audio_detected": true,
+          "thumbnail_present": true,
+          "cliffhanger_marker_ok": true,
+          "captions_present": true
+        }
+      },
+      "payload_hash": "2b3f7bb97dba02964353d80c3f9c3ba1d2d857e69b6301e5e950c0b3e542267c",
+      "previous_hash": "e2010f01930a66c6c690265292e1c361febd2a25c94e53959652f2cfee5a06ae",
+      "entry_hash": "ce9c88885a9f0141c7b57f00bd1e2609532ff7a2856a936f6c7d230e780734ed",
+      "timestamp": "2026-09-12T13:39:01.754561+00:00"
+    },
+    {
+      "sequence_id": 280,
+      "event_id": "aud_d44564aac531",
+      "domain": "CONTENT",
+      "event_type": "content.episode_submitted",
+      "actor_id": "creator_zola",
+      "actor_role": "creator",
+      "target_type": "episode_moderation_queue",
+      "target_id": "ep_019d1321",
+      "before_state": {},
+      "after_state": {
+        "status": "under_review",
+        "series_id": "story_blood_ties"
+      },
+      "metadata": {
+        "cliffhanger_hook": "The thumbprint scanner accepts the wrong heir.",
+        "moderation_ticket": "MOD-9D1321"
+      },
+      "payload_hash": "4d61622f0ad4270f970d16d9cd0280a5d094231313171ab96a41eaf74df5e1a8",
+      "previous_hash": "ce9c88885a9f0141c7b57f00bd1e2609532ff7a2856a936f6c7d230e780734ed",
+      "entry_hash": "e9192444a4927e3838f84369201bbf50942d37f30969ef27974045ad18fd0e2e",
+      "timestamp": "2026-09-12T13:39:02.442700+00:00"
+    },
+    {
+      "sequence_id": 281,
+      "event_id": "aud_02e5dee3d0fa",
+      "domain": "CONTENT",
+      "event_type": "content.moderation_decision",
+      "actor_id": "admin_supervisor",
+      "actor_role": "admin",
+      "target_type": "episode",
+      "target_id": "ep_019d1321",
+      "before_state": {
+        "status": "under_review"
+      },
+      "after_state": {
+        "status": "published",
+        "moderation_decision": "approved",
+        "reviewer_id": "admin_supervisor"
+      },
+      "metadata": {
+        "item_id": "mod_ep_019d1321",
+        "action": "approve"
+      },
+      "payload_hash": "de47cc22e05f53bf6a4f0292721c91316b7af7ae24223b1e8cb9121e0dff1680",
+      "previous_hash": "e9192444a4927e3838f84369201bbf50942d37f30969ef27974045ad18fd0e2e",
+      "entry_hash": "368133c0855e7466aa716d2c7e05a554cedbdac6a019fb7fa54f5eded1d99271",
+      "timestamp": "2026-09-12T13:39:03.322039+00:00"
+    },
+    {
+      "sequence_id": 282,
+      "event_id": "aud_b1237cc608fe",
+      "domain": "CONTENT",
+      "event_type": "content.publication",
+      "actor_id": "admin_supervisor",
+      "actor_role": "admin",
+      "target_type": "episode",
+      "target_id": "ep_019d1321",
+      "before_state": {},
+      "after_state": {
+        "status": "published",
+        "is_live": true
+      },
+      "metadata": {
+        "series_id": "story_blood_ties"
+      },
+      "payload_hash": "9843bc19dd942798c469c25317d3ad1a53e72b86bf534b06cfb0543c55fa170e",
+      "previous_hash": "368133c0855e7466aa716d2c7e05a554cedbdac6a019fb7fa54f5eded1d99271",
+      "entry_hash": "804f6d5b44c833d75d50b4577ef98e82dabfd29d71ac3e99e61a28251fda7580",
+      "timestamp": "2026-09-12T13:39:03.895170+00:00"
+    },
+    {
+      "sequence_id": 283,
+      "event_id": "aud_c448b136fed6",
+      "domain": "IP",
+      "event_type": "ip.created",
+      "actor_id": "creator_zola",
+      "actor_role": "creator",
+      "target_type": "digital_ip",
+      "target_id": "ip_59786a57",
+      "before_state": {},
+      "after_state": {
+        "title": "Jozi Gold Rush a7c6a0",
+        "master_owner_id": "creator_zola",
+        "valuation": 0.0
+      },
+      "metadata": {
+        "franchise_code": "IP-JGR-A7C6A0"
+      },
+      "payload_hash": "c7fa8223a7ec46ef912b9f145ce447684b0063180201963c534abe7898713d9f",
+      "previous_hash": "804f6d5b44c833d75d50b4577ef98e82dabfd29d71ac3e99e61a28251fda7580",
+      "entry_hash": "60bb21585f4d80e4caa2a76a3100c8b4db1c7d08ffc32f66bae8da72b2d995a5",
+      "timestamp": "2026-09-12T13:39:06.126799+00:00"
+    },
+    {
+      "sequence_id": 284,
+      "event_id": "aud_620a8533395a",
+      "domain": "CONTENT",
+      "event_type": "content.series_created",
+      "actor_id": "creator_zola",
+      "actor_role": "creator",
+      "target_type": "series",
+      "target_id": "story_1296e85b",
+      "before_state": {},
+      "after_state": {
+        "title": "Jozi Gold Rush: Season 1 a7c6a0",
+        "genre": "Action • Crime",
+        "creator_id": "creator_zola"
+      },
+      "metadata": {
+        "pricing": 5
+      },
+      "payload_hash": "53de6935d4e6d15b0b42deb9a90f4d689225f5409a2f31cdb2631a82bddcb798",
+      "previous_hash": "60bb21585f4d80e4caa2a76a3100c8b4db1c7d08ffc32f66bae8da72b2d995a5",
+      "entry_hash": "6c0c09d4672573603ac1bbbfdc34654fb397465d0e7b1a5656f4612a33801b51",
+      "timestamp": "2026-09-12T13:39:07.214384+00:00"
+    },
+    {
+      "sequence_id": 285,
+      "event_id": "aud_79f3d49fbfa4",
+      "domain": "CONTENT",
+      "event_type": "content.episode_created",
+      "actor_id": "creator_zola",
+      "actor_role": "creator",
+      "target_type": "episode",
+      "target_id": "ep_a7894758",
+      "before_state": {},
+      "after_state": {
+        "title": "The First Run",
+        "series_id": "story_1296e85b",
+        "duration": 75,
+        "status": "under_review"
+      },
+      "metadata": {
+        "preflight_checks": null
+      },
+      "payload_hash": "a60aff1f6c0b22934452cf2afdf16f95c31a0d6f6cd99f3299ead635127158f7",
+      "previous_hash": "6c0c09d4672573603ac1bbbfdc34654fb397465d0e7b1a5656f4612a33801b51",
+      "entry_hash": "6e1ee85425d5ed01ae5b1aef51a3d29061b16b751403d98cfaefdbb5d878af83",
+      "timestamp": "2026-09-12T13:39:08.577202+00:00"
+    },
+    {
+      "sequence_id": 286,
+      "event_id": "aud_8f1e535b8b4e",
+      "domain": "CONTENT",
+      "event_type": "content.episode_submitted",
+      "actor_id": "creator_zola",
+      "actor_role": "creator",
+      "target_type": "episode_moderation_queue",
+      "target_id": "ep_a7894758",
+      "before_state": {},
+      "after_state": {
+        "status": "under_review",
+        "series_id": "story_1296e85b"
+      },
+      "metadata": {
+        "cliffhanger_hook": "The security beacon was switched to emergency frequency.",
+        "moderation_ticket": "MOD-894758"
+      },
+      "payload_hash": "feb0c9cca2917fcd0b3416820333db25747f2cdf63fcaf80bdaf003d3a90f0ad",
+      "previous_hash": "6e1ee85425d5ed01ae5b1aef51a3d29061b16b751403d98cfaefdbb5d878af83",
+      "entry_hash": "ee751a505c1c2784fa6fe8866a22f83b13ecb983fff45bc611ba75f4682f8cba",
+      "timestamp": "2026-09-12T13:39:09.250708+00:00"
+    },
+    {
+      "sequence_id": 287,
+      "event_id": "aud_efa7557ef225",
+      "domain": "CONTENT",
+      "event_type": "content.moderation_decision",
+      "actor_id": "admin_supervisor",
+      "actor_role": "admin",
+      "target_type": "episode",
+      "target_id": "ep_a7894758",
+      "before_state": {
+        "status": "under_review"
+      },
+      "after_state": {
+        "status": "published",
+        "moderation_decision": "approved",
+        "reviewer_id": "admin_supervisor"
+      },
+      "metadata": {
+        "item_id": "ep_a7894758",
+        "action": "approve"
+      },
+      "payload_hash": "abcd992799f998d34804ccc430b43164d748ef79318a245777c8e0fd67201f33",
+      "previous_hash": "ee751a505c1c2784fa6fe8866a22f83b13ecb983fff45bc611ba75f4682f8cba",
+      "entry_hash": "21f57e270a1a203fc9099731a6b87b6a886ead806dd34dae3301c8ac32387744",
+      "timestamp": "2026-09-12T13:39:09.962986+00:00"
+    },
+    {
+      "sequence_id": 288,
+      "event_id": "aud_49fcd5a57c88",
+      "domain": "CONTENT",
+      "event_type": "content.publication",
+      "actor_id": "admin_supervisor",
+      "actor_role": "admin",
+      "target_type": "episode",
+      "target_id": "ep_a7894758",
+      "before_state": {},
+      "after_state": {
+        "status": "published",
+        "is_live": true
+      },
+      "metadata": {
+        "series_id": "story_1296e85b"
+      },
+      "payload_hash": "89e9f419dc891ffdd595a95edd3925746d70871ee93c57f85a7d79ec250cf3a4",
+      "previous_hash": "21f57e270a1a203fc9099731a6b87b6a886ead806dd34dae3301c8ac32387744",
+      "entry_hash": "73dc5f5cd9f3070c806dc62e205f6900552ece0e39eaf8d597b325c940850c53",
+      "timestamp": "2026-09-12T13:39:10.492886+00:00"
+    },
+    {
+      "sequence_id": 289,
+      "event_id": "aud_f9a7d56647c3",
+      "domain": "EXPERIENCE",
+      "event_type": "experience.layout_changed",
+      "actor_id": "admin_supervisor",
+      "actor_role": "admin",
+      "target_type": "experience_draft",
+      "target_id": "home",
+      "before_state": {},
+      "after_state": {
+        "sections_count": 6,
+        "page_id": "home"
+      },
+      "metadata": {
+        "updated_at": "2026-09-12T13:39:12.432997+00:00"
+      },
+      "payload_hash": "7f1aff06bef3300d151ab0bdb2827e5c88a1254532a65805a0ea3bf81041997b",
+      "previous_hash": "73dc5f5cd9f3070c806dc62e205f6900552ece0e39eaf8d597b325c940850c53",
+      "entry_hash": "d7ba36b2631a0e0d0c732a219109ee9ed7987d2762ac01a9db8932a14d262b9e",
+      "timestamp": "2026-09-12T13:39:12.520930+00:00"
+    },
+    {
+      "sequence_id": 290,
+      "event_id": "aud_5b40bcdf3630",
+      "domain": "EXPERIENCE",
+      "event_type": "experience.draft_published",
+      "actor_id": "admin_supervisor",
+      "actor_role": "admin",
+      "target_type": "experience_manifest",
+      "target_id": "home",
+      "before_state": {},
+      "after_state": {
+        "version": "2026.09.12.v353",
+        "status": "published",
+        "sections_count": 6
+      },
+      "metadata": {
+        "published_at": "2026-09-12T13:39:13.113918+00:00"
+      },
+      "payload_hash": "f51638f915590e583ac38936a61873c2a18007e8eec6751108024fa6a7a9e5d5",
+      "previous_hash": "d7ba36b2631a0e0d0c732a219109ee9ed7987d2762ac01a9db8932a14d262b9e",
+      "entry_hash": "b555a89973cf741b82869222aced7a971065e5c2b39b60176258a2a703cb4610",
+      "timestamp": "2026-09-12T13:39:13.186754+00:00"
+    },
+    {
+      "sequence_id": 291,
+      "event_id": "aud_2cb06e7722de",
+      "domain": "IP",
+      "event_type": "ip.created",
+      "actor_id": "creator_zola",
+      "actor_role": "creator",
+      "target_type": "digital_ip",
+      "target_id": "ip_48612541",
+      "before_state": {},
+      "after_state": {
+        "title": "The Royal Ledger 55b7a8",
+        "master_owner_id": "creator_zola",
+        "valuation": 0.0
+      },
+      "metadata": {
+        "franchise_code": "MZANSI_55B7A8"
+      },
+      "payload_hash": "261024cf739d40521c8af62930a8ad040e7d8b106dd0aaa19f236c6c246d2239",
+      "previous_hash": "b555a89973cf741b82869222aced7a971065e5c2b39b60176258a2a703cb4610",
+      "entry_hash": "013177ee4703677690912509c58c52d87e77a95159fa50e8cc7a171684c14140",
+      "timestamp": "2026-09-12T13:39:16.787817+00:00"
+    },
+    {
+      "sequence_id": 292,
+      "event_id": "aud_ad8849a6552e",
+      "domain": "IP",
+      "event_type": "ip.story_package_created",
+      "actor_id": "creator_zola",
+      "actor_role": "creator",
+      "target_type": "story_package",
+      "target_id": "sfp_481eeb94",
+      "before_state": {},
+      "after_state": {
+        "package_title": "The Royal Ledger Season 1 Narrative Beats",
+        "version": "v1.0.0",
+        "ip_id": "ip_48612541"
+      },
+      "metadata": {
+        "beats_count": 1,
+        "ai_model": "gemini-1.5-flash"
+      },
+      "payload_hash": "ff297055af489314bd2de2b7165f538e49aeeeeb6b3a3d9a539421917a71cfb1",
+      "previous_hash": "013177ee4703677690912509c58c52d87e77a95159fa50e8cc7a171684c14140",
+      "entry_hash": "765497790eaa29f23ee3d6d1458714a7b44a1f06a7846a02a298942bfc0f24e3",
+      "timestamp": "2026-09-12T13:39:17.912305+00:00"
+    },
+    {
+      "sequence_id": 293,
+      "event_id": "aud_542e918707a0",
+      "domain": "CONTENT",
+      "event_type": "content.series_created",
+      "actor_id": "creator_zola",
+      "actor_role": "creator",
+      "target_type": "series",
+      "target_id": "story_b03c26fe",
+      "before_state": {},
+      "after_state": {
+        "title": "The Royal Ledger Series 55b7a8",
+        "genre": "Drama",
+        "creator_id": "creator_zola"
+      },
+      "metadata": {
+        "pricing": 5
+      },
+      "payload_hash": "2eed0a5c6d9976da1492c88f46230bfa852eeb66313a13a59b3b5ba9d99bd9eb",
+      "previous_hash": "765497790eaa29f23ee3d6d1458714a7b44a1f06a7846a02a298942bfc0f24e3",
+      "entry_hash": "5a4dcfaa5299d8f9feeb25bd9d2820133225b8e5bbcfe75d17489a5948b5445a",
+      "timestamp": "2026-09-12T13:39:19.327656+00:00"
+    },
+    {
+      "sequence_id": 294,
+      "event_id": "aud_89981cc8f990",
+      "domain": "CONTENT",
+      "event_type": "content.episode_created",
+      "actor_id": "creator_zola",
+      "actor_role": "creator",
+      "target_type": "episode",
+      "target_id": "ep_ec75b59a",
+      "before_state": {},
+      "after_state": {
+        "title": "The Boardroom Ambush",
+        "series_id": "story_b03c26fe",
+        "duration": 65,
+        "status": "under_review"
+      },
+      "metadata": {
+        "preflight_checks": {
+          "aspect_ratio_ok": true,
+          "aspect_ratio_label": "1080 × 1920 (9:16)",
+          "duration_ok": true,
+          "duration_seconds": 65,
+          "audio_detected": true,
+          "thumbnail_present": true,
+          "cliffhanger_marker_ok": true,
+          "cliffhanger_time_seconds": 58,
+          "cliffhanger_hook_copy": "The chairman reveals the sealed DNA envelope.",
+          "captions_present": true
+        }
+      },
+      "payload_hash": "fe23d3f9537646cd01e61500fc7ad1bd48f8a92887df11a6f0cb228904e3c28d",
+      "previous_hash": "5a4dcfaa5299d8f9feeb25bd9d2820133225b8e5bbcfe75d17489a5948b5445a",
+      "entry_hash": "ab95fc53478af4ec41e8b9e0b4be59effb9e802c476ad91eadadd24361c83cdc",
+      "timestamp": "2026-09-12T13:39:22.538498+00:00"
+    },
+    {
+      "sequence_id": 295,
+      "event_id": "aud_98bf85e407cc",
+      "domain": "CONTENT",
+      "event_type": "content.episode_submitted",
+      "actor_id": "creator_zola",
+      "actor_role": "creator",
+      "target_type": "episode_moderation_queue",
+      "target_id": "ep_ec75b59a",
+      "before_state": {},
+      "after_state": {
+        "status": "under_review",
+        "series_id": "story_b03c26fe"
+      },
+      "metadata": {
+        "cliffhanger_hook": "The chairman reveals the sealed DNA envelope.",
+        "moderation_ticket": "MOD-75B59A"
+      },
+      "payload_hash": "56154544259ff635e3401ef91f3b4c9452a3a8aed47f4f850db0d3aa379de2f3",
+      "previous_hash": "ab95fc53478af4ec41e8b9e0b4be59effb9e802c476ad91eadadd24361c83cdc",
+      "entry_hash": "8e4b90280652f95b8a9d560af4f7afc66bc0c5be2a537842cdc6a01d32c6a2b4",
+      "timestamp": "2026-09-12T13:39:23.251935+00:00"
+    },
+    {
+      "sequence_id": 296,
+      "event_id": "aud_afec420503cd",
+      "domain": "CONTENT",
+      "event_type": "content.moderation_decision",
+      "actor_id": "admin_supervisor",
+      "actor_role": "admin",
+      "target_type": "episode",
+      "target_id": "ep_ec75b59a",
+      "before_state": {
+        "status": "under_review"
+      },
+      "after_state": {
+        "status": "published",
+        "moderation_decision": "approved",
+        "reviewer_id": "admin_supervisor"
+      },
+      "metadata": {
+        "item_id": "mod_ep_ec75b59a",
+        "action": "approve"
+      },
+      "payload_hash": "508a74914da6821c25fb147eee8d20317d0fb95330205f2ba0220f5a6687aa93",
+      "previous_hash": "8e4b90280652f95b8a9d560af4f7afc66bc0c5be2a537842cdc6a01d32c6a2b4",
+      "entry_hash": "22f3e585af77b566b4e2a770e78883f036383ccf186d27472ced4b285f731943",
+      "timestamp": "2026-09-12T13:39:24.138846+00:00"
+    },
+    {
+      "sequence_id": 297,
+      "event_id": "aud_3ee4eeaa429d",
+      "domain": "CONTENT",
+      "event_type": "content.publication",
+      "actor_id": "admin_supervisor",
+      "actor_role": "admin",
+      "target_type": "episode",
+      "target_id": "ep_ec75b59a",
+      "before_state": {},
+      "after_state": {
+        "status": "published",
+        "is_live": true
+      },
+      "metadata": {
+        "series_id": "story_b03c26fe"
+      },
+      "payload_hash": "ccc026bff8152b4f668dd5abb5dc8cac8db3074890c939388b5bd551755d0d33",
+      "previous_hash": "22f3e585af77b566b4e2a770e78883f036383ccf186d27472ced4b285f731943",
+      "entry_hash": "27db2890402cd0b7bbace213c11b292a84c92627d31fa4770cc97bea66433ae4",
+      "timestamp": "2026-09-12T13:39:24.759265+00:00"
+    },
+    {
+      "sequence_id": 298,
+      "event_id": "aud_c24463f3c99c",
+      "domain": "IP",
+      "event_type": "ip.created",
+      "actor_id": "creator_lerato",
+      "actor_role": "creator",
+      "target_type": "digital_ip",
+      "target_id": "ip_5f1cd322",
+      "before_state": {},
+      "after_state": {
+        "title": "Queen of Jozi: Golden Crown",
+        "master_owner_id": "creator_lerato",
+        "valuation": 0.0
+      },
+      "metadata": {
+        "franchise_code": "IP-QUEEN-JOZI"
+      },
+      "payload_hash": "c65d128732702ccb1b171e9e1390bc17ace0f049ca67ca3bbcb89d69f945144b",
+      "previous_hash": "27db2890402cd0b7bbace213c11b292a84c92627d31fa4770cc97bea66433ae4",
+      "entry_hash": "cf89b15b07bcae756d6014a8e0432857a77b00c57a9d748a7bd6a01045fd0a06",
+      "timestamp": "2026-09-12T13:39:52.206607+00:00"
+    },
+    {
+      "sequence_id": 299,
+      "event_id": "aud_da47f35fff7f",
+      "domain": "CONTENT",
+      "event_type": "content.episode_created",
+      "actor_id": "creator_zola",
+      "actor_role": "creator",
+      "target_type": "episode",
+      "target_id": "ep_e219b9a9",
+      "before_state": {},
+      "after_state": {
+        "title": "The True Heir Unveiled",
+        "series_id": "story_blood_ties",
+        "duration": 90,
+        "status": "under_review"
+      },
+      "metadata": {
+        "preflight_checks": null
+      },
+      "payload_hash": "2dd1bc39630b1ce9cbd055de47304ba4f5c2c4a246ee3108a377840386a6c9c2",
+      "previous_hash": "cf89b15b07bcae756d6014a8e0432857a77b00c57a9d748a7bd6a01045fd0a06",
+      "entry_hash": "797c7987be6561a2e548a60d7625d9e2730ccfe2f17e6cd965a2fbf1f078916f",
+      "timestamp": "2026-09-12T13:40:00.175158+00:00"
+    },
+    {
+      "sequence_id": 300,
+      "event_id": "aud_765b9e008124",
+      "domain": "CONTENT",
+      "event_type": "content.episode_submitted",
+      "actor_id": "creator_zola",
+      "actor_role": "creator",
+      "target_type": "episode_moderation_queue",
+      "target_id": "ep_e219b9a9",
+      "before_state": {},
+      "after_state": {
+        "status": "under_review",
+        "series_id": "story_blood_ties"
+      },
+      "metadata": {
+        "cliffhanger_hook": "The real contract is signed.",
+        "moderation_ticket": "MOD-19B9A9"
+      },
+      "payload_hash": "72465fb9b61a804e4278cb16739f3e70e7f261ae4b9685a4898d4385883a21d3",
+      "previous_hash": "797c7987be6561a2e548a60d7625d9e2730ccfe2f17e6cd965a2fbf1f078916f",
+      "entry_hash": "6325eed26f48a800316580eeff5281e7cce66ffd149ccf78e895ebf3f304b628",
+      "timestamp": "2026-09-12T13:40:01.244173+00:00"
+    },
+    {
+      "sequence_id": 301,
+      "event_id": "aud_105ff45bd6e0",
+      "domain": "CONTENT",
+      "event_type": "content.moderation_decision",
+      "actor_id": "admin_chief",
+      "actor_role": "admin",
+      "target_type": "episode",
+      "target_id": "ep_e219b9a9",
+      "before_state": {
+        "status": "under_review"
+      },
+      "after_state": {
+        "status": "published",
+        "moderation_decision": "approved",
+        "reviewer_id": "admin_chief"
+      },
+      "metadata": {
+        "item_id": "mod_ep_e219b9a9",
+        "action": "approve"
+      },
+      "payload_hash": "3d15d4ff774475a3d92795906be18a9f858e90a11ae1909071c8f59326d8ca5c",
+      "previous_hash": "6325eed26f48a800316580eeff5281e7cce66ffd149ccf78e895ebf3f304b628",
+      "entry_hash": "37bba1d46f9e66ba6e9875764ecc481b5bdb6e035b0356f970e86190f1acf8b9",
+      "timestamp": "2026-09-12T13:40:02.750065+00:00"
+    },
+    {
+      "sequence_id": 302,
+      "event_id": "aud_8c7c02382f20",
+      "domain": "CONTENT",
+      "event_type": "content.publication",
+      "actor_id": "admin_chief",
+      "actor_role": "admin",
+      "target_type": "episode",
+      "target_id": "ep_e219b9a9",
+      "before_state": {},
+      "after_state": {
+        "status": "published",
+        "is_live": true
+      },
+      "metadata": {
+        "series_id": "story_blood_ties"
+      },
+      "payload_hash": "9843bc19dd942798c469c25317d3ad1a53e72b86bf534b06cfb0543c55fa170e",
+      "previous_hash": "37bba1d46f9e66ba6e9875764ecc481b5bdb6e035b0356f970e86190f1acf8b9",
+      "entry_hash": "1aa7e3181f25dfeaedab2b9949712445ce366eceb14d1fa619be0cbc969398b0",
+      "timestamp": "2026-09-12T13:40:03.577562+00:00"
+    },
+    {
+      "sequence_id": 303,
+      "event_id": "aud_f04127e10209",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "1aa7e3181f25dfeaedab2b9949712445ce366eceb14d1fa619be0cbc969398b0",
+      "entry_hash": "f5d5446ae62245d97f771c1a238529f54037b9cdb2895f6e3d34fc19dffd8f1d",
+      "timestamp": "2026-09-12T13:40:05.355641+00:00"
+    },
+    {
+      "sequence_id": 304,
+      "event_id": "aud_a345ce203be5",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "f5d5446ae62245d97f771c1a238529f54037b9cdb2895f6e3d34fc19dffd8f1d",
+      "entry_hash": "59b4774a9ed3f40c12a6258aef1f68293251ff4f3a4c501e4022b3ea3dc316b4",
+      "timestamp": "2026-09-12T13:40:05.969099+00:00"
+    },
+    {
+      "sequence_id": 305,
+      "event_id": "aud_4364d0cd9ea2",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "creator,admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "creator",
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "b3c18f00de2f6ef9708bce90f28afcc3b7100bdaee4a070ed9d9673706d97428",
+      "previous_hash": "59b4774a9ed3f40c12a6258aef1f68293251ff4f3a4c501e4022b3ea3dc316b4",
+      "entry_hash": "f6c49756e2317f4dc99935af377b62105553d2c04dcf0fce8d77db4d58bf7746",
+      "timestamp": "2026-09-12T13:40:06.642739+00:00"
+    },
+    {
+      "sequence_id": 306,
+      "event_id": "aud_364eb6e6158e",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "viewer_sipho_01",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "creator,admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "creator",
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "b3c18f00de2f6ef9708bce90f28afcc3b7100bdaee4a070ed9d9673706d97428",
+      "previous_hash": "f6c49756e2317f4dc99935af377b62105553d2c04dcf0fce8d77db4d58bf7746",
+      "entry_hash": "2eb8a1e7c695a1303431ed9fdc9db7005439c32b9e1a7a0f647c8a7954d33cda",
+      "timestamp": "2026-09-12T13:40:07.258996+00:00"
+    },
+    {
+      "sequence_id": 307,
+      "event_id": "aud_c8ccc1ee2093",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "viewer_sipho_01",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "2eb8a1e7c695a1303431ed9fdc9db7005439c32b9e1a7a0f647c8a7954d33cda",
+      "entry_hash": "b6906008085638bd145a58bba26ac35c4b36f7930c37dce8f367f5ef9e6ee874",
+      "timestamp": "2026-09-12T13:40:07.826945+00:00"
+    },
+    {
+      "sequence_id": 308,
+      "event_id": "aud_1de28e6202b6",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "viewer_sipho_01",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "b6906008085638bd145a58bba26ac35c4b36f7930c37dce8f367f5ef9e6ee874",
+      "entry_hash": "7dced87d99ae78e1dac7bc0a3f4694c210b415320b9c6488b1a2ecbcd2a824f4",
+      "timestamp": "2026-09-12T13:40:08.442996+00:00"
+    },
+    {
+      "sequence_id": 309,
+      "event_id": "aud_9f6c74890490",
+      "domain": "CONTENT",
+      "event_type": "content.series_created",
+      "actor_id": "creator_zola",
+      "actor_role": "creator",
+      "target_type": "series",
+      "target_id": "story_7d2ed481",
+      "before_state": {},
+      "after_state": {
+        "title": "Zola's Midnight Dynasty",
+        "genre": "Revenge",
+        "creator_id": "creator_zola"
+      },
+      "metadata": {
+        "pricing": 5
+      },
+      "payload_hash": "346d086cb87b96ba16e4146bc2e25147380407634964ed64be58ef13679b978b",
+      "previous_hash": "7dced87d99ae78e1dac7bc0a3f4694c210b415320b9c6488b1a2ecbcd2a824f4",
+      "entry_hash": "2b83a6c3145969e40d281a4c9cd9410648b2ebce44e352f8adbac93a1f7939d3",
+      "timestamp": "2026-09-12T13:40:09.457972+00:00"
+    },
+    {
+      "sequence_id": 310,
+      "event_id": "aud_9148326a2d08",
+      "domain": "CONTENT",
+      "event_type": "content.episode_created",
+      "actor_id": "creator_zola",
+      "actor_role": "creator",
+      "target_type": "episode",
+      "target_id": "ep_b93710ae",
+      "before_state": {},
+      "after_state": {
+        "title": "The Oath",
+        "series_id": "story_7d2ed481",
+        "duration": 75,
+        "status": "under_review"
+      },
+      "metadata": {
+        "preflight_checks": null
+      },
+      "payload_hash": "0a228a23a22bfb6a48940591bb5f60d5f8810ebe2bc0a6cdda5ea34e4f81827c",
+      "previous_hash": "2b83a6c3145969e40d281a4c9cd9410648b2ebce44e352f8adbac93a1f7939d3",
+      "entry_hash": "0973da474e91d9d053bea6eafb3e6e3c249e6bc2b29a248c00791424f0a13b65",
+      "timestamp": "2026-09-12T13:40:10.820689+00:00"
+    },
+    {
+      "sequence_id": 311,
+      "event_id": "aud_adddbb7c2a81",
+      "domain": "CONTENT",
+      "event_type": "content.episode_submitted",
+      "actor_id": "creator_zola",
+      "actor_role": "creator",
+      "target_type": "episode_moderation_queue",
+      "target_id": "ep_b93710ae",
+      "before_state": {},
+      "after_state": {
+        "status": "under_review",
+        "series_id": "story_7d2ed481"
+      },
+      "metadata": {
+        "cliffhanger_hook": null,
+        "moderation_ticket": "MOD-3710AE"
+      },
+      "payload_hash": "dac7d0c3e3f6f7aa50989ba8de4d331a81addb46702005f0c45fc5ebc1dcf992",
+      "previous_hash": "0973da474e91d9d053bea6eafb3e6e3c249e6bc2b29a248c00791424f0a13b65",
+      "entry_hash": "f27156bbc48a73778714e55929a2c86cb843afb3f8ea51b300b060908092b578",
+      "timestamp": "2026-09-12T13:40:11.476804+00:00"
+    },
+    {
+      "sequence_id": 312,
+      "event_id": "aud_52f2f0e184b8",
+      "domain": "SECURITY",
+      "event_type": "security.ownership_violation",
+      "actor_id": "creator_amaka",
+      "actor_role": "creator",
+      "target_type": "creator_tenant_boundary",
+      "target_id": "creator_zola",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "actor_creator_id": "creator_amaka",
+        "resource_creator_id": "creator_zola",
+        "domain": "CONTENT",
+        "action": "add episode"
+      },
+      "payload_hash": "a8c15220be990d0a9893b769fd9ebdd0386cb495eb6468c50b37aea73c6cd02c",
+      "previous_hash": "f27156bbc48a73778714e55929a2c86cb843afb3f8ea51b300b060908092b578",
+      "entry_hash": "42140a79fe647c47d5a0185b4cb721209987ff22b86508f8d2bf569add382832",
+      "timestamp": "2026-09-12T13:40:12.076128+00:00"
+    },
+    {
+      "sequence_id": 313,
+      "event_id": "aud_14e7a6cdedca",
+      "domain": "CONTENT",
+      "event_type": "content.moderation_decision",
+      "actor_id": "admin_supervisor",
+      "actor_role": "admin",
+      "target_type": "episode",
+      "target_id": "ep_46189f11",
+      "before_state": {
+        "status": "under_review"
+      },
+      "after_state": {
+        "status": "published",
+        "moderation_decision": "approved",
+        "reviewer_id": "admin_supervisor"
+      },
+      "metadata": {
+        "item_id": "mod_ep_46189f11",
+        "action": "approve"
+      },
+      "payload_hash": "9ee90aa2dd2b8fa4bfbee65449dc129431ecd7a9d533292ad0c0f80c29cccac6",
+      "previous_hash": "42140a79fe647c47d5a0185b4cb721209987ff22b86508f8d2bf569add382832",
+      "entry_hash": "679c4e2150188a4adc3607dcf76e1cfa2f0cea2b1335b4dc080c1f95dc020a11",
+      "timestamp": "2026-09-12T13:40:12.881508+00:00"
+    },
+    {
+      "sequence_id": 314,
+      "event_id": "aud_a270968b64e4",
+      "domain": "CONTENT",
+      "event_type": "content.publication",
+      "actor_id": "admin_supervisor",
+      "actor_role": "admin",
+      "target_type": "episode",
+      "target_id": "ep_46189f11",
+      "before_state": {},
+      "after_state": {
+        "status": "published",
+        "is_live": true
+      },
+      "metadata": {
+        "series_id": "story_5ee92df9"
+      },
+      "payload_hash": "2af6eb08c9020f2d7d2fb24051ff6489a5924d96620128bd6624b29ccb9a8959",
+      "previous_hash": "679c4e2150188a4adc3607dcf76e1cfa2f0cea2b1335b4dc080c1f95dc020a11",
+      "entry_hash": "4c5ca12d8bad84a8c631c3f5cf4ae29e5d906092b2a559271e40dcaba60a5228",
+      "timestamp": "2026-09-12T13:40:13.475785+00:00"
+    },
+    {
+      "sequence_id": 315,
+      "event_id": "aud_84fb81c50568",
+      "domain": "EXPERIENCE",
+      "event_type": "experience.draft_published",
+      "actor_id": "admin_supervisor",
+      "actor_role": "admin",
+      "target_type": "experience_manifest",
+      "target_id": "home",
+      "before_state": {},
+      "after_state": {
+        "version": "2026.09.12.v414",
+        "status": "published",
+        "sections_count": 6
+      },
+      "metadata": {
+        "published_at": "2026-09-12T13:40:14.718311+00:00"
+      },
+      "payload_hash": "8a775f839beea828838ef25ac9a5ba07a5fa6c13316d91da6c85006c67a7716d",
+      "previous_hash": "4c5ca12d8bad84a8c631c3f5cf4ae29e5d906092b2a559271e40dcaba60a5228",
+      "entry_hash": "a838de489967b1858bf5796ac2a08e682385c73e7d43beb65fa71bf584b69210",
+      "timestamp": "2026-09-12T13:40:15.175326+00:00"
+    },
+    {
+      "sequence_id": 316,
+      "event_id": "aud_a9172a756fc0",
+      "domain": "SECURITY",
+      "event_type": "security.signature_failure",
+      "actor_id": "anonymous",
+      "actor_role": "unauthenticated",
+      "target_type": "auth_token",
+      "target_id": "tampered_signature",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "reason": "Cryptographic signature mismatch"
+      },
+      "payload_hash": "27721153ff5dcada67aba8957b78ba5935a1b633b7b0954f80931d3247ef3938",
+      "previous_hash": "a838de489967b1858bf5796ac2a08e682385c73e7d43beb65fa71bf584b69210",
+      "entry_hash": "b464dad926b841ba8fdf98b691453dc6c1deecb1b15e6db12ed19b5d18b73a28",
+      "timestamp": "2026-09-12T13:40:16.092357+00:00"
+    },
+    {
+      "sequence_id": 317,
+      "event_id": "aud_54f1ecd0f118",
+      "domain": "SECURITY",
+      "event_type": "security.signature_failure",
+      "actor_id": "creator_zola",
+      "actor_role": "creator",
+      "target_type": "auth_token",
+      "target_id": "expired_jwt",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "exp": 1789220406,
+        "now": 1789220416
+      },
+      "payload_hash": "d3b26b8e48acc134212891cac3a019c1704ee7d278eef566e8e567fbc274bf61",
+      "previous_hash": "b464dad926b841ba8fdf98b691453dc6c1deecb1b15e6db12ed19b5d18b73a28",
+      "entry_hash": "20df9464d332bcd5b2e2914bba347c4caedd7524a94589478463602df2589d0b",
+      "timestamp": "2026-09-12T13:40:16.713612+00:00"
+    },
+    {
+      "sequence_id": 318,
+      "event_id": "aud_fffcfc7a967d",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "20df9464d332bcd5b2e2914bba347c4caedd7524a94589478463602df2589d0b",
+      "entry_hash": "29a9fcd0d851c955eb16406c2b99d5ff1fec168809dc722f0b22f4119b22b027",
+      "timestamp": "2026-09-12T13:40:17.608320+00:00"
+    },
+    {
+      "sequence_id": 319,
+      "event_id": "aud_10df30a38afe",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "29a9fcd0d851c955eb16406c2b99d5ff1fec168809dc722f0b22f4119b22b027",
+      "entry_hash": "e1608fe00fa9c26d8946bd207fd7b11bbf5836c61a7794890a5b748c6c1557f3",
+      "timestamp": "2026-09-12T13:40:18.224321+00:00"
+    },
+    {
+      "sequence_id": 320,
+      "event_id": "aud_88f4725488db",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "creator,admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "creator",
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "b3c18f00de2f6ef9708bce90f28afcc3b7100bdaee4a070ed9d9673706d97428",
+      "previous_hash": "e1608fe00fa9c26d8946bd207fd7b11bbf5836c61a7794890a5b748c6c1557f3",
+      "entry_hash": "ab4d3188c61ee59b5080c397a496fe4087db744a7a4132780ac11c9d136e6e6d",
+      "timestamp": "2026-09-12T13:40:18.850933+00:00"
+    },
+    {
+      "sequence_id": 321,
+      "event_id": "aud_ca91f35a836b",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "creator,admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "creator",
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "b3c18f00de2f6ef9708bce90f28afcc3b7100bdaee4a070ed9d9673706d97428",
+      "previous_hash": "ab4d3188c61ee59b5080c397a496fe4087db744a7a4132780ac11c9d136e6e6d",
+      "entry_hash": "b9c14aedd0ac3d30ce6cf46afada0c920758e63bc799b67ad7afca37679e3f21",
+      "timestamp": "2026-09-12T13:40:19.474196+00:00"
+    },
+    {
+      "sequence_id": 322,
+      "event_id": "aud_55ead192ab79",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "viewer_mobile_user",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "creator,admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "creator",
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "b3c18f00de2f6ef9708bce90f28afcc3b7100bdaee4a070ed9d9673706d97428",
+      "previous_hash": "b9c14aedd0ac3d30ce6cf46afada0c920758e63bc799b67ad7afca37679e3f21",
+      "entry_hash": "dedf132c0788eb0dc91c3cabeabb3640c42fa3cbde001e0721f915d3c272bab3",
+      "timestamp": "2026-09-12T13:40:20.125911+00:00"
+    },
+    {
+      "sequence_id": 323,
+      "event_id": "aud_6608a54575bb",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "viewer_mobile_user",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "creator,admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "creator",
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "b3c18f00de2f6ef9708bce90f28afcc3b7100bdaee4a070ed9d9673706d97428",
+      "previous_hash": "dedf132c0788eb0dc91c3cabeabb3640c42fa3cbde001e0721f915d3c272bab3",
+      "entry_hash": "480fa7a64202e793966e43b64981857609ae8f6f6b531b1f9101cae65e3de392",
+      "timestamp": "2026-09-12T13:40:20.785141+00:00"
+    },
+    {
+      "sequence_id": 324,
+      "event_id": "aud_8504292aa4ad",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "viewer_mobile_user",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "480fa7a64202e793966e43b64981857609ae8f6f6b531b1f9101cae65e3de392",
+      "entry_hash": "ac6f7d1b6eec951edf0752db4d52f6b6df954c2b5d5c54c340629fa0a765a7eb",
+      "timestamp": "2026-09-12T13:40:21.410671+00:00"
+    },
+    {
+      "sequence_id": 325,
+      "event_id": "aud_c87abfcf4805",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "viewer_mobile_user",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "ac6f7d1b6eec951edf0752db4d52f6b6df954c2b5d5c54c340629fa0a765a7eb",
+      "entry_hash": "a570de2b41f615d156f89d988d1b36a09c999aa6459b75ca994b4aeb4f297859",
+      "timestamp": "2026-09-12T13:40:22.059833+00:00"
+    },
+    {
+      "sequence_id": 326,
+      "event_id": "aud_2b1ac3866dd8",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "viewer_mobile_user",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "a570de2b41f615d156f89d988d1b36a09c999aa6459b75ca994b4aeb4f297859",
+      "entry_hash": "4a93691d5a66c2db1c7129bc6d8d3d8f330320f3b51552339843d3555180d566",
+      "timestamp": "2026-09-12T13:40:22.703870+00:00"
+    },
+    {
+      "sequence_id": 327,
+      "event_id": "aud_8fdf6d3de2df",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "creator_zola",
+      "actor_role": "creator",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "creator"
+      },
+      "payload_hash": "da072db12319b802f3cc23481d95e3fb34dbc6aaa197d76be455e7f5a3e75f30",
+      "previous_hash": "4a93691d5a66c2db1c7129bc6d8d3d8f330320f3b51552339843d3555180d566",
+      "entry_hash": "acc3f612a6db6b238cfcfe39578d83be0f3b066fb460898c1eb0daca918638be",
+      "timestamp": "2026-09-12T13:40:23.344614+00:00"
+    },
+    {
+      "sequence_id": 328,
+      "event_id": "aud_cb1e1e6431e4",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "creator_zola",
+      "actor_role": "creator",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "creator"
+      },
+      "payload_hash": "da072db12319b802f3cc23481d95e3fb34dbc6aaa197d76be455e7f5a3e75f30",
+      "previous_hash": "acc3f612a6db6b238cfcfe39578d83be0f3b066fb460898c1eb0daca918638be",
+      "entry_hash": "fbea4b62cd646c94a336ff43953bb0495f1d4fd25eeee1d8d71510441289e10b",
+      "timestamp": "2026-09-12T13:40:23.897063+00:00"
+    },
+    {
+      "sequence_id": 329,
+      "event_id": "aud_d2457a43ef63",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "creator_zola",
+      "actor_role": "creator",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "creator"
+      },
+      "payload_hash": "da072db12319b802f3cc23481d95e3fb34dbc6aaa197d76be455e7f5a3e75f30",
+      "previous_hash": "fbea4b62cd646c94a336ff43953bb0495f1d4fd25eeee1d8d71510441289e10b",
+      "entry_hash": "3d6c8aa6b01e1582d73981ac5e5bee21260945592d4776f8efac07bfe2154296",
+      "timestamp": "2026-09-12T13:40:24.555812+00:00"
     }
   ]
 }

@@ -316,6 +316,7 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
         coin_price: isFree ? 0 : Number(coinPrice),
         cliffhanger_time: Number(cliffhangerTime),
         cliffhanger_hook: cliffhangerHook,
+        story_package_id: canonicalPackageId || undefined,
         status,
         scheduled_at: releaseSchedule === 'scheduled' ? scheduledDateTime : undefined,
         preflight_health: preflightHealth,

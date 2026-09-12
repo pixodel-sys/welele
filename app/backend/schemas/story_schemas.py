@@ -28,6 +28,7 @@ class EpisodeSchema(BaseModel):
     cliffhanger_hook: Optional[str] = None
     status: str = "published"
     scheduled_at: Optional[str] = None
+    story_package_id: Optional[str] = None
     preflight_health: Optional[PreflightHealthSchema] = None
     moderation_feedback: Optional[str] = None
     likes_count: int = 0
@@ -83,6 +84,7 @@ class CreateEpisodeRequest(BaseModel):
     video_url: str = "/videos/welele_placeholder.mp4"
     storage_key: Optional[str] = None
     media_asset_id: Optional[str] = None
+    story_package_id: Optional[str] = None
     thumbnail_url: Optional[str] = None
     duration_seconds: int = 60
     is_free: bool = True

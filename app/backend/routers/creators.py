@@ -238,7 +238,7 @@ def add_episode(req: CreateEpisodeRequest, auth_user: dict = Depends(get_current
     # 1. Create Episode via Repository
     created_ep = series_repository.create_episode_draft(
         series_id=req.series_id,
-        story_package_id=None,
+        story_package_id=req.story_package_id,
         payload=ep_payload
     )
 
