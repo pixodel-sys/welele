@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { creatorApi } from '../../services/api';
 import { PlusCircle, ArrowLeft, Video, Check } from 'lucide-react';
+import { ReadinessBadge } from '../common/patterns/ReadinessBadge';
 
 interface SeriesManagerProps {
   onBack: () => void;
@@ -24,6 +25,22 @@ export const SeriesManager: React.FC<SeriesManagerProps> = ({ onBack, onNavigate
   const [language, setLanguage] = useState<string>('English / Yoruba');
   const [coinPrice, setCoinPrice] = useState<number>(5);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+
+  const getShowReadiness = (story: any): 'READY' | 'READY_WITH_WARNINGS' | 'NEEDS_INPUT' | 'BLOCKED' => {
+    const epCount = story.episodes?.length || story.total_episodes || 0;
+    if (epCount === 0) return 'NEEDS_INPUT';
+    if (!story.vertical_poster || !story.synopsis) return 'NEEDS_INPUT';
+    if (story.under_review_episodes_count > 0) return 'READY_WITH_WARNINGS';
+    return 'READY';
+  };
+
+  const getAudienceState = (story: any): string => {
+    const views = story.total_views || story.views || 0;
+    if (views === 0) return 'NO AUDIENCE DATA YET';
+    if (views < 1000) return 'COLLECTING EVIDENCE';
+    if (views < 10000) return 'EARLY SIGNAL';
+    return 'MEASURED';
+  };
 
   const handleCreateSeries = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -163,32 +180,46 @@ export const SeriesManager: React.FC<SeriesManagerProps> = ({ onBack, onNavigate
         </form>
       ) : (
         <div className="space-y-3">
-          {stories.map((story) => (
-            <div
-              key={story.id}
-              className="p-4 rounded-[7px] bg-welele-surface-2 border border-white/5 flex items-center justify-between"
-            >
-              <div className="flex items-center gap-3">
-                <img
-                  src={story.vertical_poster}
-                  alt={story.title}
-                  className="w-12 h-16 rounded-[7px] object-cover"
-                />
-                <div>
-                  <h4 className="text-sm font-bold text-white">{story.title}</h4>
-                  <p className="text-xs text-welele-muted">{story.genre} • {story.total_episodes} Episodes</p>
-                  <span className="text-[10px] text-welele-gold font-bold">🪙 {story.coin_price_per_episode || 5} coins per locked episode</span>
-                </div>
-              </div>
+          {stories.map((story) => {
+            const readiness = getShowReadiness(story);
+            const franchiseCode = story.franchise_code || `IP-WEL-${story.id.replace(/[^a-zA-Z0-9]/g, '').slice(-4).toUpperCase()}`;
+            const audienceState = getAudienceState(story);
 
-              <button
-                onClick={onNavigateToUpload}
-                className="px-3 py-1.5 rounded-[7px] bg-welele-orange text-black font-bold text-xs"
+            return (
+              <div
+                key={story.id}
+                className="p-4 rounded-[7px] bg-welele-surface-2 border border-white/5 flex items-center justify-between gap-4"
               >
-                + Add Episode
-              </button>
-            </div>
-          ))}
+                <div className="flex items-center gap-3">
+                  <img
+                    src={story.vertical_poster}
+                    alt={story.title}
+                    className="w-12 h-16 rounded-[7px] object-cover shrink-0"
+                  />
+                  <div>
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="font-mono text-[9px] px-1.5 py-0.2 rounded bg-black/60 border border-white/10 text-welele-gold font-bold">
+                        {franchiseCode}
+                      </span>
+                      <ReadinessBadge level={readiness} size="sm" />
+                    </div>
+                    <h4 className="text-sm font-bold text-white">{story.title}</h4>
+                    <p className="text-xs text-welele-muted">
+                      {story.genre} • {story.total_episodes || story.episodes?.length || 0} Episodes • <span className="text-emerald-400 font-mono text-[10px]">{audienceState}</span>
+                    </p>
+                    <span className="text-[10px] text-welele-gold font-bold">🪙 {story.coin_price_per_episode || 5} coins per locked episode</span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={onNavigateToUpload}
+                  className="px-3 py-1.5 rounded-[7px] bg-welele-orange text-black font-bold text-xs shrink-0 cursor-pointer"
+                >
+                  + Add Episode
+                </button>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

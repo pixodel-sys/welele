@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { storyForgeApi, aiApi } from '../../services/api';
 import { StoryBeat, DialogueLine, CharacterBibleItem, StoryForgeScript, AIStatus } from '../../types';
+import { ProvenanceBadge } from '../common/patterns/ProvenanceBadge';
 import {
   Sparkles,
   BookOpen,
@@ -400,10 +401,11 @@ export const StoryForgeDoorway: React.FC<StoryForgeDoorwayProps> = ({ onSendToPr
                   <span className="text-[10px] text-welele-muted font-mono">
                     ({storyPackage.genre})
                   </span>
+                  <ProvenanceBadge tier="AI_ASSIST" size="sm" />
                 </div>
                 <button
                   onClick={() => copyToClipboard(storyPackage.logline, 'Logline')}
-                  className="p-1 rounded-[7px] hover:bg-white/10 text-welele-muted hover:text-white"
+                  className="p-1 rounded-[7px] hover:bg-white/10 text-welele-muted hover:text-white cursor-pointer"
                 >
                   <Copy className="w-3.5 h-3.5" />
                 </button>
@@ -435,6 +437,7 @@ export const StoryForgeDoorway: React.FC<StoryForgeDoorwayProps> = ({ onSendToPr
                         T+{beat.timestamp_seconds}s
                       </span>
                       <span className="text-xs font-bold text-white">{beat.label}</span>
+                      <ProvenanceBadge tier="AI_ASSIST" size="sm" />
                     </div>
 
                     <div className="flex items-center gap-1.5 text-[11px] text-welele-muted">
@@ -577,13 +580,16 @@ export const StoryForgeDoorway: React.FC<StoryForgeDoorwayProps> = ({ onSendToPr
 
           <div className="md:col-span-6 p-5 rounded-[7px] bg-[#14151B] border border-white/5 space-y-4">
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                <Volume2 className="w-4 h-4 text-emerald-400" />
-                Actor Performance Cue & Phonetics
-              </h3>
+              <div className="flex items-center gap-2">
+                <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                  <Volume2 className="w-4 h-4 text-emerald-400" />
+                  Actor Performance Cue & Phonetics
+                </h3>
+                <ProvenanceBadge tier="AI_ASSIST" size="sm" />
+              </div>
               <button
                 onClick={() => copyToClipboard(translationResult.translated_text, 'Translated Line')}
-                className="text-[11px] text-welele-gold hover:underline flex items-center gap-1"
+                className="text-[11px] text-welele-gold hover:underline flex items-center gap-1 cursor-pointer"
               >
                 <Copy className="w-3.5 h-3.5" />
                 <span>Copy</span>

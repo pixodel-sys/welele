@@ -2,6 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { creatorApi, aiApi, storageApi } from '../../services/api';
 import { mediaStore } from '../../services/mediaStore';
+import { EntityHierarchyCrumb } from '../common/patterns/EntityHierarchyCrumb';
+import { ProvenanceBadge } from '../common/patterns/ProvenanceBadge';
+import { ReadinessBadge } from '../common/patterns/ReadinessBadge';
+import { StatusBadge } from '../common/patterns/StatusBadge';
 
 import { Story, PreflightHealth } from '../../types';
 import {
@@ -18,6 +22,8 @@ import {
   Image as ImageIcon,
   Clock,
   ShieldCheck,
+  Globe,
+  Coins
 } from 'lucide-react';
 import { CreateShowModal } from './CreateShowModal';
 
@@ -398,23 +404,36 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
           {/* STEP 1: EPISODE DETAILS */}
           {step === 1 && (
             <div className="space-y-4 animate-fade-in">
+              {/* Franchise Hierarchy Crumb */}
+              <div className="p-2.5 rounded-[7px] bg-[#14151B] border border-white/5">
+                <EntityHierarchyCrumb
+                  franchiseCode={selectedStory?.franchise_code || `IP-WEL-${selectedStory?.id?.slice(-4).toUpperCase() || 'SHOW'}`}
+                  seriesTitle={selectedStory?.title || 'Selected Show'}
+                  episodeNumber={episodeNumber}
+                  episodeTitle={title}
+                />
+              </div>
+
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-sm font-bold text-white uppercase tracking-wider">
-                    1. What are you making?
+                  <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                    1. Episode Metadata & Franchise Context
                   </h3>
                   <p className="text-xs text-welele-muted">
-                    Choose the show and describe this episode's storyline.
+                    Set the canonical episode title, logline and series parentage.
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setIsCreateShowOpen(true)}
-                  className="px-3 py-1.5 rounded-[7px] bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-pink-400 hover:text-pink-300 flex items-center gap-1.5 transition-colors"
-                >
-                  <PlusCircle className="w-3.5 h-3.5" />
-                  <span>+ Create New Show</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  <ProvenanceBadge tier="CREATOR_DECLARED" size="sm" />
+                  <button
+                    type="button"
+                    onClick={() => setIsCreateShowOpen(true)}
+                    className="px-3 py-1.5 rounded-[7px] bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-pink-400 hover:text-pink-300 flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <PlusCircle className="w-3.5 h-3.5" />
+                    <span>+ New Show</span>
+                  </button>
+                </div>
               </div>
 
               {/* Show Selector */}
@@ -484,13 +503,16 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
           {/* STEP 2: VIDEO & ARTWORK DRAG & DROP */}
           {step === 2 && (
             <div className="space-y-5 animate-fade-in">
-              <div>
-                <h3 className="text-sm font-bold text-white uppercase tracking-wider">
-                  2. Drop Your Video & Artwork
-                </h3>
-                <p className="text-xs text-welele-muted">
-                  Drag and drop your 9:16 episode video. We'll automatically calculate duration and extract thumbnail artwork.
-                </p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+                    2. Drop Your Video & Artwork
+                  </h3>
+                  <p className="text-xs text-welele-muted">
+                    Drag and drop your 9:16 episode video. Duration and dimensions are measured directly from the file.
+                  </p>
+                </div>
+                <ProvenanceBadge tier="MEDIA_OBSERVED" size="sm" />
               </div>
 
               {/* Video Dropzone */}
@@ -549,7 +571,10 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
                       <CheckCircle2 className="w-4 h-4" />
                     </div>
                     <div>
-                      <h4 className="text-xs font-bold text-white">Video Ready</h4>
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-xs font-bold text-white">Video Ready & Measured</h4>
+                        <ProvenanceBadge tier="MEDIA_OBSERVED" size="sm" />
+                      </div>
                       <p className="text-[11px] text-emerald-300 font-mono">
                         {durationSeconds}s • {aspectRatioLabel}
                       </p>
@@ -559,7 +584,7 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setIsPreviewPlaying(!isPreviewPlaying)}
-                    className="px-3 py-1.5 rounded-[7px] bg-white/10 hover:bg-white/20 text-white text-xs font-bold flex items-center gap-1.5 transition-colors"
+                    className="px-3 py-1.5 rounded-[7px] bg-white/10 hover:bg-white/20 text-white text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
                   >
                     <Play className="w-3.5 h-3.5 text-welele-gold" />
                     <span>{isPreviewPlaying ? 'Hide Preview' : '▶ Preview'}</span>
@@ -598,7 +623,7 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
                   <button
                     type="button"
                     onClick={() => thumbInputRef.current?.click()}
-                    className="px-3 py-1 rounded-[7px] bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-white transition-colors"
+                    className="px-3 py-1 rounded-[7px] bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-white transition-colors cursor-pointer"
                   >
                     Upload Custom Art
                   </button>
@@ -637,13 +662,16 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
           {/* STEP 3: STORY & CLIFFHANGER */}
           {step === 3 && (
             <div className="space-y-5 animate-fade-in">
-              <div>
-                <h3 className="text-sm font-bold text-white uppercase tracking-wider">
-                  3. Story & Cliffhanger
-                </h3>
-                <p className="text-xs text-welele-muted">
-                  Set the dramatic peak that leaves viewers wanting the next episode.
-                </p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+                    3. Story & Cliffhanger Point
+                  </h3>
+                  <p className="text-xs text-welele-muted">
+                    Set the dramatic peak that leaves viewers wanting the next episode.
+                  </p>
+                </div>
+                <ProvenanceBadge tier="CREATOR_DECLARED" size="sm" />
               </div>
 
               {/* Cliffhanger Hook */}
@@ -681,15 +709,18 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
               {/* Optional Story Forge Assistant Helper Card */}
               <div className="p-4 rounded-[7px] bg-gradient-to-r from-pink-950/20 via-purple-950/20 to-black border border-pink-500/20 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-pink-300 flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-welele-gold" />
-                    Need help with the story?
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-pink-300 flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-welele-gold" />
+                      Need help with the story?
+                    </span>
+                    <ProvenanceBadge tier="AI_ASSIST" size="sm" />
+                  </div>
                   <button
                     type="button"
                     onClick={handleAskStoryForge}
                     disabled={isStoryForgeLoading}
-                    className="px-3 py-1 rounded-[7px] bg-pink-500/20 hover:bg-pink-500/30 text-pink-200 border border-pink-500/30 text-[11px] font-bold transition-colors flex items-center gap-1"
+                    className="px-3 py-1 rounded-[7px] bg-pink-500/20 hover:bg-pink-500/30 text-pink-200 border border-pink-500/30 text-[11px] font-bold transition-colors flex items-center gap-1 cursor-pointer"
                   >
                     {isStoryForgeLoading ? (
                       <span>Analyzing Pacing...</span>
@@ -711,13 +742,16 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
           {/* STEP 4: RELEASE & PRICING */}
           {step === 4 && (
             <div className="space-y-5 animate-fade-in">
-              <div>
-                <h3 className="text-sm font-bold text-white uppercase tracking-wider">
-                  4. Release & Access
-                </h3>
-                <p className="text-xs text-welele-muted">
-                  Choose whether this episode is free to watch or unlocked with coins.
-                </p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+                    4. Release & Commercial Policy
+                  </h3>
+                  <p className="text-xs text-welele-muted">
+                    Choose whether this episode is free to watch or unlocked with coins.
+                  </p>
+                </div>
+                <ProvenanceBadge tier="CREATOR_DECLARED" size="sm" />
               </div>
 
               {/* Pricing Tier Options */}
@@ -916,13 +950,16 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
               ) : (
                 /* Quality Check Pre-Publish Screen */
                 <div className="space-y-4">
-                  <div>
-                    <h3 className="text-sm font-bold text-white uppercase tracking-wider">
-                      5. Almost Ready
-                    </h3>
-                    <p className="text-xs text-welele-muted">
-                      Welele is checking your episode details before submitting.
-                    </p>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+                        5. Episode Preflight & Readiness
+                      </h3>
+                      <p className="text-xs text-welele-muted">
+                        Welele is verifying mechanical and compliance checks before submitting.
+                      </p>
+                    </div>
+                    <ReadinessBadge level="READY" size="sm" />
                   </div>
 
                   <div className="p-4 rounded-[7px] bg-[#14151B] border border-white/10 space-y-2.5 text-xs">

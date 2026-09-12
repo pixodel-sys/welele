@@ -78,6 +78,9 @@ export interface Story {
   is_trending: boolean;
   status: string;
   ip_id?: string;
+  franchise_code?: string;
+  characters?: any[];
+  under_review_episodes_count?: number;
   episodes: Episode[];
 }
 
