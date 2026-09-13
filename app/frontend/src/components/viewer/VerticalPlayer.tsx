@@ -1162,11 +1162,8 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
               className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-welele-orange object-cover shrink-0"
             />
             <div className="min-w-0">
-              <h4 className="text-xs font-bold text-white leading-tight flex items-center gap-1.5 truncate">
-                <span className="truncate">{currentStory.title}</span>
-                <span className="text-[9px] px-1.5 py-0.2 rounded bg-welele-orange/20 text-welele-orange border border-welele-orange/30 shrink-0">
-                  EP {currentEpisode.episode_number}/{currentStory.episodes?.length || currentStory.total_episodes || 1}
-                </span>
+              <h4 className="text-xs font-bold text-white leading-tight truncate">
+                {currentStory.title}
               </h4>
               <p className="text-[10px] text-welele-muted truncate max-w-[130px] sm:max-w-[150px]">
                 by {currentStory.creator_name}
@@ -1279,10 +1276,16 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
         </div>
       )}
 
-      {/* Subtitles Overlay (Cinematic Bottom-Center with Comfortable Padding above Progress Bar) */}
+      {/* Subtitles Overlay (Cinematic Bottom-Center, shown during clean immersive viewing) */}
       {!isIdentPlaying && isUnlocked && activeSubtitleText && (
-        <div className="absolute bottom-5 left-4 right-4 z-20 pointer-events-none flex justify-center text-center">
-          <span className="inline-block max-w-[92%] px-3.5 py-1.5 rounded-[7px] bg-black/85 backdrop-blur-md text-white text-xs font-medium leading-relaxed border border-white/10 shadow-2xl drop-shadow-md">
+        <div
+          className={`absolute bottom-5 left-4 right-4 z-20 pointer-events-none flex justify-center text-center transition-all duration-500 ease-in-out ${
+            !showControls
+              ? 'opacity-100 translate-y-0'
+              : 'opacity-0 translate-y-2 pointer-events-none'
+          }`}
+        >
+          <span className="inline-block max-w-[92%] px-3.5 py-1.5 rounded-[7px] bg-black/90 backdrop-blur-md text-white text-xs font-medium leading-relaxed border border-white/10 shadow-2xl drop-shadow-md">
             {activeSubtitleText}
           </span>
         </div>
@@ -1391,11 +1394,11 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
         </div>
       )}
 
-      {/* Up/Down Episode Switchers (Immersive 5s Auto-Fade) */}
+      {/* Up/Down Episode Switchers (Shown during clean immersive viewing when other controls auto-fade) */}
       {!isIdentPlaying && (
         <div
           className={`absolute right-3 top-18 z-20 flex flex-col gap-2 pointer-events-auto transition-all duration-500 ease-in-out ${
-            showControls
+            !showControls
               ? 'opacity-100 pointer-events-auto translate-x-0'
               : 'opacity-0 pointer-events-none translate-x-3'
           }`}

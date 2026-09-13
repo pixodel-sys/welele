@@ -1,7 +1,6 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
 import { Story, Episode } from '../../types';
-import { ProvenanceBadge } from '../common/patterns/ProvenanceBadge';
 import { X, Lock, Play, Sparkles, Film, CheckCircle2 } from 'lucide-react';
 
 interface EpisodeDrawerProps {
@@ -37,7 +36,6 @@ export const EpisodeDrawer: React.FC<EpisodeDrawerProps> = ({
               <span className="text-xs text-welele-muted">
                 ({story.episodes.length} episodes)
               </span>
-              <ProvenanceBadge tier="MEDIA_OBSERVED" size="sm" label="9:16 VERTICAL" />
             </div>
             <p className="text-xs text-welele-orange truncate max-w-[280px] font-semibold mt-0.5">
               {story.title}

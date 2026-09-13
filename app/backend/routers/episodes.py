@@ -1,6 +1,6 @@
 """
 Welele Media™ — Episode Stream & Playback Service Router (Section 5.1)
-Handles strict 9:16 vertical stream resolution, adaptive HLS manifest ladder,
+Handles strict vertical stream resolution, adaptive HLS manifest ladder,
 cliffhanger detection, and subtitles.
 """
 

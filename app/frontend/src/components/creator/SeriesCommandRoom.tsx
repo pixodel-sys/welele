@@ -531,7 +531,7 @@ export const SeriesCommandRoom: React.FC<SeriesCommandRoomProps> = ({
               {/* Vertical Poster Box */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-white">9:16 Vertical Poster</span>
+                  <span className="text-xs font-bold text-white">Poster (Cover)</span>
                   <button
                     type="button"
                     onClick={() => posterInputRef.current?.click()}

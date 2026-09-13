@@ -127,7 +127,7 @@ export const AdminDashboard: React.FC = () => {
               <div className="text-2xl font-black text-white font-cinematic">
                 {metrics?.metrics?.total_views?.toLocaleString() || '4.2M'}
               </div>
-              <span className="text-[10px] text-welele-gold">9:16 Canonical Vertical</span>
+              <span className="text-[10px] text-welele-gold">Canonical Vertical</span>
             </div>
 
             <div className="p-4 rounded-[7px] bg-welele-surface-2 border border-white/5 space-y-1">

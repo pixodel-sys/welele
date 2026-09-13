@@ -167,7 +167,7 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
       const h = tempVideo.videoHeight || 1920;
       const is916 = h >= w;
       setIsAspectRatioOk(is916);
-      setAspectRatioLabel(`${w} × ${h} (${is916 ? '9:16 Vertical' : 'Landscape'})`);
+      setAspectRatioLabel(`${w} × ${h} (${is916 ? 'Vertical' : 'Landscape'})`);
 
       // Attempt canvas thumbnail grab at 1s
       tempVideo.currentTime = Math.min(1.0, dur / 2);
@@ -554,7 +554,7 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
                     2. Drop Your Video & Artwork
                   </h3>
                   <p className="text-xs text-welele-muted">
-                    Drag and drop your 9:16 episode video. Duration and dimensions are measured directly from the file.
+                    Drag and drop your episode video. Duration and dimensions are measured directly from the file.
                   </p>
                 </div>
                 <ProvenanceBadge tier="MEDIA_OBSERVED" size="sm" />

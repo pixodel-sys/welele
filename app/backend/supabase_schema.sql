@@ -72,7 +72,7 @@ CREATE INDEX IF NOT EXISTS idx_stories_genre ON public.stories(genre);
 CREATE INDEX IF NOT EXISTS idx_stories_trending ON public.stories(is_trending);
 
 -- ----------------------------------------------------------------------------
--- 4. EPISODES (Strict 9:16 Vertical Video Pointers)
+-- 4. EPISODES (Strict Vertical Video Pointers)
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.episodes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

@@ -64,8 +64,8 @@ Welele is an institutional-grade Digital IP & Commerce Engine underneath, but pr
 +-------------------------------------------------------------------------------+
 ```
 
-### Pillar 1: 9:16 Canonical Format
-- Strict **9:16 vertical aspect ratio** throughout all player viewports.
+### Pillar 1: Canonical Vertical Format
+- Strict **vertical aspect ratio** throughout all player viewports.
 - Zero accommodations for legacy letterboxing or horizontal layouts.
 - Full-bleed, edge-to-edge cinematic frame optimized for one-thumb vertical swipe navigation.
 
