@@ -1,4 +1,4 @@
-export type AppMode = 'viewer' | 'creator' | 'admin';
+export type AppMode = 'viewer' | 'creator' | 'production' | 'admin';
 
 export type MarketRegion = 'ZA' | 'NG' | 'KE' | 'GHS' | 'GLOBAL';
 

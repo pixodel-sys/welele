@@ -819,6 +819,7 @@ class SeriesRepository(BaseRepository):
             "is_free": payload.get("is_free", False),
             "coin_price": payload.get("coin_price", 5) if not payload.get("is_free") else 0,
             "cliffhanger_time_seconds": payload.get("cliffhanger_time", payload.get("cliffhanger_time_seconds", 65)),
+            "cliffhanger_time": payload.get("cliffhanger_time", payload.get("cliffhanger_time_seconds", 65)),
             "cliffhanger_hook": payload.get("cliffhanger_hook", "What happens next?"),
             "status": payload.get("status", "draft"),
             "preflight_health": payload.get("preflight_health"),

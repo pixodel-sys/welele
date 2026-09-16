@@ -1,0 +1,14 @@
+test_id: blind_001
+story_id: blind-001
+premise: >
+  A young woman returns to her rural hometown after her father's unexplained death.
+  She discovers his locked study contains documents proving that their family's wealth
+  originated from an ancestral debt owed to a rival clan.
+creative_objective: >
+  Develop this premise into a supernatural family thriller for a vertical micro-drama series.
+production_objective: >
+  Rural KwaZulu-Natal & Johannesburg locations, episodic suspense hooks.
+creator_mode: scripted
+adapter: MockReasoningAdapter
+scripted_responses:
+  - "She believes her father's success was legitimate, although she never understood how he achieved it so rapidly."

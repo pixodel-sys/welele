@@ -14,6 +14,7 @@ import { VerticalPlayer } from './components/viewer/VerticalPlayer';
 import { ProfileScreen } from './components/viewer/ProfileScreen';
 import { CreatorStudioShell } from './components/creator/CreatorStudioShell';
 import { CreatorStudioGate } from './components/creator/CreatorStudioGate';
+import { ProductionRoom } from './components/production/ProductionRoom';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { AdminGate } from './components/admin/AdminGate';
 import { Story, Episode } from './types';
@@ -40,7 +41,9 @@ export const App: React.FC = () => {
       const path = window.location.pathname.toLowerCase();
       const params = new URLSearchParams(window.location.search);
       const portal = params.get('portal');
-      if (path === '/creator' || path.startsWith('/creator/') || portal === 'creator') {
+      if (path === '/production' || path.startsWith('/production/') || portal === 'production') {
+        setMode('production');
+      } else if (path === '/creator' || path.startsWith('/creator/') || portal === 'creator') {
         setMode('creator');
       } else if (path === '/admin' || path.startsWith('/admin/') || portal === 'admin') {
         setMode('admin');
@@ -183,6 +186,11 @@ export const App: React.FC = () => {
           ) : (
             <CreatorStudioGate />
           )
+        )}
+
+        {/* MODE: PRODUCTION ROOM (Story Forge & Narrative Packaging: /production) */}
+        {mode === 'production' && (
+          <ProductionRoom />
         )}
 
         {/* MODE: ADMIN CONSOLE (Enterprise Control Plane: /admin) */}

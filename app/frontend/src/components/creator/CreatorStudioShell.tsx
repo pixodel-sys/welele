@@ -5,6 +5,8 @@ import { AIStatus } from '../../types';
 import { SeriesCommandRoom } from './SeriesCommandRoom';
 import { EpisodePipelineModal } from './EpisodePipelineModal';
 import { CreateShowModal } from './CreateShowModal';
+import { StoryReviewWorkbench } from './review/StoryReviewWorkbench';
+import { StoryForgeCockpit } from './forge/StoryForgeCockpit';
 import { StoryForgeDoorway } from './StoryForgeDoorway';
 import { CreatorEarnings } from './CreatorEarnings';
 import { CreatorDashboard } from './CreatorDashboard';
@@ -28,7 +30,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 
-export type SimpleCreatorTab = 'shows' | 'story_forge' | 'insights' | 'earnings';
+export type SimpleCreatorTab = 'shows' | 'story_review' | 'story_forge' | 'insights' | 'earnings';
 
 export const CreatorStudioShell: React.FC = () => {
   const { stories, user, refreshStories, market, attemptModeChange } = useApp();
@@ -184,15 +186,24 @@ export const CreatorStudioShell: React.FC = () => {
         {/* Creator Command Actions */}
         <div className="flex items-center gap-2 flex-wrap shrink-0">
           <button
-            onClick={() => setActiveNavTab('story_forge')}
+            onClick={() => setActiveNavTab('story_review')}
             className={`px-3.5 py-2 rounded-[7px] font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm cursor-pointer ${
-              activeNavTab === 'story_forge'
-                ? 'bg-welele-gold text-black shadow-md shadow-amber-500/20'
-                : 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 hover:to-orange-500/30 border border-amber-500/40 text-amber-300'
+              activeNavTab === 'story_review'
+                ? 'bg-welele-orange text-black shadow-md shadow-orange-500/20'
+                : 'bg-gradient-to-r from-orange-500/20 to-amber-500/20 hover:from-orange-500/30 hover:to-amber-500/30 border border-orange-500/40 text-amber-300'
             }`}
           >
-            <Sparkles className="w-3.5 h-3.5 text-welele-gold" />
-            <span>✨ Story Forge™</span>
+            <Sparkles className="w-3.5 h-3.5 text-welele-orange" />
+            <span>✨ Story Review™</span>
+          </button>
+
+          <button
+            onClick={() => attemptModeChange('production')}
+            className="px-3.5 py-2 rounded-[7px] bg-gradient-to-r from-[#FF6500]/20 to-[#FFA000]/20 hover:from-[#FF6500]/30 hover:to-[#FFA000]/30 border border-[#FF6500]/40 text-[#FFA000] font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+            title="Enter deep Production Floor & Story Forge Cockpit"
+          >
+            <Flame className="w-3.5 h-3.5 text-[#FF6500]" />
+            <span>Production Room →</span>
           </button>
 
           <button
@@ -226,20 +237,17 @@ export const CreatorStudioShell: React.FC = () => {
       {/* LAYER 2 & 3: WHAT AM I WORKING ON? & WHAT CAN I DO WITH IT? */}
       {/* ========================================================================= */}
 
-      {/* VIEW: STORY FORGE™ WORKSPACE */}
+      {/* VIEW: STORY REVIEW™ WORKSPACE (CREATOR ASSISTANT & IP PIPELINE) */}
+      {activeNavTab === 'story_review' && (
+        <div className="space-y-4">
+          <StoryReviewWorkbench />
+        </div>
+      )}
+
+      {/* VIEW: STORY FORGE™ WORKSPACE (STUDIO ENGINE) */}
       {activeNavTab === 'story_forge' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <button
-              onClick={() => setActiveNavTab('shows')}
-              className="text-xs text-welele-muted hover:text-white font-bold flex items-center gap-1.5 cursor-pointer py-1"
-            >
-              ← Back to My Shows
-            </button>
-          </div>
-          <StoryForgeDoorway
-            onSendToProduction={handleForgeHandoff}
-          />
+          <StoryForgeCockpit />
         </div>
       )}
 

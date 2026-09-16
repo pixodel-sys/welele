@@ -300,13 +300,15 @@ export const StoryForgeDoorway: React.FC<StoryForgeDoorwayProps> = ({ onSendToPr
                   ? 'Live Gemini™ AI (Online)'
                   : 'Local Offline Engine (Fallback Active)'}
               </span>
-              <Info className="w-3 h-3 ml-0.5 opacity-70" />
+              <span className="text-[10px] font-mono text-white/50 bg-black/40 border border-white/10 px-2 py-0.5 rounded">
+                Forge Configuration: CFG-001
+              </span>
             </button>
           </div>
 
           <h1 className="text-2xl font-black text-white font-cinematic uppercase tracking-tight">
-            Script, Character & Cliffhanger Forge
-          </h1>
+              Script, Character & Cliffhanger Forge
+            </h1>
           <p className="text-xs text-welele-muted mt-1">
             Generate tight 60–90 second vertical episodic beats, African dialect dialogue, and character bibles with zero downtime.
           </p>

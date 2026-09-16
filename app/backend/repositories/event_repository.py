@@ -69,7 +69,7 @@ class EventRepository(BaseRepository):
     def get_episode_retention(self, series_id: str, episode_id: str) -> EpisodeRetentionResponse:
         all_events = self.local_get("telemetry_events")
         ep_events = [e for e in all_events if e.get("episode_id") == episode_id]
-        if not ep_events:
+        if not ep_events and not episode_id:
             ep_events = [e for e in all_events if e.get("series_id") == series_id]
 
         # Calculate max playback second reached per unique session

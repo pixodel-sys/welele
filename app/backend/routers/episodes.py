@@ -88,7 +88,7 @@ def get_episode_stream(
             "hls_manifest": hls_manifest
         },
         "cliffhanger": {
-            "timestamp_seconds": episode.get("cliffhanger_time", 65),
+            "timestamp_seconds": episode.get("cliffhanger_time", episode.get("cliffhanger_time_seconds", 65)),
             "hook_text": episode.get("cliffhanger_hook", "The confrontation begins now...")
         }
     }

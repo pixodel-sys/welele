@@ -25,8 +25,13 @@ from routers import (
     admin,
     experience,
     telemetry,
-    intelligence
+    intelligence,
+    story_review,
+    forge_configurations
 )
+
+# Story Forge Stateful Narrative Engine Module (Decoupled Service)
+from story_forge.api import router as story_forge_router
 
 # Backward Compatibility Alias Routers for Legacy Clients
 from routers import (
@@ -72,6 +77,16 @@ app.include_router(admin.router, prefix=settings.API_V1_STR)
 app.include_router(experience.router, prefix=settings.API_V1_STR)
 app.include_router(telemetry.router, prefix=settings.API_V1_STR)
 app.include_router(intelligence.router, prefix=settings.API_V1_STR)
+app.include_router(story_review.router, prefix=settings.API_V1_STR)
+app.include_router(story_review.router, prefix="/api/v1")
+
+# -----------------------------------------------------------------------------
+# Register Decoupled Story Forge Narrative Reasoning Router
+# -----------------------------------------------------------------------------
+app.include_router(story_forge_router, prefix=settings.API_V1_STR)
+app.include_router(story_forge_router, prefix="/api/v1")
+app.include_router(forge_configurations.router, prefix=settings.API_V1_STR)
+app.include_router(forge_configurations.router, prefix="/api/v1")
 
 # -----------------------------------------------------------------------------
 # Backward-Compatible Legacy Aliases (Zero-Friction Client Migration)

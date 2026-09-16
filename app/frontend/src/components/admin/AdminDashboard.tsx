@@ -5,13 +5,15 @@ import { ModerationQueue } from './ModerationQueue';
 import { CreatorVerification } from './CreatorVerification';
 import { WeleleAdminStudio } from './WeleleAdminStudio';
 import { AuditChainInspector } from './AuditChainInspector';
+import { AdminIntakeQueue } from './AdminIntakeQueue';
+import { StoryForgeCockpit } from '../creator/forge/StoryForgeCockpit';
 import { ProvenanceBadge } from '../common/patterns/ProvenanceBadge';
-import { Shield, Users, Video, Coins, Activity, CheckCircle, AlertTriangle, Layers, Lock } from 'lucide-react';
+import { Shield, Users, Video, Coins, Activity, CheckCircle, AlertTriangle, Layers, Lock, Sparkles, FileText, Inbox } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
   const { stories } = useApp();
   const [metrics, setMetrics] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'studio' | 'moderation' | 'verification' | 'audit'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'intake' | 'forge' | 'studio' | 'moderation' | 'verification' | 'audit'>('overview');
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
@@ -57,6 +59,28 @@ export const AdminDashboard: React.FC = () => {
           }`}
         >
           Overview
+        </button>
+        <button
+          onClick={() => setActiveTab('intake')}
+          className={`px-4 py-2 rounded-[7px] font-bold transition-all flex items-center gap-1.5 shrink-0 ${
+            activeTab === 'intake'
+              ? 'bg-emerald-500 text-black shadow-md'
+              : 'text-emerald-400 hover:text-white hover:bg-white/5'
+          }`}
+        >
+          <Inbox className="w-3.5 h-3.5" />
+          IP Intake & Submissions
+        </button>
+        <button
+          onClick={() => setActiveTab('forge')}
+          className={`px-4 py-2 rounded-[7px] font-bold transition-all flex items-center gap-1.5 shrink-0 ${
+            activeTab === 'forge'
+              ? 'bg-welele-gold text-black shadow-md'
+              : 'text-amber-400 hover:text-amber-300 hover:bg-white/5'
+          }`}
+        >
+          <Sparkles className="w-3.5 h-3.5" />
+          Story Forge™ (Studio Engine)
         </button>
         <button
           onClick={() => setActiveTab('studio')}
@@ -180,6 +204,18 @@ export const AdminDashboard: React.FC = () => {
         </>
       )}
 
+      {activeTab === 'intake' && (
+        <AdminIntakeQueue
+          onSelectForForge={(sub) => {
+            setActiveTab('forge');
+          }}
+        />
+      )}
+      {activeTab === 'forge' && (
+        <div className="space-y-4">
+          <StoryForgeCockpit />
+        </div>
+      )}
       {activeTab === 'studio' && <WeleleAdminStudio stories={stories} />}
       {activeTab === 'moderation' && <ModerationQueue />}
       {activeTab === 'verification' && <CreatorVerification />}

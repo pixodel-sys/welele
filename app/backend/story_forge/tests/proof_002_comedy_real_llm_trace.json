@@ -1,0 +1,133 @@
+{
+  "story_id": "proof-002-comedy-real",
+  "title": "The Wrong Funeral",
+  "genre": "South African Supernatural Comedy / Micro-drama",
+  "model_identifier": "gemini-3.5-flash-lite",
+  "provider": "gemini",
+  "forge_kernel_version": "0.2.0",
+  "forge_judge_version": "0.2.0",
+  "total_cycles": 8,
+  "final_state_version": 6,
+  "judge_status": "DRAMATIC_ENGINE_LOCK",
+  "current_milestone": "DRAMATIC_ENGINE_LOCK",
+  "satisfied_milestones": [
+    "PREMISE_LOCK",
+    "DRAMATIC_ENGINE_LOCK"
+  ],
+  "missing_invariants": [
+    "M2_SIX_CHRONOLOGY_ANCHORS_REQUIRED (found 0/6)"
+  ],
+  "assessment_notes": "M0 and M1 certified. Pending M2 six-anchor chronology spine.",
+  "transitions": [
+    {
+      "sequence": 1,
+      "authority_mode": "ASK",
+      "skill": "EXCAVATOR",
+      "question": "What is the name and profession of the protagonist who accidentally attends the wrong funeral?",
+      "interpretation": "The protagonist is currently undefined in the canonical state, preventing further character-driven narrative development.",
+      "latency_ms": 2637.96,
+      "confidence": 0.95,
+      "mutations": []
+    },
+    {
+      "sequence": 2,
+      "authority_mode": "INFER",
+      "skill": "EXCAVATOR",
+      "question": null,
+      "interpretation": "The creator response provides all necessary details to define the protagonist Sipho Khanyile, resolving the PREMISE_PROTAGONIST_DEFINITION dependency safely through inference.",
+      "latency_ms": 2977.72,
+      "confidence": 1.0,
+      "mutations": [
+        {
+          "path": "characters.Sipho_Khanyile",
+          "type": "CREATE",
+          "rationale": "The creator has defined the protagonist's name, age, occupation, personality, and immediate objective, fully resolving the protagonist definition dependency."
+        }
+      ]
+    },
+    {
+      "sequence": 3,
+      "authority_mode": "PROPOSE",
+      "skill": "CONNECTOR",
+      "question": null,
+      "interpretation": "To resolve the PREMISE_COUNTERFORCE_DEFINITION dependency, we propose MaDlamini as the counterforce who generates dramatic pressure by mistaking Sipho for an estate executor.",
+      "latency_ms": 4158.46,
+      "confidence": 0.9,
+      "mutations": [
+        {
+          "path": "characters.MaDlamini",
+          "type": "CREATE",
+          "rationale": "Establishes a grounded human counterforce arising naturally from the funeral mistaken identity premise."
+        }
+      ]
+    },
+    {
+      "sequence": 4,
+      "authority_mode": "PROPOSE",
+      "skill": "CONNECTOR",
+      "question": null,
+      "interpretation": "Using the CONNECTOR skill, we propose a direct narrative link between Sipho's accidental presence and MaDlamini's urgent motivation regarding the family inheritance, establishing the foundation of their interaction.",
+      "latency_ms": 2842.29,
+      "confidence": 0.9,
+      "mutations": [
+        {
+          "path": "characters.MaDlamini",
+          "type": "UPDATE",
+          "rationale": "Defines the specific dramatic misunderstanding driving the core relationship dynamic between MaDlamini and Sipho."
+        }
+      ]
+    },
+    {
+      "sequence": 5,
+      "authority_mode": "ASK",
+      "skill": "CHALLENGER",
+      "question": "Does Sipho discover the hidden ancestral debt documents inside his mother's casserole dish, or does he find them elsewhere at the venue?",
+      "interpretation": "The active dependency requires cementing the inciting disruption regarding the hidden ancestral debt documents. Since the exact catalyst location and discovery method are not yet established in the canonical state, a clarifying question must be asked to the creator.",
+      "latency_ms": 2558.09,
+      "confidence": 0.95,
+      "mutations": []
+    },
+    {
+      "sequence": 6,
+      "authority_mode": "INFER",
+      "skill": "CHALLENGER",
+      "question": null,
+      "interpretation": "The creator response provides the exact comic and dramatic mechanism (the casserole dish as a sacred medicine vessel) that bridges Sipho's presence at the wrong funeral with the family mistaking his identity. This safely resolves the inciting disruption dependency.",
+      "latency_ms": 3548.61,
+      "confidence": 0.95,
+      "mutations": [
+        {
+          "path": "events.EVENT_01_INCITING_DISRUPTION",
+          "type": "CREATE",
+          "rationale": "Fulfills the causal requirement for the inciting disruption by connecting Sipho's actual objective with the family's mistaken premise."
+        }
+      ]
+    },
+    {
+      "sequence": 7,
+      "authority_mode": "ASK",
+      "skill": "CHALLENGER",
+      "question": "What specific trap or social obligation binds Sipho to the funeral, forcing his point of no return?",
+      "interpretation": "The active dependency requires defining the point of no return for Sipho entering the dangerous arena. Since the current state does not specify the mechanism keeping him trapped after realizing his mistake, a direct question to the creator is needed to establish this causal turning point.",
+      "latency_ms": 2572.21,
+      "confidence": 0.95,
+      "mutations": []
+    },
+    {
+      "sequence": 8,
+      "authority_mode": "INFER",
+      "skill": "CHALLENGER",
+      "question": null,
+      "interpretation": "The creator response directly addresses the mechanism of the point of no return by introducing the final casket viewing ritual at sunset as the binding social obligation. This allows us to infer and commit the state change for EVENT_SPINE_2 without needing further questions.",
+      "latency_ms": 3607.18,
+      "confidence": 0.95,
+      "mutations": [
+        {
+          "path": "events.EVENT_SPINE_2",
+          "type": "CREATE",
+          "rationale": "Fulfills the causal anchor requirement for EVENT_SPINE_2 using the creator's explicit specification regarding the sunset casket viewing ritual."
+        }
+      ]
+    }
+  ]
+}

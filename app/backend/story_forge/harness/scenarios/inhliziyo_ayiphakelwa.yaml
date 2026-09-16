@@ -1,0 +1,30 @@
+test_id: inhliziyo_ayiphakelwa
+story_id: inhliziyo-bench-001
+premise: >
+  Nkosinathi arrives at a private loft in Maboneng and discovers
+  that Thabo and Tebogo are secretly engaged.
+creative_objective: >
+  Develop this high-stakes family dynasty betrayal premise into a coherent,
+  production-ready vertical micro-drama series state.
+production_objective: >
+  Johannesburg urban locations, 90-second episode pacing.
+creator_mode: benchmark
+adapter: MockReasoningAdapter
+initial_state:
+  title: Inhliziyo Ayiphakelwa
+  logline: A high-stakes Johannesburg family dynasty drama of betrayal and secret vows.
+  characters:
+    - name: Nkosinathi
+      role: UNRESOLVED
+      status: FACT
+    - name: Thabo
+      role: PROTAGONIST
+      core_motivation: Build an unassailable financial empire and secure Tebogo's hand.
+      status: FACT
+    - name: Tebogo
+      role: CONFIDANT
+      core_motivation: Protect the family legacy while following her true heart.
+      status: FACT
+scripted_responses:
+  - "Nkosinathi vows to expose Thabo's fraudulent empire before the wedding ceremony to protect Tebogo and reclaim family honour."
+  - "Nkosinathi and Tebogo were childhood sweethearts before Thabo entered the picture."
