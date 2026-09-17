@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 
 interface StoryIntakeScreenProps {
-  onStoryCreated: (storyId: string, initialPremise?: string) => void;
+  onStoryCreated: (storyId: string, initialPremise?: string, creativeObjective?: string, productionObjective?: string) => void;
   onResumeStory: (storyId: string) => void;
 }
 
@@ -75,7 +75,12 @@ export const StoryIntakeScreen: React.FC<StoryIntakeScreenProps> = ({
         primary_language: primaryLanguage,
       });
 
-      onStoryCreated(created.story_id, premise.trim());
+      onStoryCreated(
+        created.story_id,
+        premise.trim(),
+        creativeObjective.trim() || undefined,
+        productionObjective.trim() || undefined
+      );
     } catch (err: any) {
       const msg = err.response?.data?.detail || err.message || 'Failed to create story on Forge backend';
       setErrorMessage(msg);
@@ -152,6 +157,7 @@ export const StoryIntakeScreen: React.FC<StoryIntakeScreenProps> = ({
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
+                spellCheck={true}
                 placeholder="e.g. The Wrong Funeral"
                 className="w-full px-4 py-3 rounded-xl bg-black/60 border border-white/15 focus:border-[#FF6500] focus:ring-1 focus:ring-[#FF6500] text-white text-sm placeholder-white/20 outline-none transition-all"
                 required
@@ -166,6 +172,7 @@ export const StoryIntakeScreen: React.FC<StoryIntakeScreenProps> = ({
                 value={premise}
                 onChange={(e) => setPremise(e.target.value)}
                 rows={4}
+                spellCheck={true}
                 placeholder="e.g. A man arrives at a funeral expecting to mourn his uncle. He quickly realises he is at the wrong funeral. Before he can leave, the family mistakes him for someone they have been waiting for."
                 className="w-full px-4 py-3 rounded-xl bg-black/60 border border-white/15 focus:border-[#FF6500] focus:ring-1 focus:ring-[#FF6500] text-white text-sm placeholder-white/20 outline-none transition-all resize-none leading-relaxed"
                 required
@@ -184,6 +191,7 @@ export const StoryIntakeScreen: React.FC<StoryIntakeScreenProps> = ({
                   type="text"
                   value={creativeObjective}
                   onChange={(e) => setCreativeObjective(e.target.value)}
+                  spellCheck={true}
                   placeholder="e.g. South African supernatural comedy / vertical microdrama"
                   className="w-full px-4 py-2.5 rounded-xl bg-black/60 border border-white/15 focus:border-[#FF6500] text-white text-xs placeholder-white/20 outline-none"
                 />
@@ -197,6 +205,7 @@ export const StoryIntakeScreen: React.FC<StoryIntakeScreenProps> = ({
                   type="text"
                   value={productionObjective}
                   onChange={(e) => setProductionObjective(e.target.value)}
+                  spellCheck={true}
                   placeholder="e.g. Low budget, primarily one funeral venue, episodic cliffhangers"
                   className="w-full px-4 py-2.5 rounded-xl bg-black/60 border border-white/15 focus:border-[#FF6500] text-white text-xs placeholder-white/20 outline-none"
                 />

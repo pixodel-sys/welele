@@ -36,6 +36,12 @@ htmlcov/
 backend/media_storage/
 media_storage/
 
+# Scratch & Debug artifacts
+scratch/
+backend/scratch/
+*.log
+*.tmp
+
 # IDE / OS
 .DS_Store
 Thumbs.db

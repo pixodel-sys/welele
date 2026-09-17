@@ -1,33 +1,23 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { storyForgeApi } from '../../../services/storyForgeApi';
 import {
   StoryState,
   CurrentAction,
   Dependency,
-  ForgeTransition,
   ForgeCompletionAssessment,
   ChronologyEvent
 } from '../../../types/storyForge';
-import { MilestoneProgressBar } from './MilestoneProgressBar';
-import { ForgeDecisionCard } from './ForgeDecisionCard';
-import { CreatorResponsePanel } from './CreatorResponsePanel';
-import { StoryStatePanel } from './StoryStatePanel';
-import { DependenciesPanel } from './DependenciesPanel';
-import { StoryIntelligencePanel } from './StoryIntelligencePanel';
-import { ForgeTraceInspector } from './ForgeTraceInspector';
+import { CreatorStoryStudio } from './CreatorStoryStudio';
+import { OperatorDiagnosticConsole } from './OperatorDiagnosticConsole';
 import { ForgeCompletePackageModal } from './ForgeCompletePackageModal';
 import { StoryIntakeScreen } from './StoryIntakeScreen';
 import {
   Sparkles,
-  Layers,
-  Activity,
-  Brain,
-  ListFilter,
-  CheckCircle2,
   ArrowLeft,
   RefreshCw,
-  AlertCircle,
-  FileCheck
+  FileCheck,
+  Terminal,
+  Palette
 } from 'lucide-react';
 
 export const StoryForgeCockpit: React.FC = () => {
@@ -40,14 +30,25 @@ export const StoryForgeCockpit: React.FC = () => {
   const [events, setEvents] = useState<ChronologyEvent[]>([]);
   const [assessment, setAssessment] = useState<ForgeCompletionAssessment | null>(null);
 
-  // UI / Drawer States
-  const [activeRightTab, setActiveRightTab] = useState<'state' | 'dependencies' | 'intelligence' | 'trace'>('state');
+  // View Mode: 'creator' (Default, human-centered) vs 'operator' (Diagnostic tooling)
+  const [viewMode, setViewMode] = useState<'creator' | 'operator'>('creator');
+
+  // Loading & Working States
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isWorkingThroughStory, setIsWorkingThroughStory] = useState<boolean>(false);
+  const [workingStatusMessage, setWorkingStatusMessage] = useState<string>(
+    'Working through your story… Checking how this answer affects the characters and story arc.'
+  );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isPackageModalOpen, setIsPackageModalOpen] = useState<boolean>(false);
 
   // Initialize or resume session
-  const initializeSession = async (storyId: string, initialPremise?: string) => {
+  const initializeSession = async (
+    storyId: string,
+    initialPremise?: string,
+    creativeObjective?: string,
+    productionObjective?: string
+  ) => {
     setActiveStoryId(storyId);
     setIsLoading(true);
     setErrorMessage(null);
@@ -56,6 +57,8 @@ export const StoryForgeCockpit: React.FC = () => {
       const sess = await storyForgeApi.startSession(storyId, {
         creator_id: 'creator_current',
         initial_premise: initialPremise,
+        creative_objective: creativeObjective,
+        production_objective: productionObjective,
       });
 
       setSessionId(sess.id);
@@ -90,7 +93,7 @@ export const StoryForgeCockpit: React.FC = () => {
     }
   };
 
-  // Submit creator input / answer to question
+  // Submit creator input with automatic transition collapsing
   const handleSubmitResponse = async (
     responseText: string,
     proposalAction?: 'ACCEPT' | 'REJECT' | 'MODIFY'
@@ -98,6 +101,8 @@ export const StoryForgeCockpit: React.FC = () => {
     if (!sessionId || !activeStoryId) return;
 
     setIsLoading(true);
+    setIsWorkingThroughStory(true);
+    setWorkingStatusMessage('Working through your story… Checking how this answer affects the characters and story arc.');
     setErrorMessage(null);
 
     try {
@@ -108,22 +113,48 @@ export const StoryForgeCockpit: React.FC = () => {
 
       setStoryState(cycleResult.current_state);
 
-      // Refresh current action and dependencies
-      await refreshAllData(activeStoryId, sessionId);
+      // Refresh current action & completion
+      let actionData = await storyForgeApi.getCurrentAction(sessionId);
+      let compData = await storyForgeApi.getCompletion(activeStoryId);
+      setCurrentAction(actionData);
+      setAssessment(compData);
 
-      // If Judge certified FORGE_COMPLETE
-      if (cycleResult.action === 'STOP' && assessment?.status === 'FORGE_COMPLETE') {
-        setIsPackageModalOpen(true);
+      // Autonomous transition collapsing:
+      // If the action does not require creator authority (e.g. INFER, RECORD_PRODUCTION_DECISION)
+      // and has not reached terminal completion, advance automatically without disrupting creator.
+      let safetyLoops = 0;
+      while (
+        safetyLoops < 8 &&
+        compData.status !== 'FORGE_COMPLETE' &&
+        actionData.action !== 'STOP' &&
+        !actionData.requires_creator &&
+        actionData.action !== 'ASK' &&
+        actionData.action !== 'PROPOSE'
+      ) {
+        safetyLoops++;
+        setWorkingStatusMessage('Synthesizing dramatic continuity and updating story arc…');
+        await new Promise((resolve) => setTimeout(resolve, 400));
+
+        const autoRes = await storyForgeApi.submitInput(sessionId, {});
+        setStoryState(autoRes.current_state);
+
+        actionData = await storyForgeApi.getCurrentAction(sessionId);
+        compData = await storyForgeApi.getCompletion(activeStoryId);
+        setCurrentAction(actionData);
+        setAssessment(compData);
       }
+
+      await refreshAllData(activeStoryId, sessionId);
     } catch (err: any) {
       const msg = err.response?.data?.detail || err.message || 'Error processing story cycle.';
       setErrorMessage(msg);
     } finally {
       setIsLoading(false);
+      setIsWorkingThroughStory(false);
     }
   };
 
-  // Advance autonomous step (for INFER or RECORD_PRODUCTION_DECISION)
+  // Advance single autonomous step (manual trigger for operator console)
   const handleAdvanceAutonomous = async () => {
     if (!sessionId || !activeStoryId) return;
     setIsLoading(true);
@@ -145,7 +176,9 @@ export const StoryForgeCockpit: React.FC = () => {
   if (!activeStoryId || !storyState) {
     return (
       <StoryIntakeScreen
-        onStoryCreated={(id, premise) => initializeSession(id, premise)}
+        onStoryCreated={(id, premise, creativeObj, prodObj) =>
+          initializeSession(id, premise, creativeObj, prodObj)
+        }
         onResumeStory={(id) => initializeSession(id)}
       />
     );
@@ -154,7 +187,7 @@ export const StoryForgeCockpit: React.FC = () => {
   const isForgeComplete = assessment?.status === 'FORGE_COMPLETE';
 
   return (
-    <div className="max-w-7xl mx-auto py-4 px-3 sm:px-5 space-y-4 font-sans text-white">
+    <div className="max-w-7xl mx-auto py-4 px-3 sm:px-5 space-y-5 font-sans text-white">
       {/* Top Cockpit Command Header */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 pb-3 border-b border-white/10">
         <div className="flex items-center gap-3">
@@ -173,7 +206,7 @@ export const StoryForgeCockpit: React.FC = () => {
           <div>
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-[#FF6500]/20 text-[#FF6500] border border-[#FF6500]/30 uppercase">
-                Story Forge™ v0.2
+                Story Forge™
               </span>
               <span className="text-xs font-mono text-white/40">v{storyState.state_version}</span>
             </div>
@@ -183,7 +216,34 @@ export const StoryForgeCockpit: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        {/* Center/Right: View Mode Toggle & Actions */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* Creator vs Operator Console Toggle */}
+          <div className="flex items-center p-1 rounded-xl bg-black/60 border border-white/10 text-xs font-mono">
+            <button
+              onClick={() => setViewMode('creator')}
+              className={`px-3 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1.5 ${
+                viewMode === 'creator'
+                  ? 'bg-[#FF6500] text-black shadow-md shadow-[#FF6500]/25'
+                  : 'text-white/60 hover:text-white'
+              }`}
+            >
+              <Palette className="w-3.5 h-3.5" />
+              <span>Creator Studio</span>
+            </button>
+            <button
+              onClick={() => setViewMode('operator')}
+              className={`px-3 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1.5 ${
+                viewMode === 'operator'
+                  ? 'bg-white/20 text-white shadow-md'
+                  : 'text-white/60 hover:text-white'
+              }`}
+            >
+              <Terminal className="w-3.5 h-3.5" />
+              <span>Operator Console</span>
+            </button>
+          </div>
+
           {isForgeComplete && (
             <button
               onClick={() => setIsPackageModalOpen(true)}
@@ -193,6 +253,7 @@ export const StoryForgeCockpit: React.FC = () => {
               <span>View Story Package</span>
             </button>
           )}
+
           <button
             onClick={() => activeStoryId && refreshAllData(activeStoryId)}
             disabled={isLoading}
@@ -204,113 +265,39 @@ export const StoryForgeCockpit: React.FC = () => {
         </div>
       </div>
 
-      {/* Completion Governance Matrix Bar */}
-      <MilestoneProgressBar
-        currentMilestone={assessment?.current_milestone}
-        targetMilestone={assessment?.target_milestone}
-        satisfiedMilestones={assessment?.satisfied_milestones}
-        readinessStatus={assessment?.status}
-        chronologyAnchorsCount={events.length}
-      />
+      {/* Primary Experience Surface */}
+      {viewMode === 'creator' ? (
+        <CreatorStoryStudio
+          sessionId={sessionId!}
+          storyState={storyState}
+          currentAction={currentAction}
+          assessment={assessment}
+          events={events}
+          isLoading={isLoading}
+          isWorkingThroughStory={isWorkingThroughStory}
+          workingStatusMessage={workingStatusMessage}
+          errorMessage={errorMessage}
+          onSubmitResponse={handleSubmitResponse}
+          onViewStoryPackage={() => setIsPackageModalOpen(true)}
+          onOpenOperatorConsole={() => setViewMode('operator')}
+        />
+      ) : (
+        <OperatorDiagnosticConsole
+          activeStoryId={activeStoryId}
+          storyState={storyState}
+          currentAction={currentAction}
+          dependencies={dependencies}
+          events={events}
+          assessment={assessment}
+          isLoading={isLoading}
+          errorMessage={errorMessage}
+          onSubmitResponse={handleSubmitResponse}
+          onAdvanceAutonomous={handleAdvanceAutonomous}
+          onRetry={() => activeStoryId && refreshAllData(activeStoryId)}
+        />
+      )}
 
-      {/* Main 2-Column Cockpit Workspace */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 min-h-[580px]">
-        {/* LEFT COLUMN: Dominant Decision & Creator Response Panel (7 Cols) */}
-        <div className="lg:col-span-7 space-y-4 flex flex-col">
-          {/* Dominant Decision Card */}
-          <ForgeDecisionCard
-            action={currentAction?.action || 'ASK'}
-            skill={currentAction?.skill || 'EXCAVATOR'}
-            question={currentAction?.question}
-            proposal={currentAction?.proposal}
-            activeDependencyKey={currentAction?.active_dependency_key}
-            activeDependencyDescription={currentAction?.active_dependency_description}
-            mutations={[]}
-          />
-
-          {/* Response & Writing Panel */}
-          <div className="flex-1">
-            <CreatorResponsePanel
-              action={currentAction?.action || 'ASK'}
-              isLoading={isLoading}
-              errorMessage={errorMessage}
-              onSubmitResponse={handleSubmitResponse}
-              onAdvanceAutonomous={handleAdvanceAutonomous}
-              onRetry={() => activeStoryId && refreshAllData(activeStoryId)}
-              lastCommittedVersion={storyState.state_version}
-            />
-          </div>
-        </div>
-
-        {/* RIGHT COLUMN: Story State, Dependencies, Intelligence & Trace (5 Cols) */}
-        <div className="lg:col-span-5 flex flex-col space-y-3">
-          {/* Right Secondary Drawer Nav */}
-          <div className="flex items-center gap-1 p-1 rounded-xl bg-black/50 border border-white/10 text-[11px] font-mono font-bold">
-            <button
-              onClick={() => setActiveRightTab('state')}
-              className={`flex-1 py-1.5 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-                activeRightTab === 'state'
-                  ? 'bg-[#FF6500] text-black shadow'
-                  : 'text-white/60 hover:text-white'
-              }`}
-            >
-              <Layers className="w-3.5 h-3.5" />
-              <span>State</span>
-            </button>
-            <button
-              onClick={() => setActiveRightTab('dependencies')}
-              className={`flex-1 py-1.5 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-                activeRightTab === 'dependencies'
-                  ? 'bg-[#FF6500] text-black shadow'
-                  : 'text-white/60 hover:text-white'
-              }`}
-            >
-              <ListFilter className="w-3.5 h-3.5" />
-              <span>Queue ({dependencies.filter(d => !['RESOLVED', 'DELIBERATELY_UNKNOWN', 'DEFERRED'].includes(d.status)).length})</span>
-            </button>
-            <button
-              onClick={() => setActiveRightTab('intelligence')}
-              className={`flex-1 py-1.5 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-                activeRightTab === 'intelligence'
-                  ? 'bg-[#FF6500] text-black shadow'
-                  : 'text-white/60 hover:text-white'
-              }`}
-            >
-              <Brain className="w-3.5 h-3.5" />
-              <span>Insights</span>
-            </button>
-            <button
-              onClick={() => setActiveRightTab('trace')}
-              className={`flex-1 py-1.5 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-                activeRightTab === 'trace'
-                  ? 'bg-[#FF6500] text-black shadow'
-                  : 'text-white/60 hover:text-white'
-              }`}
-            >
-              <Activity className="w-3.5 h-3.5" />
-              <span>Trace</span>
-            </button>
-          </div>
-
-          {/* Right Viewport Content */}
-          <div className="flex-1 min-h-[480px]">
-            {activeRightTab === 'state' && (
-              <StoryStatePanel storyState={storyState} events={events} />
-            )}
-            {activeRightTab === 'dependencies' && (
-              <DependenciesPanel dependencies={dependencies} />
-            )}
-            {activeRightTab === 'intelligence' && (
-              <StoryIntelligencePanel storyId={activeStoryId} />
-            )}
-            {activeRightTab === 'trace' && (
-              <ForgeTraceInspector storyId={activeStoryId} />
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Completion Modal */}
+      {/* Certified Completion Modal */}
       {storyState && (
         <ForgeCompletePackageModal
           isOpen={isPackageModalOpen}

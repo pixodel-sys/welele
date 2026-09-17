@@ -51,9 +51,42 @@ def get_episode_stream(
             detail="This episode has been retired/archived from public distribution."
         )
 
-    # Resolve media asset identity & storage lineage
+    # Availability Truth Invariant:
+    # AVAILABLE = (lifecycle permits distribution) AND (readiness permits distribution) AND (authoritative master exists)
+    is_empty_draft = bool(episode.get("is_empty_draft", False))
+    readiness = episode.get("readiness_state", "DRAFT_EMPTY")
+    lifecycle = episode.get("lifecycle_state", episode.get("status", "DRAFT")).upper()
+
     all_media = series_repository.local_get("media_assets")
     media = next((m for m in all_media if m.get("episode_id") == episode_id), None)
+    master_video = (media.get("master_video_url") if media else None) or episode.get("video_url", "")
+    
+    has_verified_master = bool(
+        master_video and
+        not master_video.startswith("/videos/welele_placeholder") and
+        not master_video.startswith("/videos/ocean_waves")
+    )
+
+    lifecycle_ok = lifecycle in ["SCHEDULED", "PUBLISHED", "READY"]
+    readiness_ok = readiness in ["PRODUCTION_READY", "READY_FOR_PRODUCTION", "COMPLETED"] and not is_empty_draft
+    is_available = bool(lifecycle_ok and readiness_ok and has_verified_master)
+
+    # If episode is DRAFT_EMPTY or unverified master, truth gate as Coming Soon with NO FALLBACK MEDIA
+    if not is_available:
+        return {
+            "series_id": series_id,
+            "episode": episode,
+            "media_asset_id": None,
+            "storage_key": None,
+            "is_unlocked": False,
+            "is_available": False,
+            "status_label": "Coming Soon",
+            "stream": None,
+            "fallback_media_permitted": False,
+            "cliffhanger": None
+        }
+
+    # Resolve media asset identity & storage lineage
     media_asset_id = media.get("id") if media else episode.get("media_asset_id", f"media_{episode_id}")
     storage_key = media.get("storage_key") if media else episode.get("storage_key", f"masters/{series_id}/{episode_id}.mp4")
 
@@ -61,8 +94,6 @@ def get_episode_stream(
     # 1. Development Seed Media: Bundled demo media (/videos/...) for seeded prototype catalog
     # 2. Production Masters: Physical binaries in Object Storage (R2 / local store via storage_key)
     # 3. Canonical External CDN Streams
-    master_video = (media.get("master_video_url") if media else None) or episode.get("video_url", "")
-
     if master_video and (master_video.startswith("/videos/") or master_video.startswith("/media/")):
         stream_url = master_video
     elif storage_key and storage_service.get_stored_binary(storage_key) is not None:
@@ -81,6 +112,9 @@ def get_episode_stream(
         "media_asset_id": media_asset_id,
         "storage_key": storage_key,
         "is_unlocked": is_unlocked,
+        "is_available": True,
+        "status_label": "Watch Now",
+        "fallback_media_permitted": False,
         "stream": {
             "primary_url": stream_url,
             "format": "9:16 Canonical Vertical",

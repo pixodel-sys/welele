@@ -736,3 +736,30 @@ export const telemetryApi = {
   }
 };
 
+export const productionApi = {
+  generateProductionBible: async (payload: { ip_id: string; story_package_id?: string; version?: string }) => {
+    const res = await API.post('/production/bibles/generate', payload);
+    return res.data;
+  },
+  getProductionBible: async (ipId: string) => {
+    const res = await API.get(`/production/bibles/${ipId}`);
+    return res.data;
+  },
+  listProductionBibles: async () => {
+    const res = await API.get('/production/bibles');
+    return res.data;
+  },
+  generateEpisodePack: async (payload: { ip_id: string; production_bible_id?: string; episode_number?: number }) => {
+    const res = await API.post('/production/packs/generate', payload);
+    return res.data;
+  },
+  getEpisodePack: async (ipId: string, episodeNumber: number) => {
+    const res = await API.get(`/production/packs/${ipId}/episodes/${episodeNumber}`);
+    return res.data;
+  },
+  listEpisodePacks: async (ipId: string) => {
+    const res = await API.get(`/production/packs/${ipId}`);
+    return res.data;
+  }
+};
+

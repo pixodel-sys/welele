@@ -91,7 +91,8 @@ export const StoryReviewIntake: React.FC<StoryReviewIntakeProps> = ({
                   type="text"
                   value={draft.title}
                   onChange={(e) => handleFieldChange('title', e.target.value)}
-                  placeholder="e.g. Ancestral Debt, The Wrong Funeral..."
+                  spellCheck={true}
+                  placeholder="e.g. The Durban Crumb, The Wrong Funeral..."
                   className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-[7px] text-white text-xs placeholder:text-zinc-600 focus:border-welele-orange focus:outline-none"
                 />
               </div>
@@ -114,6 +115,7 @@ export const StoryReviewIntake: React.FC<StoryReviewIntakeProps> = ({
               <textarea
                 value={draft.logline}
                 onChange={(e) => handleFieldChange('logline', e.target.value)}
+                spellCheck={true}
                 placeholder="A compelling 1-2 sentence hook highlighting the central disruption, stakes, and curiosity gap..."
                 rows={2}
                 className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-[7px] text-white text-xs placeholder:text-zinc-600 focus:border-welele-orange focus:outline-none resize-none"
@@ -127,6 +129,7 @@ export const StoryReviewIntake: React.FC<StoryReviewIntakeProps> = ({
                   type="text"
                   value={draft.tone}
                   onChange={(e) => handleFieldChange('tone', e.target.value)}
+                  spellCheck={true}
                   placeholder="e.g. Supernatural Comedy / High Stakes Family Drama"
                   className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-[7px] text-white text-xs placeholder:text-zinc-600 focus:border-welele-orange focus:outline-none"
                 />
@@ -137,6 +140,7 @@ export const StoryReviewIntake: React.FC<StoryReviewIntakeProps> = ({
                   type="text"
                   value={draft.world_setting}
                   onChange={(e) => handleFieldChange('world_setting', e.target.value)}
+                  spellCheck={true}
                   placeholder="e.g. A bustling family home & church yard in Soweto"
                   className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-[7px] text-white text-xs placeholder:text-zinc-600 focus:border-welele-orange focus:outline-none"
                 />
@@ -157,6 +161,7 @@ export const StoryReviewIntake: React.FC<StoryReviewIntakeProps> = ({
             <textarea
               value={draft.full_draft_text}
               onChange={(e) => handleFieldChange('full_draft_text', e.target.value)}
+              spellCheck={true}
               placeholder="Paste your scene outline, script excerpts, or detailed narrative treatment here for deeper diagnostic assessment..."
               rows={8}
               className="w-full px-3 py-2.5 bg-black/40 border border-white/10 rounded-[7px] text-white text-xs placeholder:text-zinc-600 focus:border-welele-orange focus:outline-none font-mono leading-relaxed"
@@ -178,6 +183,7 @@ export const StoryReviewIntake: React.FC<StoryReviewIntakeProps> = ({
                 type="text"
                 value={draft.protagonist_name}
                 onChange={(e) => handleFieldChange('protagonist_name', e.target.value)}
+                spellCheck={true}
                 placeholder="e.g. Sipho (reluctant heir) or Nandi (investigative reporter)"
                 className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-[7px] text-white text-xs placeholder:text-zinc-600 focus:border-amber-400 focus:outline-none"
               />
@@ -189,6 +195,7 @@ export const StoryReviewIntake: React.FC<StoryReviewIntakeProps> = ({
                 <textarea
                   value={draft.protagonist_want}
                   onChange={(e) => handleFieldChange('protagonist_want', e.target.value)}
+                  spellCheck={true}
                   placeholder="What tangible goal are they chasing immediately?"
                   rows={2}
                   className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-[7px] text-white text-xs placeholder:text-zinc-600 focus:border-amber-400 focus:outline-none resize-none"
@@ -199,6 +206,7 @@ export const StoryReviewIntake: React.FC<StoryReviewIntakeProps> = ({
                 <textarea
                   value={draft.protagonist_need}
                   onChange={(e) => handleFieldChange('protagonist_need', e.target.value)}
+                  spellCheck={true}
                   placeholder="What emotional truth must they learn to grow?"
                   rows={2}
                   className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-[7px] text-white text-xs placeholder:text-zinc-600 focus:border-amber-400 focus:outline-none resize-none"
@@ -211,6 +219,7 @@ export const StoryReviewIntake: React.FC<StoryReviewIntakeProps> = ({
               <textarea
                 value={draft.counterforce_or_antagonist}
                 onChange={(e) => handleFieldChange('counterforce_or_antagonist', e.target.value)}
+                spellCheck={true}
                 placeholder="Who or what systematically opposes them? (Character, family expectation, debt, curse, corrupt system...)"
                 rows={2}
                 className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-[7px] text-white text-xs placeholder:text-zinc-600 focus:border-amber-400 focus:outline-none resize-none"
@@ -244,6 +253,7 @@ export const StoryReviewIntake: React.FC<StoryReviewIntakeProps> = ({
                       type="text"
                       value={hook}
                       onChange={(e) => handleUpdateHook(idx, e.target.value)}
+                      spellCheck={true}
                       placeholder={`Ep ${idx + 1} cliffhanger reveal...`}
                       className="flex-1 px-3 py-1.5 bg-black/40 border border-white/10 rounded-[7px] text-white text-xs placeholder:text-zinc-600 focus:border-pink-400 focus:outline-none"
                     />

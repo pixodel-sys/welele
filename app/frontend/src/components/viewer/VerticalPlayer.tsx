@@ -5,6 +5,7 @@ import { useChat } from '../../context/ChatContext';
 import { EpisodeDrawer } from './EpisodeDrawer';
 import { FloatingReactions } from './FloatingReactions';
 import { episodesApi, monetizationApi, telemetryApi } from '../../services/api';
+import { telemetryService } from '../../services/telemetryService';
 import confetti from 'canvas-confetti';
 import {
   Heart,
@@ -29,6 +30,7 @@ import {
   Maximize,
   Minimize,
   ChevronRight,
+  Film,
 } from 'lucide-react';
 import { useContentProtection } from '../../hooks/useContentProtection';
 import { mediaStore } from '../../services/mediaStore';
@@ -102,6 +104,8 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
   const [activeSubtitleText, setActiveSubtitleText] = useState<string>('');
   const [airtimeToast, setAirtimeToast] = useState<string | null>(null);
   const [resolvedVideoUrl, setResolvedVideoUrl] = useState<string>(currentEpisode?.video_url || '');
+  const [isEpisodeAvailable, setIsEpisodeAvailable] = useState<boolean>(true);
+  const [availabilityStatusLabel, setAvailabilityStatusLabel] = useState<string>('Watch Now');
   const [mediaError, setMediaError] = useState<string | null>(null);
   const [storedDbKeys, setStoredDbKeys] = useState<string[]>([]);
   const [resolvedSourceKey, setResolvedSourceKey] = useState<string>('');
@@ -312,7 +316,17 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
         // ==========================================
         try {
           const streamData = await episodesApi.getStream(sId, epId, userId);
-          if (streamData && streamData.stream) {
+          if (streamData && streamData.is_available === false) {
+            setIsEpisodeAvailable(false);
+            setAvailabilityStatusLabel(streamData.status_label || 'Coming Soon');
+            finalUrl = '';
+            setResolvedVideoUrl('');
+            streamType = 'GATED_COMING_SOON';
+            mediaSource = 'episodesApi.getStream (Gated Availability)';
+            decisionReason = 'Episode is not available / in production (DRAFT_EMPTY). Gated truthfully without fallback media.';
+            setMediaError(null);
+          } else if (streamData && streamData.stream) {
+            setIsEpisodeAvailable(true);
             const streamObj = streamData.stream;
             mediaAssetId = streamData.media_asset_id || mediaAssetId;
             storageKey = streamData.storage_key || storageKey;
@@ -335,60 +349,70 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
               mediaSource = 'episodesApi.getStream (HLS)';
               decisionReason = 'Authorised canonical HLS manifest resolved from backend';
             } else {
-              finalUrl = primaryUrl || currentEpisode.video_url || '/videos/ocean_waves.mp4';
-              streamType = 'DEFAULT_CATALOG_ASSET';
-              mediaSource = 'episodesApi.getStream';
-              decisionReason = 'Canonical backend stream returned default catalog asset';
+              // Only use currentEpisode.video_url if it is an authentic verified master
+              const cand = currentEpisode.video_url;
+              if (cand && !cand.includes('placeholder') && !cand.includes('ocean_waves')) {
+                finalUrl = cand;
+                streamType = 'VERIFIED_MASTER_STREAM';
+                mediaSource = 'currentEpisode.video_url';
+                decisionReason = 'Authorised verified master stream';
+                setMediaError(null);
+              } else {
+                setIsEpisodeAvailable(false);
+                setAvailabilityStatusLabel('Coming Soon');
+                finalUrl = '';
+                streamType = 'UNVERIFIED_MASTER_GATED';
+                mediaSource = 'episodesApi.getStream';
+                decisionReason = 'Unverified / placeholder master gated truthfully without fallback media';
+                setMediaError(null);
+              }
             }
-          } else if (currentEpisode.video_url) {
+          } else if (currentEpisode.video_url && !currentEpisode.video_url.includes('placeholder') && !currentEpisode.video_url.includes('ocean_waves')) {
+            setIsEpisodeAvailable(true);
             finalUrl = currentEpisode.video_url;
-            streamType = 'CATALOG_FALLBACK_STREAM';
+            streamType = 'CATALOG_VERIFIED_STREAM';
             mediaSource = 'currentEpisode.video_url (Catalog Seed)';
-            decisionReason = 'Backend stream endpoint returned empty payload; falling back to catalog seed media';
+            decisionReason = 'Backend stream endpoint returned empty payload; using verified catalog media';
             setMediaError(null);
           } else {
-            setMediaError('Media resolution failed: Backend stream endpoint returned empty payload.');
-            decisionReason = 'Backend stream endpoint returned no stream object';
+            setIsEpisodeAvailable(false);
+            setAvailabilityStatusLabel('Coming Soon');
+            finalUrl = '';
+            streamType = 'DRAFT_EMPTY_GATED';
+            mediaSource = 'episodesApi.getStream';
+            decisionReason = 'Episode has no verified master; gated truthfully without fallback media';
+            setMediaError(null);
+            telemetryService.track({
+              event_family: 'CONTINUE',
+              event_type: 'GATED_CONTENT_PRESENTED',
+              content_id: currentEpisode.id,
+              series_id: currentStory?.id,
+              episode_id: currentEpisode.id,
+              metadata: {
+                content_state: 'UNAVAILABLE',
+                is_available: false,
+                playback_started: false,
+                reason: 'In Production • Coming Soon'
+              }
+            });
           }
         } catch (apiErr: any) {
           console.warn('[VerticalPlayer] Backend stream API unavailable (Network/Staging):', apiErr);
-          // Graceful fallback to catalog media URL or seed video asset
-          if (currentEpisode.video_url) {
+          if (currentEpisode.video_url && !currentEpisode.video_url.includes('placeholder') && !currentEpisode.video_url.includes('ocean_waves')) {
+            setIsEpisodeAvailable(true);
             finalUrl = currentEpisode.video_url;
-            streamType = 'CATALOG_FALLBACK_STREAM';
+            streamType = 'CATALOG_VERIFIED_STREAM';
             mediaSource = 'currentEpisode.video_url (Catalog Seed)';
-            decisionReason = 'Backend stream API unavailable (Network/Staging). Falling back gracefully to catalog media.';
+            decisionReason = 'Backend stream API unavailable; using verified catalog media.';
             setMediaError(null);
           } else {
-            try {
-              const cached = await mediaStore.findEpisodeMedia({
-                seriesId: sId,
-                seriesTitle: currentStory?.title,
-                episodeNumber: epNum,
-                episodeId: epId,
-                title: currentEpisode.title,
-                videoUrl: currentEpisode.video_url,
-              });
-              if (cached) {
-                finalUrl = cached;
-                streamType = 'LOCAL_INDEXED_DB_BLOB';
-                mediaSource = 'mediaStore.findEpisodeMedia';
-                decisionReason = 'Backend unavailable; resolved from local IndexedDB';
-                setMediaError(null);
-              } else {
-                finalUrl = '/videos/ocean_waves.mp4';
-                streamType = 'SEED_FALLBACK_STREAM';
-                mediaSource = 'Default Seed Video';
-                decisionReason = 'Backend unavailable; using default seed video fallback';
-                setMediaError(null);
-              }
-            } catch {
-              finalUrl = '/videos/ocean_waves.mp4';
-              streamType = 'SEED_FALLBACK_STREAM';
-              mediaSource = 'Default Seed Video';
-              decisionReason = 'Backend unavailable; using default seed video fallback';
-              setMediaError(null);
-            }
+            setIsEpisodeAvailable(false);
+            setAvailabilityStatusLabel('Coming Soon');
+            finalUrl = '';
+            streamType = 'UNAVAILABLE_GATED';
+            mediaSource = 'Network Fallback Gate';
+            decisionReason = 'Backend unavailable and no verified master exists; gated truthfully';
+            setMediaError(null);
           }
         }
       }
@@ -563,6 +587,20 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
           region_code: 'ZA',
         });
       }
+
+      // Phase 6 Authoritative Telemetry: PLAYBACK_STARTED
+      if (currentStory && currentEpisode) {
+        telemetryService.track({
+          event_family: 'WATCH',
+          event_type: 'PLAYBACK_STARTED',
+          content_id: currentEpisode.id,
+          series_id: currentStory.id,
+          episode_id: currentEpisode.id,
+          duration_seconds: currentEpisode.duration_seconds || 90.0,
+          position_seconds: 0.0,
+          source: 'VERTICAL_PLAYER'
+        });
+      }
     }
   }, [episodeId, currentStory, userId, brandConfig]);
 
@@ -591,6 +629,20 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
     const dur = videoRef.current.duration || duration;
     setCurrentTime(curr);
     setProgress((curr / dur) * 100);
+
+    // Phase 6 Bounded Milestone Telemetry (25%, 50%, 75%, 90%) with once-per-session guard
+    const pct = dur > 0 ? (curr / dur) * 100 : 0;
+    if (currentStory && currentEpisode) {
+      if (pct >= 25 && pct < 50) {
+        telemetryService.track({ event_family: 'WATCH', event_type: 'PLAYBACK_PROGRESS', content_id: currentEpisode.id, series_id: currentStory.id, episode_id: currentEpisode.id, position_seconds: curr, duration_seconds: dur, milestone_pct: 25 });
+      } else if (pct >= 50 && pct < 75) {
+        telemetryService.track({ event_family: 'WATCH', event_type: 'PLAYBACK_PROGRESS', content_id: currentEpisode.id, series_id: currentStory.id, episode_id: currentEpisode.id, position_seconds: curr, duration_seconds: dur, milestone_pct: 50 });
+      } else if (pct >= 75 && pct < 90) {
+        telemetryService.track({ event_family: 'WATCH', event_type: 'PLAYBACK_PROGRESS', content_id: currentEpisode.id, series_id: currentStory.id, episode_id: currentEpisode.id, position_seconds: curr, duration_seconds: dur, milestone_pct: 75 });
+      } else if (pct >= 90 && pct < 99) {
+        telemetryService.track({ event_family: 'WATCH', event_type: 'PLAYBACK_PROGRESS', content_id: currentEpisode.id, series_id: currentStory.id, episode_id: currentEpisode.id, position_seconds: curr, duration_seconds: dur, milestone_pct: 90 });
+      }
+    }
 
     // Dynamic subtitle lines localized to South Africa & Pan-African languages
     if (curr < 6) {
@@ -893,8 +945,38 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
         </div>
       )}
 
-      {/* Video Element & DRM Transparent Protective Shield */}
-      {isUnlocked ? (
+      {/* Video Element & DRM Transparent Protective Shield OR Truthful Gated Card */}
+      {!isEpisodeAvailable ? (
+        <div className="relative w-full h-full bg-[#0E0F12] flex flex-col items-center justify-center p-6 text-center select-none">
+          <img
+            src={currentEpisode.thumbnail_url || currentStory.cover_image}
+            alt={currentEpisode.title}
+            className="absolute inset-0 w-full h-full object-cover filter blur-md brightness-30"
+          />
+          <div className="relative z-10 max-w-xs space-y-3">
+            <div className="w-14 h-14 rounded-full bg-welele-surface border border-white/15 flex items-center justify-center mx-auto text-welele-orange shadow-xl shadow-orange-500/10">
+              <Film className="w-7 h-7" />
+            </div>
+            <span className="inline-block text-[10px] font-black uppercase tracking-widest text-welele-gold bg-amber-500/15 border border-amber-500/30 px-3 py-1 rounded-[7px]">
+              {availabilityStatusLabel} • In Production
+            </span>
+            <h3 className="text-lg font-black text-white font-cinematic">
+              Episode {currentEpisode.episode_number}: {currentEpisode.title}
+            </h3>
+            {currentEpisode.synopsis && currentEpisode.synopsis !== 'NOT_SPECIFIED' && (
+              <p className="text-xs text-welele-muted line-clamp-3">
+                {currentEpisode.synopsis}
+              </p>
+            )}
+            <button
+              onClick={() => setIsDrawerOpen(true)}
+              className="mt-4 px-4 py-2.5 rounded-[7px] bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/15 transition-all cursor-pointer"
+            >
+              Browse Episodes Index
+            </button>
+          </div>
+        </div>
+      ) : isUnlocked ? (
         <div className="relative w-full h-full bg-black overflow-hidden">
           {/* Welele Brand Ident Overlay (GAP-002 Brand Identity) */}
           {isIdentPlaying && (

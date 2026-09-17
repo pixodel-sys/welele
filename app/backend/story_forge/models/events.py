@@ -19,6 +19,7 @@ class ChronologyEvent(BaseModel):
     story_id: str
     state_version: int = 1
     event_sequence: int  # 1-indexed narrative sequence
+    anchor_type: Optional[str] = None  # e.g. INCITING_DISRUPTION, POINT_OF_NO_RETURN, MIDPOINT_REVELATION, DARK_NIGHT, CLIMAX, RESOLUTION
     story_time: Optional[str] = None  # e.g., "Day 1, 14:00" or "Present Day - Morning"
     headline: str
     description: str

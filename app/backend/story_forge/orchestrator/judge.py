@@ -29,7 +29,7 @@ class ForgeJudge:
         target = target_milestone or MilestoneEnum.M3_FORGE_COMPLETE
         deps = self.repository.get_dependencies(story_id)
         prod_decisions = self.repository.get_production_decisions(story_id)
-        events = self.repository.get_events(story_id)
+        events = (state.chronology if (hasattr(state, 'chronology') and state.chronology) else self.repository.get_events(story_id))
 
         unresolved_deps = [
             d for d in deps
@@ -103,10 +103,27 @@ class ForgeJudge:
         # =====================================================================
         m2_passed = m1_passed
         if m1_passed:
-            # Six canonical chronology anchors: INCITING_DISRUPTION, POINT_OF_NO_RETURN, MIDPOINT_REVELATION, DARK_NIGHT, CLIMAX, RESOLUTION
-            if len(events) < 6:
+            # Six chronology anchors are structural requirements, not six mandatory manually-created event records.
+            # Explicit endings are canonical narrative information and participate in completion evaluation.
+            all_chronology = (state.chronology if (hasattr(state, 'chronology') and state.chronology) else events)
+            explicit_ending = getattr(state, 'explicit_ending_declared', False)
+
+            has_structural_arc = False
+            if len(all_chronology) >= 6:
+                has_structural_arc = True
+            elif explicit_ending and len(all_chronology) >= 3:
+                has_structural_arc = True
+            else:
+                anchor_types = {getattr(e, 'anchor_type', None) for e in all_chronology if getattr(e, 'anchor_type', None)}
+                if explicit_ending:
+                    anchor_types.add("RESOLUTION")
+                core_anchors = {"INCITING_DISRUPTION", "POINT_OF_NO_RETURN", "MIDPOINT_REVELATION", "DARK_NIGHT", "CLIMAX", "RESOLUTION"}
+                if len(anchor_types.intersection(core_anchors)) >= 4 and ("RESOLUTION" in anchor_types or explicit_ending):
+                    has_structural_arc = True
+
+            if not has_structural_arc:
                 m2_passed = False
-                missing_invariants.append(f"M2_SIX_CHRONOLOGY_ANCHORS_REQUIRED (found {len(events)}/6)")
+                missing_invariants.append(f"M2_SIX_CHRONOLOGY_ANCHORS_REQUIRED (structural arc incomplete: found {len(all_chronology)} events, explicit_ending={explicit_ending})")
 
             # Narrative plant payoff integrity
             has_unresolved_plants = any(

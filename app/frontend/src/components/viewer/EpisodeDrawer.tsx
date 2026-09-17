@@ -68,7 +68,8 @@ export const EpisodeDrawer: React.FC<EpisodeDrawerProps> = ({
         <div className="flex-1 overflow-y-auto space-y-2.5 pr-1">
           {story.episodes.map((ep) => {
             const isCurrent = currentEpisode.id === ep.id;
-            const isUnlocked = ep.is_free || unlockedEpisodes.has(ep.id);
+            const isAvailable = !(ep as any).is_empty_draft && (ep as any).readiness_state !== 'DRAFT_EMPTY' && !ep.video_url?.includes('placeholder');
+            const isUnlocked = isAvailable && (ep.is_free || unlockedEpisodes.has(ep.id));
 
             return (
               <div
@@ -88,22 +89,26 @@ export const EpisodeDrawer: React.FC<EpisodeDrawerProps> = ({
                   <img
                     src={ep.thumbnail_url}
                     alt={ep.title}
-                    className="w-full h-full object-cover"
+                    className={`w-full h-full object-cover ${!isAvailable ? 'filter blur-[1px] brightness-50' : ''}`}
                   />
                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                     {isCurrent ? (
                       <div className="w-6 h-6 rounded-[7px] bg-welele-orange text-black flex items-center justify-center font-bold text-xs">
                         ▶
                       </div>
+                    ) : !isAvailable ? (
+                      <Film className="w-4 h-4 text-white/50" />
                     ) : isUnlocked ? (
                       <Play className="w-4 h-4 text-white/80" />
                     ) : (
                       <Lock className="w-4 h-4 text-welele-gold" />
                     )}
                   </div>
-                  <span className="absolute bottom-1 right-1 px-1 py-0.2 rounded-[7px] bg-black/80 text-[9px] text-white/90 font-mono">
-                    {ep.duration_seconds}s
-                  </span>
+                  {ep.duration_seconds > 0 && isAvailable && (
+                    <span className="absolute bottom-1 right-1 px-1 py-0.2 rounded-[7px] bg-black/80 text-[9px] text-white/90 font-mono">
+                      {ep.duration_seconds}s
+                    </span>
+                  )}
                 </div>
 
                 {/* Episode Details */}
@@ -112,22 +117,25 @@ export const EpisodeDrawer: React.FC<EpisodeDrawerProps> = ({
                     <span className="text-[11px] font-bold text-welele-orange">
                       EP {ep.episode_number}
                     </span>
-                    {!isUnlocked && (
-                      <span className="text-[10px] font-extrabold text-welele-gold px-1.5 py-0.5 rounded-[7px] bg-amber-500/15 border border-amber-500/30 flex items-center gap-0.5">
-                        🪙 {ep.coin_price || 5}
+                    {!isAvailable ? (
+                      <span className="text-[9px] font-black text-amber-300 px-1.5 py-0.5 rounded-[7px] bg-amber-500/20 border border-amber-500/40">
+                        COMING SOON
                       </span>
-                    )}
-                    {ep.is_free && (
+                    ) : isUnlocked && ep.is_free ? (
                       <span className="text-[10px] font-bold text-emerald-400 px-1.5 py-0.5 rounded-[7px] bg-emerald-500/15 border border-emerald-500/30">
                         FREE
                       </span>
-                    )}
+                    ) : !isUnlocked ? (
+                      <span className="text-[10px] font-extrabold text-welele-gold px-1.5 py-0.5 rounded-[7px] bg-amber-500/15 border border-amber-500/30 flex items-center gap-0.5">
+                        🪙 {ep.coin_price || 5}
+                      </span>
+                    ) : null}
                   </div>
                   <h4 className="text-xs font-bold text-white truncate mt-0.5">
                     {ep.title}
                   </h4>
                   <p className="text-[11px] text-welele-muted line-clamp-2 mt-0.5">
-                    {ep.synopsis}
+                    {ep.synopsis && ep.synopsis !== 'NOT_SPECIFIED' ? ep.synopsis : 'In active production'}
                   </p>
                 </div>
               </div>

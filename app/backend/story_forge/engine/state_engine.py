@@ -20,6 +20,9 @@ from ..models import (
 from ..validation import StoryValidator, ValidationResult
 
 
+from .entity_registry import EntityRegistry, ResolutionOutcome
+
+
 class StateMutationError(Exception):
     """Raised when mutation application or validation fails."""
     def __init__(self, message: str, validation_result: Optional[ValidationResult] = None):
@@ -78,43 +81,21 @@ class StateEngine:
         fallback_name: Optional[str] = None
     ) -> Tuple[str, CharacterState]:
         """
-        Resolves or creates a canonical character entry, matching exact keys,
-        normalized underscore/space variations, role aliases, or explicit fallback names.
-        Prevents duplicate alias key pollution (e.g., 'Zodwa Khumalo' vs 'Zodwa_Khumalo').
+        Resolves or creates a canonical character entry using EntityRegistry (LOCK 2 & LOCK 3).
+        Enforces stable IDs and prevents silent merging.
         """
-        # 1. Exact match
-        if char_key in state.characters:
-            return char_key, state.characters[char_key]
-
-        # 2. Normalized match against existing character keys
-        norm_key = char_key.replace("_", " ").strip().lower()
-        for name, c in state.characters.items():
-            if name.replace("_", " ").strip().lower() == norm_key:
-                return name, c
-            if c.name and c.name.replace("_", " ").strip().lower() == norm_key:
-                return name, c
-
-        # 3. Role alias match (e.g. 'protagonist')
-        if char_key.upper() in CharacterRole.__members__:
-            role_enum = CharacterRole[char_key.upper()]
-            for name, c in state.characters.items():
-                if c.role == role_enum:
-                    return name, c
-
-        # 4. If a fallback/explicit name was supplied in the payload
-        if fallback_name:
-            norm_fallback = fallback_name.replace("_", " ").strip().lower()
-            for name, c in state.characters.items():
-                if name.replace("_", " ").strip().lower() == norm_fallback:
-                    return name, c
-                if c.name and c.name.replace("_", " ").strip().lower() == norm_fallback:
-                    return name, c
-
-        # 5. Create new character entry using fallback_name or char_key normalized
-        target_name = fallback_name or char_key.replace("_", " ").strip()
-        new_char = CharacterState(name=target_name)
-        state.characters[target_name] = new_char
-        return target_name, new_char
+        candidate = fallback_name or char_key
+        res = EntityRegistry.resolve_entity(state, candidate)
+        if res.outcome == ResolutionOutcome.MATCH and res.character and res.character_key:
+            return res.character_key, res.character
+        elif res.outcome == ResolutionOutcome.AMBIGUOUS:
+            raise StateMutationError(f"Ambiguous character reference: {res.ambiguity_reason}")
+        else:
+            # ResolutionOutcome.NEW
+            target_name = fallback_name or char_key.replace("_", " ").strip()
+            new_char = res.character or CharacterState(name=target_name)
+            state.characters[target_name] = new_char
+            return target_name, new_char
 
     def _apply_single_mutation(self, state: StoryState, mutation: StateMutation) -> None:
         path = mutation.target_path
@@ -129,6 +110,13 @@ class StateEngine:
             state.theme = str(val)
         elif path == "tone":
             state.tone = str(val)
+        elif path == "explicit_ending_declared":
+            state.explicit_ending_declared = bool(val)
+        elif path == "chronology" or path.startswith("chronology"):
+            if isinstance(val, list):
+                state.chronology.extend(val)
+            elif isinstance(val, dict):
+                state.chronology.append(val)
 
         # Character mutations
         elif path.startswith("characters."):

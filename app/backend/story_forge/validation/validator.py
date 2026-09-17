@@ -32,20 +32,40 @@ class StoryValidator:
                     recovery=f"Set role to one of {valid_roles} or keep UNRESOLVED."
                 )
 
-        # 2. Protect established FACTs from being silently overwritten with empty/null
+        # 2. Protect established FACTs against CANON_CONFLICT
         if path.startswith("characters."):
             parts = path.split(".")
             char_name = parts[1]
             if char_name in current_state.characters:
                 char = current_state.characters[char_name]
-                if char.status == StateStatus.FACT and mutation.new_value is None:
-                    result.add_error(
-                        entity=char_name,
-                        path=path,
-                        conflict=f"Attempted to overwrite established FACT character {char_name} with null.",
-                        source_rule="RULE_IMMUTABLE_CANONICAL_FACT",
-                        recovery="Use explicit state transition with deprecation rationale rather than null deletion."
-                    )
+                if char.status == StateStatus.FACT:
+                    # Downgrade to UNRESOLVED / UNKNOWN
+                    if path.endswith(".status") and str(mutation.new_value).upper() in ("UNRESOLVED", "UNKNOWN"):
+                        result.add_error(
+                            entity=char_name,
+                            path=path,
+                            conflict=f"CANON_CONFLICT: Cannot downgrade established FACT character '{char_name}' to status '{mutation.new_value}'.",
+                            source_rule="CANON_CONFLICT",
+                            recovery="Established canonical facts cannot be invalidated without formal deprecation transition."
+                        )
+                    # Null/empty overwrite
+                    elif mutation.new_value is None:
+                        result.add_error(
+                            entity=char_name,
+                            path=path,
+                            conflict=f"CANON_CONFLICT: Attempted to overwrite established FACT character '{char_name}' with null.",
+                            source_rule="CANON_CONFLICT",
+                            recovery="Use explicit state transition with deprecation rationale rather than null deletion."
+                        )
+                    # Attempt to strip established core motivation
+                    elif path.endswith(".core_motivation") and (not mutation.new_value or not str(mutation.new_value).strip()):
+                        result.add_error(
+                            entity=char_name,
+                            path=path,
+                            conflict=f"CANON_CONFLICT: Attempted to erase established core motivation for '{char_name}'.",
+                            source_rule="CANON_CONFLICT",
+                            recovery="Retain existing motivation or update with substantive dramatic motivation."
+                        )
 
         return result
 

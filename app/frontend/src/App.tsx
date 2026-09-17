@@ -56,10 +56,38 @@ export const App: React.FC = () => {
     return () => window.removeEventListener('popstate', handleLocation);
   }, [setMode]);
 
+  // Right-click / DRM protection is strictly scoped to the Viewer section.
+  // Admin and Production (and Creator) sections have standard browser context menus enabled for workflow & spellcheck.
+  const isViewerMode = mode === 'viewer';
+
   const { isSecurityAlertActive, securityMessage } = useContentProtection({
-    enabled: true,
+    enabled: isViewerMode,
     watermarkText: `Welele DRM • ${userId || 'ZA_STREAM'}`,
   });
+
+  // Enable native browser spell-checking across all creator/admin text inputs and textareas
+  useEffect(() => {
+    if (mode === 'viewer') return;
+
+    const enableSpellCheck = () => {
+      const editableFields = document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
+        'input[type="text"], input:not([type]), textarea'
+      );
+      editableFields.forEach((field) => {
+        if (!field.hasAttribute('spellcheck') || field.getAttribute('spellcheck') === 'false') {
+          field.setAttribute('spellcheck', 'true');
+        }
+      });
+    };
+
+    enableSpellCheck();
+    const observer = new MutationObserver(() => {
+      enableSpellCheck();
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, [mode]);
 
   const [activeViewerTab, setActiveViewerTab] = useState<'home' | 'discover' | 'foryou' | 'mylist' | 'profile'>('home');
   const [isWatchingFullscreen, setIsWatchingFullscreen] = useState<boolean>(false);

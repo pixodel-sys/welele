@@ -739,6 +739,16 @@ class SeriesRepository(BaseRepository):
         all_series = self.list_feed()
         return next((s for s in all_series if s["id"] == series_id), None)
 
+    def get_series(self, series_id: str) -> Optional[Dict[str, Any]]:
+        all_series = self.local_get("series") or []
+        return next((s for s in all_series if s.get("id") == series_id), None)
+
+    def get_episodes_for_series(self, series_id: str) -> List[Dict[str, Any]]:
+        all_episodes = self.local_get("episodes") or []
+        eps = [e for e in all_episodes if e.get("series_id") == series_id]
+        eps.sort(key=lambda x: x.get("episode_number", 0))
+        return eps
+
     def get_creator_series(self, creator_id: Optional[str] = None) -> List[Dict[str, Any]]:
         """
         Creator-facing Series roster returning ALL episodes across all lifecycle states

@@ -524,6 +524,7 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
+                  spellCheck={true}
                   placeholder="e.g. The Queen's Ultimatum, The Discovery at Midnight"
                   className="w-full bg-[#14151B] px-3.5 py-2.5 rounded-[7px] border border-white/10 text-xs text-white focus:outline-none focus:border-pink-500 placeholder:text-welele-muted"
                 />
@@ -538,6 +539,7 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
                   rows={3}
                   value={synopsis}
                   onChange={(e) => setSynopsis(e.target.value)}
+                  spellCheck={true}
                   placeholder="Short teaser logline describing the drama or turning point..."
                   className="w-full bg-[#14151B] px-3.5 py-2.5 rounded-[7px] border border-white/10 text-xs text-white focus:outline-none focus:border-pink-500 placeholder:text-welele-muted"
                 />
@@ -783,6 +785,7 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
                   type="text"
                   value={cliffhangerHook}
                   onChange={(e) => setCliffhangerHook(e.target.value)}
+                  spellCheck={true}
                   placeholder="e.g., Lerato opens the safe to find it completely empty..."
                   className="w-full bg-[#14151B] px-3.5 py-2.5 rounded-[7px] border border-white/10 text-xs text-white focus:outline-none focus:border-pink-500"
                 />

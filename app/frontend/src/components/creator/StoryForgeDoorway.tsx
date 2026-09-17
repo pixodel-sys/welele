@@ -388,6 +388,7 @@ export const StoryForgeDoorway: React.FC<StoryForgeDoorwayProps> = ({ onSendToPr
             type="text"
             value={promptHook}
             onChange={(e) => setPromptHook(e.target.value)}
+            spellCheck={true}
             placeholder="E.g. A young chef uncovers a counterfeit coin ring in her restaurant..."
             className="w-full bg-[#0B0C10] px-3.5 py-2.5 rounded-[7px] border border-white/10 text-xs text-white placeholder-white/20 focus:outline-none focus:border-[#E6007A]"
           />
@@ -594,6 +595,7 @@ export const StoryForgeDoorway: React.FC<StoryForgeDoorwayProps> = ({ onSendToPr
                 rows={4}
                 value={dialogueInput}
                 onChange={(e) => setDialogueInput(e.target.value)}
+                spellCheck={true}
                 placeholder="Enter character line to localize..."
                 className="w-full bg-[#0B0C10] p-3 rounded-[7px] border border-white/10 text-xs text-white focus:outline-none focus:border-welele-gold"
               />

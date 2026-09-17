@@ -40,7 +40,9 @@ class CharacterRelationship(BaseModel):
 
 
 class CharacterState(BaseModel):
+    character_id: str = Field(default_factory=lambda: str(uuid4()))
     name: str
+    aliases: List[str] = Field(default_factory=list)
     role: CharacterRole = CharacterRole.UNRESOLVED
     archetype: Optional[str] = None
     core_motivation: Optional[str] = None
@@ -93,6 +95,7 @@ class WorldSetting(BaseModel):
 class StoryState(BaseModel):
     """
     Authoritative canonical state snapshot for a Story Forge story version.
+    Chronology is part of canonical Story State (Repository is persistence).
     """
     story_id: str
     state_version: int = 1
@@ -104,6 +107,8 @@ class StoryState(BaseModel):
     tone: Optional[str] = None
     world: WorldSetting = Field(default_factory=WorldSetting)
     characters: Dict[str, CharacterState] = Field(default_factory=dict)
+    chronology: List[Any] = Field(default_factory=list)
+    explicit_ending_declared: bool = False
     knowledge_states: List[KnowledgeState] = Field(default_factory=list)
     plants: List[NarrativePlant] = Field(default_factory=list)
     raw_creator_notes: List[str] = Field(default_factory=list)

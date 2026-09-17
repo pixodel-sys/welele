@@ -36,6 +36,11 @@
     -webkit-tap-highlight-color: transparent;
     min-height: 100vh;
   }
+
+  input, textarea {
+    user-select: text;
+    -webkit-user-select: text;
+  }
 }
 
 .cinematic-app-bg {

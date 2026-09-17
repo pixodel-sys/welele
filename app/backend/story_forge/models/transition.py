@@ -95,6 +95,7 @@ class ForgeTransition(BaseModel):
     proposal: Optional[str] = None
     creator_response: Optional[str] = None
     state_changes: List[StateMutation] = Field(default_factory=list)
+    rejected_mutations: List[StateMutation] = Field(default_factory=list)
     consequences: List[Consequence] = Field(default_factory=list)
     validation_status: str = "VALID"
     validation_errors: List[str] = Field(default_factory=list)

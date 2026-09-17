@@ -41,8 +41,15 @@ class Database:
                         "moderation_queue": [],
                         "experience_layouts": [],
                         "telemetry_events": [],
+                        "viewer_telemetry_events": [],
+                        "production_bibles": [],
+                        "episode_blueprints": [],
+                        "episode_production_packs": [],
                         "intelligence_evidence": [],
                         "intelligence_recommendations": [],
+                        "content_intelligence_records": [],
+                        "content_decisions": [],
+                        "content_intelligence_evidence_packages": [],
                         "security_audit_ledger": []
                     }
                     cls._instance._supabase = None
@@ -125,6 +132,13 @@ class Database:
         with self._lock:
             if collection not in self.data:
                 self.data[collection] = []
+            item_id = item.get("id")
+            if item_id:
+                for idx, existing_item in enumerate(self.data[collection]):
+                    if existing_item.get("id") == item_id:
+                        self.data[collection][idx] = item
+                        self._save()
+                        return item
             self.data[collection].append(item)
             self._save()
 

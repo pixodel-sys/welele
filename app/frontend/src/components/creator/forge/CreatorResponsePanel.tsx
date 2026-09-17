@@ -159,6 +159,7 @@ export const CreatorResponsePanel: React.FC<CreatorResponsePanelProps> = ({
               value={responseText}
               onChange={(e) => setResponseText(e.target.value)}
               disabled={isLoading}
+              spellCheck={true}
               rows={3}
               placeholder={
                 action === 'PROPOSE'

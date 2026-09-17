@@ -311,7 +311,7 @@ class LLMReasoningAdapter(ReasoningAdapter):
         parts.append("\n### 8. INSTRUCTION")
         parts.append(
             "Analyze the active dependency against the established canonical state and return your structured reasoning decision.\n"
-            "- Character Mutations: Use canonical character name as target path (e.g. 'characters.Zodwa_Khumalo' or 'characters.Zodwa') with 'name' and 'role' fields.\n"
+            "- Character Mutations: Use canonical character name as target path (e.g. 'characters.CharacterName') with 'name' and 'role' fields.\n"
             "- Creator Response Handling: If the creator response resolves the active dependency, use INFER to commit state changes. If it provides contextual lore without resolving the specific dramatic requirement, use ASK to formulate a focused clarifying question offering clear options based on the newly supplied context."
         )
 

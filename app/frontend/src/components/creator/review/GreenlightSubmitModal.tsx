@@ -80,6 +80,7 @@ export const GreenlightSubmitModal: React.FC<GreenlightSubmitModalProps> = ({
             <textarea
               value={creatorNotes}
               onChange={(e) => setCreatorNotes(e.target.value)}
+              spellCheck={true}
               placeholder="Add any specific notes for Welele editorial triage (e.g. casting vision, target audience nuances, production timeline)..."
               rows={3}
               className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-[7px] text-white text-xs placeholder:text-zinc-600 focus:border-emerald-500 focus:outline-none resize-none"

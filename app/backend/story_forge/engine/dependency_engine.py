@@ -100,8 +100,11 @@ class DependencyEngine:
                 has_rel_2 = any(r.target_character == c1 for r in c2_obj.relationships)
                 if not has_rel_1 and not has_rel_2:
                     dep_key = f"REL_{c1.upper()}_{c2.upper()}"
-                    # High leverage for catalyst/confidant core dynamic
-                    is_core = ("NKOSINATHI" in dep_key and "TEBOGO" in dep_key)
+                    # High leverage for core dramatic polarity (e.g. Protagonist vs Antagonist/Supporting)
+                    is_core = (
+                        (c1_obj.role == CharacterRole.PROTAGONIST and c2_obj.role in (CharacterRole.ANTAGONIST, CharacterRole.SUPPORTING))
+                        or (c2_obj.role == CharacterRole.PROTAGONIST and c1_obj.role in (CharacterRole.ANTAGONIST, CharacterRole.SUPPORTING))
+                    )
                     lev = 8 if is_core else 6
                     urg = 8 if is_core else 6
                     detected.append(
@@ -165,7 +168,7 @@ class DependencyEngine:
         logline_lower = (state.logline or "").lower()
         has_counterforce_indicator = any(
             term in logline_lower
-            for term in ["rival", "debt owed", "rival clan", "antagonist", "enemy", "nemesis", "syndicate", "conspiracy", "threat"]
+            for term in ["rival", "adversary", "opposing", "antagonist", "enemy", "nemesis", "syndicate", "conspiracy", "threat"]
         )
         has_antagonist_or_counterforce = any(
             c.role in (CharacterRole.ANTAGONIST, CharacterRole.SUPPORTING)
@@ -180,7 +183,7 @@ class DependencyEngine:
                     dependency_type=DependencyType.CHARACTER,
                     status=DependencyStatus.DETECTED,
                     target_entity="COUNTER_FORCE",
-                    description="The premise establishes an opposing force, rival entity, or creditor clan that remains undefined in canonical state.",
+                    description="The premise establishes an opposing force or counterforce that remains undefined in canonical state.",
                     components=PriorityComponents(impact=8, urgency=8, risk=7, leverage=8, cost=2),
                     suggested_skill=SkillEnum.CONNECTOR.value
                 )
@@ -263,6 +266,123 @@ class DependencyEngine:
             return SkillEnum.FORGER
         return SkillEnum.EXCAVATOR
 
+    def reconcile_satisfied_dependencies(
+        self,
+        state: StoryState,
+        events: Optional[List[ChronologyEvent]] = None,
+        existing_dependencies: Optional[List[Dependency]] = None
+    ) -> List[Dependency]:
+        """
+        Reconciles existing dependencies against the entire canonical StoryState and chronology.
+        LOCK 5: Every creator response triggers 'What did we just learn?' across the entire graph.
+        Returns the list of dependencies that were newly marked RESOLVED.
+        """
+        if not existing_dependencies:
+            return []
+
+        all_events = (state.chronology if (hasattr(state, 'chronology') and state.chronology) else (events or []))
+        resolved_deps: List[Dependency] = []
+
+        logline_valid = bool(state.logline and len(state.logline.strip()) >= 20)
+        protagonists = [
+            c for c in state.characters.values()
+            if c.role == CharacterRole.PROTAGONIST or (len(state.characters) == 1 and c.status == StateStatus.FACT)
+        ]
+        has_valid_protagonist = len(protagonists) > 0 and all(bool(c.core_motivation and c.core_motivation.strip()) for c in state.characters.values())
+        has_counterforce = (
+            any(c.role == CharacterRole.ANTAGONIST for c in state.characters.values()) or
+            len(state.characters) >= 2 or
+            len(state.world.rules_and_lore) > 0 or
+            any("conflict" in (getattr(p, 'plant_name', None) or p.element_code).lower() or "retribution" in (getattr(p, 'plant_name', None) or p.element_code).lower() for p in state.plants)
+        )
+        has_relationships = any(len(c.relationships) > 0 for c in state.characters.values()) or len(state.characters) >= 2
+
+        # Anchor types present
+        anchor_types = {getattr(e, 'anchor_type', None) for e in all_events if getattr(e, 'anchor_type', None)}
+        explicit_ending = getattr(state, "explicit_ending_declared", False)
+        if explicit_ending:
+            anchor_types.add("RESOLUTION")
+
+        num_events = len(all_events)
+
+        for dep in existing_dependencies:
+            if dep.status in (DependencyStatus.RESOLVED, DependencyStatus.DEFERRED, DependencyStatus.DELIBERATELY_UNKNOWN):
+                continue
+
+            key = dep.dependency_key
+            is_satisfied = False
+
+            # Premise & Logline
+            if key == "PREMISE_LOGLINE_SPECIFICATION" and logline_valid:
+                is_satisfied = True
+
+            # Protagonist definition
+            elif key == "PREMISE_PROTAGONIST_DEFINITION" and len(state.characters) > 0:
+                is_satisfied = True
+
+            # Character motivations
+            elif key.startswith("CHAR_MOTIVATION_"):
+                target = dep.target_entity or key.replace("CHAR_MOTIVATION_", "")
+                target_norm = target.replace("_", " ").lower()
+                for c in state.characters.values():
+                    if c.name.lower() == target_norm or c.name.upper().replace(" ", "_") == target.upper():
+                        if c.core_motivation and c.core_motivation.strip():
+                            is_satisfied = True
+                            break
+
+            # Counterforce
+            elif key == "PREMISE_COUNTERFORCE_DEFINITION" and has_counterforce:
+                is_satisfied = True
+
+            # Relationship dynamic
+            elif (key.startswith("REL_") or key == "RELATIONSHIP_DYNAMIC_CORE") and has_relationships:
+                is_satisfied = True
+
+            # World rules
+            elif key == "WORLD_RULE_SPECIFICATION":
+                if len(state.world.rules_and_lore) > 0 or any("supernatural" in (c.core_motivation or "").lower() for c in state.characters.values()):
+                    is_satisfied = True
+
+            # Chronology anchors
+            elif key.startswith("EVENT_01_INCITING_DISRUPTION"):
+                if "INCITING_DISRUPTION" in anchor_types or num_events >= 1:
+                    is_satisfied = True
+            elif key.startswith("EVENT_02_POINT_OF_NO_RETURN"):
+                if "POINT_OF_NO_RETURN" in anchor_types or num_events >= 2:
+                    is_satisfied = True
+            elif key.startswith("EVENT_03_MIDPOINT_REVELATION"):
+                if "MIDPOINT_REVELATION" in anchor_types or num_events >= 3:
+                    is_satisfied = True
+            elif key.startswith("EVENT_04_DARK_NIGHT"):
+                if "DARK_NIGHT" in anchor_types or num_events >= 4:
+                    is_satisfied = True
+            elif key.startswith("EVENT_05_CLIMAX"):
+                if "CLIMAX" in anchor_types or num_events >= 5:
+                    is_satisfied = True
+            elif key.startswith("EVENT_06_RESOLUTION"):
+                if "RESOLUTION" in anchor_types or explicit_ending or num_events >= 6:
+                    is_satisfied = True
+
+            # If explicit ending was declared and story arc has established events (>= 3 beats):
+            # All remaining event spine dependencies are satisfied!
+            if explicit_ending and num_events >= 3 and key.startswith("EVENT_0"):
+                is_satisfied = True
+
+            # Narrative plants
+            elif key.startswith("PLANT_PAYOFF_LINK_"):
+                plant_target = dep.target_entity.lower()
+                for p in state.plants:
+                    p_name = (getattr(p, 'plant_name', None) or p.element_code).lower()
+                    if p_name == plant_target and (p.intended_payoff or p.payoff_status != "PLANTED"):
+                        is_satisfied = True
+                        break
+
+            if is_satisfied:
+                dep.status = DependencyStatus.RESOLVED
+                resolved_deps.append(dep)
+
+        return resolved_deps
+
     def evaluate_required_state_deficiencies(
         self,
         state: StoryState,
@@ -272,10 +392,11 @@ class DependencyEngine:
         """
         Synthesizes required dependencies based on REQUIRED_STATE_SCHEMA_v0.1.
         Idempotent: Inspects existing dependencies to guarantee zero duplicate synthesis.
+        Chronology is evaluated from canonical StoryState.
         """
         synthesized: List[Dependency] = []
         existing_keys = set(d.dependency_key for d in (existing_dependencies or []))
-        events = events or []
+        chronology = state.chronology if (hasattr(state, 'chronology') and state.chronology) else (events or [])
 
         # Helper to add synthesized dependency idempotently
         def add_required(key: str, dtype: DependencyType, target: str, desc: str, skill: SkillEnum, impact: int = 8, urgency: int = 8, risk: int = 7, leverage: int = 8):
@@ -340,14 +461,14 @@ class DependencyEngine:
             any(c.role == CharacterRole.ANTAGONIST for c in state.characters.values()) or
             len(state.characters) >= 2 or
             len(state.world.rules_and_lore) > 0 or
-            any("debt" in (getattr(p, 'plant_name', None) or p.element_code).lower() or "retribution" in (getattr(p, 'plant_name', None) or p.element_code).lower() for p in state.plants)
+            any("conflict" in (getattr(p, 'plant_name', None) or p.element_code).lower() or "retribution" in (getattr(p, 'plant_name', None) or p.element_code).lower() for p in state.plants)
         )
         if not has_counterforce:
             add_required(
                 "PREMISE_COUNTERFORCE_DEFINITION",
                 DependencyType.CHARACTER,
                 "COUNTERFORCE",
-                "A grounded counterforce (opposing character, rival clan, institution, or supernatural force) must be defined.",
+                "A grounded counterforce (opposing character, rival faction, institution, or external pressure) must be defined.",
                 SkillEnum.CONNECTOR,
                 impact=9, urgency=8
             )
@@ -372,7 +493,7 @@ class DependencyEngine:
                 "WORLD_RULE_SPECIFICATION",
                 DependencyType.NARRATIVE,
                 "ARENA_RULES",
-                "Supernatural rules, ancestral debt mechanisms, and consequences must be anchored in state.",
+                "Supernatural rules, operating conditions, limits and consequences must be anchored in state.",
                 SkillEnum.PROPAGATOR,
                 impact=8, urgency=7
             )
@@ -384,28 +505,40 @@ class DependencyEngine:
             return synthesized
 
         # ---------------------------------------------------------------------
-        # M2: EPISODIC_ARC_LOCK Deficiencies (Six Canonical Chronology Anchors)
+        # M2: EPISODIC_ARC_LOCK Deficiencies (Structural Chronology Anchors)
         # ---------------------------------------------------------------------
-        six_canonical_anchors = [
-            ("EVENT_01_INCITING_DISRUPTION", "Inciting Disruption: Father's death / discovery of hidden ancestral debt documents."),
-            ("EVENT_02_POINT_OF_NO_RETURN", "Point of No Return: Protagonist commits to investigate / enters the dangerous arena."),
-            ("EVENT_03_MIDPOINT_REVELATION", "Midpoint Revelation: Hidden truth or escalating counterforce threat is revealed."),
-            ("EVENT_04_DARK_NIGHT", "Dark Night / Low Point: Stakes climax, family under immediate supernatural/hostile threat."),
-            ("EVENT_05_CLIMAX", "Climax: Decisive confrontation between protagonist and counterforce."),
-            ("EVENT_06_RESOLUTION", "Resolution: Final consequence, cost paid, and new state established.")
-        ]
+        explicit_ending = getattr(state, "explicit_ending_declared", False)
 
-        if len(events) < 6:
-            for idx in range(len(events), 6):
-                anchor_key, anchor_desc = six_canonical_anchors[idx]
-                add_required(
-                    anchor_key,
-                    DependencyType.CAUSAL,
-                    f"EVENT_SPINE_{idx+1}",
-                    f"Canonical chronology anchor required: {anchor_desc}",
-                    SkillEnum.CHALLENGER,
-                    impact=8, urgency=7
-                )
+        # If explicit ending was declared and story arc has established events (>= 3 beats):
+        # The six anchors are structural requirements, satisfied by opening + progression + resolution.
+        if explicit_ending and len(chronology) >= 3:
+            pass  # Structural arc satisfied
+        elif len(chronology) >= 6:
+            pass  # 6 distinct chronological anchors satisfied
+        else:
+            existing_anchor_types = {getattr(e, 'anchor_type', None) for e in chronology if getattr(e, 'anchor_type', None)}
+            if explicit_ending:
+                existing_anchor_types.add("RESOLUTION")
+
+            six_canonical_anchors = [
+                ("INCITING_DISRUPTION", "EVENT_01_INCITING_DISRUPTION", "Inciting Disruption: Core event that disrupts the protagonist's status quo and establishes narrative stakes."),
+                ("POINT_OF_NO_RETURN", "EVENT_02_POINT_OF_NO_RETURN", "Point of No Return: Protagonist commits to the dramatic goal and crosses the threshold into the active arena."),
+                ("MIDPOINT_REVELATION", "EVENT_03_MIDPOINT_REVELATION", "Midpoint Revelation: Critical truth surfaces or counterforce threat escalates, shifting dramatic dynamics."),
+                ("DARK_NIGHT", "EVENT_04_DARK_NIGHT", "Dark Night / Low Point: Stakes climax, central vulnerability exposed, and success seems unattainable."),
+                ("CLIMAX", "EVENT_05_CLIMAX", "Climax: Decisive confrontation between protagonist and counterforce resolving core dramatic tension."),
+                ("RESOLUTION", "EVENT_06_RESOLUTION", "Resolution: Final consequences manifest, cost is realized, and a new status quo is established.")
+            ]
+
+            for idx, (anchor_type, anchor_key, anchor_desc) in enumerate(six_canonical_anchors):
+                if anchor_type not in existing_anchor_types and len(chronology) <= idx:
+                    add_required(
+                        anchor_key,
+                        DependencyType.CAUSAL,
+                        f"EVENT_SPINE_{idx+1}",
+                        f"Canonical chronology anchor required: {anchor_desc}",
+                        SkillEnum.CHALLENGER,
+                        impact=8, urgency=7
+                    )
 
         # Narrative plant payoffs
         for p in state.plants:
@@ -421,4 +554,61 @@ class DependencyEngine:
                 )
 
         return synthesized
+
+    @classmethod
+    def format_targeted_deficiency_question(cls, dep: Dependency, state: StoryState) -> str:
+        """
+        Produces an exact, targeted creative question for a specific deficiency.
+        Generic 'What's next?' or open-ended fallbacks are strictly prohibited.
+        """
+        key = dep.dependency_key
+        protagonist_name = "the protagonist"
+        for c in state.characters.values():
+            if c.role == CharacterRole.PROTAGONIST:
+                protagonist_name = c.name
+                break
+
+        if key == "PREMISE_LOGLINE_SPECIFICATION":
+            return "What is the core premise and primary dramatic conflict of this story?"
+
+        if key == "PREMISE_PROTAGONIST_DEFINITION":
+            return "Who is the central protagonist, and what is their immediate situation at the opening?"
+
+        if key.startswith("CHAR_MOTIVATION_"):
+            char_name = dep.target_entity or key.replace("CHAR_MOTIVATION_", "").replace("_", " ").title()
+            return f"What is {char_name}'s core driving motivation and what do they stand to lose?"
+
+        if key == "PREMISE_COUNTERFORCE_DEFINITION":
+            return f"Who or what is the primary opposing force or counterforce standing against {protagonist_name}?"
+
+        if key.startswith("REL_") or key == "RELATIONSHIP_DYNAMIC_CORE":
+            return f"What is the crucial relationship dynamic and emotional tension between {protagonist_name} and the opposing characters?"
+
+        if key == "WORLD_RULE_SPECIFICATION":
+            return "What are the essential governing rules, limits, or consequences operating in this story's world?"
+
+        if key.startswith("EVENT_01_INCITING_DISRUPTION"):
+            return f"What is the inciting disruption that shatters {protagonist_name}'s normal life and launches the story?"
+
+        if key.startswith("EVENT_02_POINT_OF_NO_RETURN"):
+            return f"What commitment or irreversible choice marks {protagonist_name}'s point of no return?"
+
+        if key.startswith("EVENT_03_MIDPOINT_REVELATION"):
+            return f"What pivotal revelation or shift occurs at the midpoint that raises the stakes for {protagonist_name}?"
+
+        if key.startswith("EVENT_04_DARK_NIGHT"):
+            return f"What is the low point or dark night where {protagonist_name}'s vulnerabilities are exposed and failure seems certain?"
+
+        if key.startswith("EVENT_05_CLIMAX"):
+            return f"How does the decisive climax confrontation between {protagonist_name} and the counterforce unfold?"
+
+        if key.startswith("EVENT_06_RESOLUTION"):
+            return f"What is the final resolution and new status quo established after the climactic confrontation?"
+
+        if key.startswith("PLANT_PAYOFF_LINK_"):
+            return f"How does the setup of '{dep.target_entity}' pay off dramatically later in the story?"
+
+        # Fallback to targeted description
+        return f"Regarding {dep.target_entity or 'the narrative'}: {dep.description.rstrip('.')}. How does this develop in your story?"
+
 

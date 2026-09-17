@@ -154,6 +154,7 @@ export const CreateShowModal: React.FC<CreateShowModalProps> = ({
               required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              spellCheck={true}
               placeholder="e.g., Crown of Kumasi, Lagos Nights, Blood Ties"
               className="w-full bg-[#14151B] px-3.5 py-2.5 rounded-[7px] border border-white/10 text-xs text-white placeholder:text-welele-muted focus:outline-none focus:border-pink-500 transition-colors"
             />
@@ -168,6 +169,7 @@ export const CreateShowModal: React.FC<CreateShowModalProps> = ({
               type="text"
               value={tagline}
               onChange={(e) => setTagline(e.target.value)}
+              spellCheck={true}
               placeholder="e.g., In this kingdom, loyalty is paid in blood."
               className="w-full bg-[#14151B] px-3.5 py-2.5 rounded-[7px] border border-white/10 text-xs text-white placeholder:text-welele-muted focus:outline-none focus:border-pink-500 transition-colors"
             />
@@ -182,6 +184,7 @@ export const CreateShowModal: React.FC<CreateShowModalProps> = ({
               rows={2}
               value={synopsis}
               onChange={(e) => setSynopsis(e.target.value)}
+              spellCheck={true}
               placeholder="What is the central conflict and world of this show?"
               className="w-full bg-[#14151B] px-3.5 py-2 rounded-[7px] border border-white/10 text-xs text-white placeholder:text-welele-muted focus:outline-none focus:border-pink-500 transition-colors"
             />

@@ -731,6 +731,7 @@ export const WeleleAdminStudio: React.FC<WeleleAdminStudioProps> = ({ stories })
                       <input
                         type="text"
                         value={selectedSection.title || ''}
+                        spellCheck={true}
                         onChange={(e) => {
                           const updated = manifest.sections.map((s) =>
                             s.section_id === selectedSection.section_id
@@ -751,6 +752,7 @@ export const WeleleAdminStudio: React.FC<WeleleAdminStudioProps> = ({ stories })
                       <input
                         type="text"
                         value={selectedSection.subtitle || ''}
+                        spellCheck={true}
                         onChange={(e) => {
                           const updated = manifest.sections.map((s) =>
                             s.section_id === selectedSection.section_id
@@ -895,6 +897,7 @@ export const WeleleAdminStudio: React.FC<WeleleAdminStudioProps> = ({ stories })
                             type="text"
                             placeholder="e.g. SPOTLIGHT ORIGINAL, TOP 10"
                             value={slot.badge || ''}
+                            spellCheck={true}
                             onChange={(e) => {
                               const updatedItems = [...selectedSection.items];
                               updatedItems[sIdx] = { ...updatedItems[sIdx], badge: e.target.value };
@@ -918,6 +921,7 @@ export const WeleleAdminStudio: React.FC<WeleleAdminStudioProps> = ({ stories })
                             type="text"
                             placeholder="Leave blank to use default title"
                             value={slot.headline_override || ''}
+                            spellCheck={true}
                             onChange={(e) => {
                               const updatedItems = [...selectedSection.items];
                               updatedItems[sIdx] = { ...updatedItems[sIdx], headline_override: e.target.value };
@@ -941,6 +945,7 @@ export const WeleleAdminStudio: React.FC<WeleleAdminStudioProps> = ({ stories })
                             type="text"
                             placeholder="e.g. Watch Now"
                             value={slot.cta_text || ''}
+                            spellCheck={true}
                             onChange={(e) => {
                               const updatedItems = [...selectedSection.items];
                               updatedItems[sIdx] = { ...updatedItems[sIdx], cta_text: e.target.value };

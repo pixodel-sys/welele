@@ -271,6 +271,7 @@ export const ModerationQueue: React.FC = () => {
                             rows={2}
                             value={feedbackInput}
                             onChange={(e) => setFeedbackInput(e.target.value)}
+                            spellCheck={true}
                             className="w-full bg-black/50 px-3 py-2 rounded-[7px] border border-white/10 text-white text-xs focus:outline-none focus:border-amber-500"
                           />
                         </div>
