@@ -219,15 +219,15 @@ class StoryForgeKernel:
                     new_state.chronology.append(ev)
                     self.repository.save_event(ev)
 
-            # Commit updated state
-            self.repository.save_state(new_state)
+            # Commit updated state if mutations were applied
+            if applied_mutations:
+                self.repository.save_state(new_state)
 
         # Ingest caller-supplied new_events if provided
         if new_events:
             for ev in new_events:
                 new_state.chronology.append(ev)
                 self.repository.save_event(ev)
-            self.repository.save_state(new_state)
 
         events = (new_state.chronology if (hasattr(new_state, 'chronology') and new_state.chronology) else self.repository.get_events(story_id))
 
@@ -330,9 +330,12 @@ class StoryForgeKernel:
 
         # If creator provided substantive narrative that was reconciled, formulate targeted deficiency directly
         if creator_narrative and applied_mutations:
+            if active_dep:
+                active_dep.status = DependencyStatus.ACTIVE
+                self.repository.save_dependency(active_dep)
             skill = self.dependency_engine.select_skill(active_dep, new_state) if active_dep else SkillEnum.FORGE_JUDGE
             targeted_q = self.dependency_engine.format_targeted_deficiency_question(active_dep, new_state) if active_dep else None
-            committed_action = AuthorityMode.ASK if active_dep else AuthorityMode.STOP
+            committed_action = AuthorityMode.INFER if applied_mutations else (AuthorityMode.ASK if active_dep else AuthorityMode.STOP)
 
             transition = ForgeTransition(
                 transition_id=transition_id,
@@ -453,18 +456,59 @@ class StoryForgeKernel:
                 active_dep.status = DependencyStatus.ACTIVE
                 self.repository.save_dependency(active_dep)
 
-        # Enforce targeted question (LOCK 7): Generic "What's next?" is prohibited
-        effective_question = decision.question
-        if decision.action == AuthorityMode.ASK:
-            is_generic = not effective_question or any(gen in effective_question.lower() for gen in ["what's next", "what next", "what happens next", "how should the story resolve:"])
-            if is_generic and active_dep:
-                effective_question = self.dependency_engine.format_targeted_deficiency_question(active_dep, new_state)
+        # If active_dep was resolved by this cycle, re-evaluate and advance to next highest-priority OPEN deficiency
+        if active_dep and active_dep.status == DependencyStatus.RESOLVED:
+            all_deps_after = self.repository.get_dependencies(story_id)
+            newly_resolved_after = self.dependency_engine.reconcile_satisfied_dependencies(
+                state=new_state,
+                events=events,
+                existing_dependencies=all_deps_after
+            )
+            for dep in newly_resolved_after:
+                dep.resolved_by_transition_id = transition_id
+                self.repository.save_dependency(dep)
 
-        committed_action = decision.action
-        if decision.action == AuthorityMode.STOP:
-            assessment = self.judge.assess(story_id)
-            if assessment.status != ReadinessStatus.FORGE_COMPLETE:
-                committed_action = AuthorityMode.PROPOSE
+            all_deps_after = self.repository.get_dependencies(story_id)
+            deficient_deps = self.dependency_engine.evaluate_required_state_deficiencies(
+                state=new_state,
+                events=events,
+                existing_dependencies=all_deps_after
+            )
+            for dep in deficient_deps:
+                existing_dep = self.repository.get_dependency_by_key(story_id, dep.dependency_key)
+                if not existing_dep:
+                    self.repository.save_dependency(dep)
+
+            all_deps_after = self.repository.get_dependencies(story_id)
+            open_candidates = [
+                d for d in all_deps_after
+                if d.status in (DependencyStatus.DETECTED, DependencyStatus.ASSESSED, DependencyStatus.PRIORITISED, DependencyStatus.ACTIVE)
+            ]
+            if open_candidates:
+                next_dep = self.dependency_engine.prioritise(all_deps_after)
+                next_dep.status = DependencyStatus.ACTIVE
+                self.repository.save_dependency(next_dep)
+                active_dep = next_dep
+                effective_question = self.dependency_engine.format_targeted_deficiency_question(next_dep, new_state)
+                committed_action = decision.action
+            else:
+                active_dep = None
+                effective_question = None
+                committed_action = decision.action
+        else:
+            # Enforce targeted question (LOCK 7): Generic "What's next?" is prohibited
+            effective_question = decision.question
+            if decision.action == AuthorityMode.ASK:
+                is_generic = not effective_question or any(gen in effective_question.lower() for gen in ["what's next", "what next", "what happens next", "how should the story resolve:"])
+                if is_generic and active_dep:
+                    effective_question = self.dependency_engine.format_targeted_deficiency_question(active_dep, new_state)
+
+            committed_action = decision.action
+            if decision.action == AuthorityMode.STOP:
+                assessment = self.judge.assess(story_id)
+                if assessment.status != ReadinessStatus.FORGE_COMPLETE:
+                    committed_action = AuthorityMode.PROPOSE
+
 
         transition = ForgeTransition(
             transition_id=transition_id,

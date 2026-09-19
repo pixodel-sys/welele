@@ -4,7 +4,7 @@ Defines stable Request/Response DTOs for Headless Harness and Creator UI clients
 """
 
 from typing import Optional, List, Dict, Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from datetime import datetime, timezone
 from ..models import (
     StoryState,
@@ -48,6 +48,42 @@ class StartSessionRequest(BaseModel):
     initial_premise: Optional[str] = None
     creative_objective: Optional[str] = None
     production_objective: Optional[str] = None
+    story_document_context: Optional[str] = None
+
+    @field_validator("story_document_context")
+    @classmethod
+    def validate_document_context_input_integrity(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+        v_strip = v.strip()
+        if not v_strip:
+            return None
+
+        # Architectural Rule: No unvalidated external material crosses the Document Context boundary into Story Reasoning
+        raw_bytes = v.encode("utf-8", errors="replace")
+        if (
+            v_strip.startswith("PK\x03\x04")
+            or v_strip.startswith("PK\x05\x06")
+            or v_strip.startswith("PK\x07\x08")
+            or v_strip.startswith(r"PK\x03\x04")
+            or v_strip.startswith(r"PK\u0003\u0004")
+            or (v_strip.startswith("PK") and "[Content_Types].xml" in v_strip)
+            or raw_bytes.startswith(b"PK\x03\x04")
+            or raw_bytes.startswith(b"\x50\x4b\x03\x04")
+        ):
+            raise ValueError("Unsupported binary document format (DOCX/ZIP signature detected). Story Forge accepts plain text (.txt) and Markdown (.md) notes only.")
+        if v_strip.startswith("%PDF") or raw_bytes.startswith(b"%PDF") or raw_bytes.startswith(b"\x25\x50\x44\x46"):
+            raise ValueError("Unsupported binary document format (PDF signature detected). Story Forge accepts plain text (.txt) and Markdown (.md) notes only.")
+        if v_strip.startswith("{\\rtf") or raw_bytes.startswith(b"{\\rtf"):
+            raise ValueError("Unsupported document format (RTF signature detected). Story Forge accepts plain text (.txt) and Markdown (.md) notes only.")
+        if raw_bytes.startswith(b"\xd0\xcf\x11\xe0"):
+            raise ValueError("Unsupported legacy binary document format (DOC signature detected). Story Forge accepts plain text (.txt) and Markdown (.md) notes only.")
+        if "\x00" in v or b"\x00" in raw_bytes:
+            raise ValueError("Corrupted document context: null bytes detected. Only clean UTF-8 plain text (.txt) or Markdown (.md) notes are supported.")
+        non_printable = sum(1 for ch in v[:1024] if ord(ch) < 32 and ch not in ("\t", "\n", "\r"))
+        if non_printable > 0:
+            raise ValueError("Invalid document context: Non-printable control characters detected.")
+        return v
 
 
 class SessionResponse(BaseModel):

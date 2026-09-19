@@ -3,15 +3,18 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import { AppProvider } from './context/AppContext';
 import { ChatProvider } from './context/ChatContext';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <AppProvider>
-      <ChatProvider>
-        <App />
-      </ChatProvider>
-    </AppProvider>
+    <ErrorBoundary>
+      <AppProvider>
+        <ChatProvider>
+          <App />
+        </ChatProvider>
+      </AppProvider>
+    </ErrorBoundary>
   </React.StrictMode>
 );
 

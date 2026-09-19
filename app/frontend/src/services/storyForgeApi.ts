@@ -42,6 +42,7 @@ export interface StartSessionPayload {
   creator_id: string;
   session_id?: string;
   initial_premise?: string;
+  story_document_context?: string;
   creative_objective?: string;
   production_objective?: string;
 }
@@ -142,10 +143,40 @@ export const storyForgeApi = {
     }
   },
 
+  getPackage: async (storyId: string): Promise<any> => {
+    try {
+      const res = await forgeClient.get(`/stories/${storyId}/package`);
+      return res.data;
+    } catch (err) {
+      console.warn('[storyForgeApi] getPackage error:', err);
+      throw err;
+    }
+  },
+
   // Session & Input Lifecycle
   startSession: async (storyId: string, payload: StartSessionPayload): Promise<any> => {
+    const clientStartTime = performance.now();
     try {
       const res = await forgeClient.post(`/stories/${storyId}/sessions`, payload);
+      const clientEndTime = performance.now();
+      const roundTripMs = Math.round(clientEndTime - clientStartTime);
+
+      const ingestionMs = parseFloat(res.headers?.['x-forge-ingestion-ms'] || '0') || 0;
+      const llmMs = parseFloat(res.headers?.['x-forge-llm-ms'] || '0') || 0;
+      const reconciliationMs = parseFloat(res.headers?.['x-forge-reconciliation-ms'] || '0') || 0;
+      const backendTotalMs = parseFloat(res.headers?.['x-forge-backend-total-ms'] || '0') || (ingestionMs + llmMs + reconciliationMs);
+      const networkTransportMs = Math.max(0, Math.round(roundTripMs - backendTotalMs));
+
+      if (res.data && typeof res.data === 'object') {
+        res.data._timingBreakdown = {
+          ingestionMs,
+          llmMs,
+          reconciliationMs,
+          backendTotalMs,
+          networkTransportMs,
+          roundTripMs,
+        };
+      }
       return res.data;
     } catch (err) {
       console.warn('[storyForgeApi] startSession falling back to edge store:', err);

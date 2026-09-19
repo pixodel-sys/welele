@@ -37,12 +37,12 @@ export const ForgeCompleteScreen: React.FC<ForgeCompleteScreenProps> = ({
 
   const completionChecklist = [
     { label: 'Story foundation', detail: 'Premise, genre, and arena locked' },
-    { label: 'Characters', detail: `${charactersList.length} cast members with core motivations` },
-    { label: 'Core conflict', detail: 'Central dilemma and opposing force anchored' },
-    { label: 'Dramatic engine', detail: 'Protagonist-counterforce tension active' },
-    { label: 'Story arc', detail: `${events.length || 6} canonical chronology turning points` },
-    { label: 'Continuity', detail: 'Knowledge states and narrative plants tracked' },
-    { label: 'Required production context', detail: 'Format staging and camera parameters aligned' },
+    { label: 'Characters', detail: `${charactersList.length} ${charactersList.length === 1 ? 'cast member' : 'cast members'} with core motivations` },
+    { label: 'Core conflict', detail: antagonists.length > 0 ? `Opposing force (${antagonists.map(a => a.name).join(', ')}) anchored` : 'Central dramatic opposition established' },
+    { label: 'Dramatic engine', detail: `${protagonists.map(p => p.name).join(', ') || 'Protagonist'} conflict dynamic active` },
+    { label: 'Story arc', detail: `${events.length} canonical chronology turning ${events.length === 1 ? 'point' : 'points'}` },
+    { label: 'Continuity', detail: `${storyState.plants?.length || 0} narrative plants and knowledge states tracked` },
+    { label: 'Production context', detail: 'Format staging and narrative constraints verified' },
   ];
 
   return (

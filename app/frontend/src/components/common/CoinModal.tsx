@@ -196,16 +196,13 @@ export const CoinModal: React.FC = () => {
         setSuccessMessage(null);
         setIsCoinModalOpen(false);
       }, 2500);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Airtime charge failed:', err);
-      // Local fallback
-      setAirtimeBalance((prev) => Math.max(0, prev - amountZar));
-      if (coinsEquiv > 0) setCoins((prev) => prev + coinsEquiv);
-      setSuccessMessage(`R${amountZar.toFixed(2)} deducted from Airtime! Credited ${coinsEquiv} Coins.`);
-      setTimeout(() => {
-        setSuccessMessage(null);
-        setIsCoinModalOpen(false);
-      }, 2500);
+      // Strictly server-authoritative: No client-side balance crediting or entitlement on error
+      const errorMsg = err?.response?.data?.detail || err?.message || 'Payment could not be completed. No funds were deducted.';
+      setSuccessMessage(null);
+      setSmsToast(null);
+      alert(typeof errorMsg === 'string' ? errorMsg : 'Payment failed. Please check your airtime balance and try again.');
     } finally {
       setIsProcessing(false);
     }

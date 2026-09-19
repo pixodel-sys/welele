@@ -233,6 +233,51 @@ class StorageService:
             }
         }
 
+    def generate_presigned_download_url(
+        self,
+        storage_key: str,
+        expires_in_seconds: int = 900
+    ) -> Dict[str, Any]:
+        """
+        Generates a secure, time-bounded presigned URL for video playback.
+        Strict invariant: Rejects browser blob: references.
+        """
+        if not storage_key or storage_key.startswith("blob:"):
+            raise ValueError(f"Invalid storage key for download signing: '{storage_key}'")
+
+        clean_key = storage_key.lstrip("/").replace("media/", "")
+
+        # 1. Live Cloudflare R2 Presigned Download URL
+        if self.s3_client:
+            try:
+                presigned_url = self.s3_client.generate_presigned_url(
+                    'get_object',
+                    Params={
+                        'Bucket': self.storage_bucket,
+                        'Key': clean_key
+                    },
+                    ExpiresIn=expires_in_seconds
+                )
+                return {
+                    "download_url": presigned_url,
+                    "storage_key": clean_key,
+                    "provider": "Cloudflare R2 Storage (Direct CDN)",
+                    "bucket": self.storage_bucket,
+                    "expires_in_seconds": expires_in_seconds
+                }
+            except Exception as e:
+                print(f"[StorageService] Failed generating live R2 presigned download URL: {e}")
+
+        # 2. Local / Standard Streaming Fallback URL
+        stream_url = self.get_stream_url(clean_key, adaptive_hls=False)
+        return {
+            "download_url": stream_url,
+            "storage_key": clean_key,
+            "provider": "Welele Local VOD Dispatcher",
+            "bucket": self.storage_bucket,
+            "expires_in_seconds": expires_in_seconds
+        }
+
     def generate_adaptive_renditions(self, video_path_or_url: str) -> List[Dict[str, Any]]:
         """
         Generates multi-bitrate rendition specifications for vertical microdramas.

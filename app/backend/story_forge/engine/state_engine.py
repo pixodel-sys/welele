@@ -13,6 +13,8 @@ from ..models import (
     CharacterRole,
     CharacterRelationship,
     StateStatus,
+    ConstraintStatus,
+    StoryConstraint,
     KnowledgeState,
     KnowledgeStatus,
     NarrativePlant
@@ -112,6 +114,8 @@ class StateEngine:
             state.tone = str(val)
         elif path == "explicit_ending_declared":
             state.explicit_ending_declared = bool(val)
+        elif path in ("story_document_context", "document_context"):
+            state.story_document_context = str(val) if val is not None else None
         elif path == "chronology" or path.startswith("chronology"):
             if isinstance(val, list):
                 state.chronology.extend(val)
@@ -163,6 +167,24 @@ class StateEngine:
                             char.secret_desire = str(v) if v is not None else None
                         elif k in ("fatal_flaw", "flaw"):
                             char.fatal_flaw = str(v) if v is not None else None
+                        elif k in ("gender", "sex"):
+                            char.gender = str(v) if v is not None else None
+                        elif k in ("pronouns", "pronoun"):
+                            char.pronouns = str(v) if v is not None else None
+                        elif k in ("summary", "description"):
+                            char.summary = str(v) if v is not None else None
+                        elif k == "relationships":
+                            incoming_rels = v if isinstance(v, list) else [v]
+                            for r in incoming_rels:
+                                rel_obj = r if isinstance(r, CharacterRelationship) else CharacterRelationship(**r)
+                                existing_idx = next(
+                                    (idx for idx, existing_r in enumerate(char.relationships) if existing_r.target_character.lower() == rel_obj.target_character.lower()),
+                                    None
+                                )
+                                if existing_idx is not None:
+                                    char.relationships[existing_idx] = rel_obj
+                                else:
+                                    char.relationships.append(rel_obj)
                         elif k == "attributes" and isinstance(v, dict):
                             char.attributes.update(v)
                         elif hasattr(char, k):
@@ -191,6 +213,12 @@ class StateEngine:
                         char.secret_desire = str(val) if val is not None else None
                     elif field in ("fatal_flaw", "flaw"):
                         char.fatal_flaw = str(val) if val is not None else None
+                    elif field in ("gender", "sex"):
+                        char.gender = str(val) if val is not None else None
+                    elif field in ("pronouns", "pronoun"):
+                        char.pronouns = str(val) if val is not None else None
+                    elif field in ("summary", "description"):
+                        char.summary = str(val) if val is not None else None
                     elif field == "archetype":
                         char.archetype = str(val) if val is not None else None
                     elif field == "status":
@@ -204,11 +232,17 @@ class StateEngine:
                         else:
                             char.status = StateStatus.FACT
                     elif field == "relationships":
-                        if isinstance(val, list):
-                            char.relationships = [
-                                r if isinstance(r, CharacterRelationship) else CharacterRelationship(**r)
-                                for r in val
-                            ]
+                        incoming_rels = val if isinstance(val, list) else [val]
+                        for r in incoming_rels:
+                            rel_obj = r if isinstance(r, CharacterRelationship) else CharacterRelationship(**r)
+                            existing_idx = next(
+                                (idx for idx, existing_r in enumerate(char.relationships) if existing_r.target_character.lower() == rel_obj.target_character.lower()),
+                                None
+                            )
+                            if existing_idx is not None:
+                                char.relationships[existing_idx] = rel_obj
+                            else:
+                                char.relationships.append(rel_obj)
                     elif field == "attributes" and isinstance(val, dict):
                         char.attributes.update(val)
                     else:
@@ -255,3 +289,69 @@ class StateEngine:
                 state.plants.append(val)
             elif isinstance(val, dict):
                 state.plants.append(NarrativePlant(**val))
+
+        # Constraints mutations (Story-Version Precedence & Canonical Rules)
+        elif path == "constraints" or path.startswith("constraints."):
+            if path == "constraints":
+                if isinstance(val, list):
+                    for item in val:
+                        c_obj = item if isinstance(item, StoryConstraint) else StoryConstraint(**item)
+                        idx = next((i for i, c in enumerate(state.constraints) if c.constraint_id == c_obj.constraint_id), None)
+                        if idx is not None:
+                            state.constraints[idx] = c_obj
+                        else:
+                            state.constraints.append(c_obj)
+            else:
+                parts = path.split(".")
+                cid_or_field = parts[1]
+                if len(parts) == 2:
+                    c_dict = val if isinstance(val, dict) else {"description": str(val)}
+                    c_id = c_dict.get("constraint_id", cid_or_field)
+                    c_cat = c_dict.get("category", "DEADLINE")
+                    c_desc = c_dict.get("description", str(val))
+                    c_status_str = str(c_dict.get("status", "ACTIVE")).upper()
+                    try:
+                        c_status = ConstraintStatus(c_status_str)
+                    except ValueError:
+                        c_status = ConstraintStatus.ACTIVE
+
+                    # Enforce Story-Version Precedence:
+                    # When an ACTIVE constraint of the same category or explicitly superseding an older constraint is added,
+                    # mark the older constraint as SUPERSEDED.
+                    if c_status == ConstraintStatus.ACTIVE:
+                        supersedes_target = c_dict.get("supersedes") or c_dict.get("superseded_by")
+                        for existing_c in state.constraints:
+                            if existing_c.status == ConstraintStatus.ACTIVE:
+                                if supersedes_target and (existing_c.constraint_id == supersedes_target or supersedes_target.lower() in existing_c.description.lower()):
+                                    existing_c.status = ConstraintStatus.SUPERSEDED
+                                    existing_c.superseded_by = c_id
+                                elif existing_c.category.upper() == c_cat.upper() and existing_c.constraint_id != c_id:
+                                    existing_c.status = ConstraintStatus.SUPERSEDED
+                                    existing_c.superseded_by = c_id
+
+                    new_constraint = StoryConstraint(
+                        constraint_id=c_id,
+                        category=c_cat,
+                        description=c_desc,
+                        status=c_status,
+                        superseded_by=c_dict.get("superseded_by"),
+                        source_context=c_dict.get("source_context"),
+                        created_turn=int(c_dict.get("created_turn", state.state_version))
+                    )
+                    idx = next((i for i, c in enumerate(state.constraints) if c.constraint_id == c_id), None)
+                    if idx is not None:
+                        state.constraints[idx] = new_constraint
+                    else:
+                        state.constraints.append(new_constraint)
+                elif len(parts) >= 3:
+                    c_id = parts[1]
+                    field = parts[2]
+                    target_c = next((c for c in state.constraints if c.constraint_id == c_id), None)
+                    if target_c:
+                        if field == "status":
+                            target_c.status = ConstraintStatus(str(val).upper())
+                        elif field == "superseded_by":
+                            target_c.superseded_by = str(val)
+                        elif field == "description":
+                            target_c.description = str(val)
+

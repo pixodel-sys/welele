@@ -327,8 +327,39 @@ class ExperienceEngine:
         return copy.deepcopy(match)
 
     @classmethod
+    def validate_layout(cls, layout_data: Dict[str, Any]):
+        """Strictly validates sections, slots, and hero uniqueness before persistence."""
+        sections = layout_data.get("sections", [])
+        for sec in sections:
+            sec_id = sec.get("section_id", "unknown")
+            sec_type = sec.get("type")
+            items = sec.get("items", [])
+            seen_slot_ids = set()
+            for it in items:
+                sid = it.get("slot_id")
+                if sid:
+                    if sid in seen_slot_ids:
+                        raise ValueError(
+                            f"Duplicate slot_id '{sid}' detected in section '{sec_id}'. "
+                            "Each slot in a layout must possess a globally unique slot_id."
+                        )
+                    seen_slot_ids.add(sid)
+            if sec_type == "HERO_CAROUSEL":
+                seen_content_ids = set()
+                for it in items:
+                    cid = it.get("content_id")
+                    if cid:
+                        if cid in seen_content_ids:
+                            raise ValueError(
+                                f"Duplicate content_id '{cid}' in HERO_CAROUSEL section '{sec_id}'. "
+                                "Hero carousel slides must feature distinct series/content."
+                            )
+                        seen_content_ids.add(cid)
+
+    @classmethod
     def save_layout(cls, layout_data: Dict[str, Any]):
-        """Save or update layout in db."""
+        """Save or update layout in db after validating structural integrity."""
+        cls.validate_layout(layout_data)
         layouts = db.get("experience_layouts")
         new_layouts = [
             l for l in layouts 

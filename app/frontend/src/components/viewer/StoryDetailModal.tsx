@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Story, Episode } from '../../types';
 import { telemetryService } from '../../services/telemetryService';
+import { useSeoHead } from '../../hooks/useSeoHead';
 import {
   X,
   Play,
@@ -38,6 +39,30 @@ export const StoryDetailModal: React.FC<StoryDetailModalProps> = ({
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'episodes' | 'about' | 'more'>('episodes');
+
+  useSeoHead({
+    title: story ? `${story.title} - African Micro-Drama` : undefined,
+    description: story ? story.synopsis || story.tagline : undefined,
+    image: story ? story.vertical_poster || story.cover_image : undefined,
+    url: story ? `/?series=${story.id}` : undefined,
+    type: 'video.tv_show',
+    jsonLd: story
+      ? {
+          '@context': 'https://schema.org',
+          '@type': 'TVSeries',
+          name: story.title,
+          description: story.synopsis || story.tagline,
+          image: story.vertical_poster || story.cover_image,
+          genre: story.genre,
+          numberOfEpisodes: story.total_episodes || story.episodes?.length || 1,
+          publisher: {
+            '@type': 'Organization',
+            name: 'Welele Media',
+            url: 'https://welele.tv',
+          },
+        }
+      : undefined,
+  });
 
   useEffect(() => {
     if (story) {

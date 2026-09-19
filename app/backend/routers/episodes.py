@@ -5,7 +5,7 @@ cliffhanger detection, and subtitles.
 """
 
 from typing import Optional
-from fastapi import APIRouter, HTTPException, Query, Depends
+from fastapi import APIRouter, HTTPException, Query, Depends, Header
 from database import db
 from repositories.ledger_repository import ledger_repository
 from repositories.series_repository import series_repository
@@ -20,7 +20,9 @@ router = APIRouter(prefix="/episodes", tags=["Episodes & Streaming"])
 def get_episode_stream(
     series_id: str,
     episode_id: str,
-    user_id: Optional[str] = "user_sa_01"
+    user_id: Optional[str] = "user_sa_01",
+    internal_test: Optional[bool] = False,
+    x_welele_internal_test: Optional[str] = Header(None, alias="X-Welele-Internal-Test")
 ):
     all_episodes = series_repository.local_get("episodes")
     all_series = series_repository.local_get("series")
@@ -34,6 +36,28 @@ def get_episode_stream(
     episode = next((ep for ep in all_episodes if ep["id"] == episode_id and ep.get("series_id") == series_id), None)
     if not episode:
         raise HTTPException(status_code=404, detail="Episode not found")
+
+    # Internal Proving & Critical Content Boundary Rule (Jellyfish):
+    # Jellyfish is strictly internal test material. Public viewers cannot stream it.
+    is_internal_item = bool(
+        episode.get("is_internal_test", False) or 
+        episode.get("lifecycle_state") == "INTERNAL_TEST" or 
+        story.get("is_internal_test", False) or 
+        story.get("lifecycle_state") == "INTERNAL_TEST"
+    )
+
+    if is_internal_item:
+        is_test_auth = bool(
+            internal_test or
+            x_welele_internal_test == "1" or
+            user_id in ["system_tester", "admin_supervisor", "test_viewer_golden"] or
+            (user_id and user_id.startswith("test_"))
+        )
+        if not is_test_auth:
+            raise HTTPException(
+                status_code=403,
+                detail="Access Denied: Internal test material (Jellyfish) is restricted to verified test sessions and is locked from public viewer consumption."
+            )
     
     # Check unlock status across ledger repository and relational store
     free_count = story.get("free_episodes", story.get("free_episodes_count", 0))
@@ -67,7 +91,7 @@ def get_episode_stream(
         not master_video.startswith("/videos/ocean_waves")
     )
 
-    lifecycle_ok = lifecycle in ["SCHEDULED", "PUBLISHED", "READY"]
+    lifecycle_ok = lifecycle in ["SCHEDULED", "PUBLISHED", "READY", "INTERNAL_TEST"]
     readiness_ok = readiness in ["PRODUCTION_READY", "READY_FOR_PRODUCTION", "COMPLETED"] and not is_empty_draft
     is_available = bool(lifecycle_ok and readiness_ok and has_verified_master)
 

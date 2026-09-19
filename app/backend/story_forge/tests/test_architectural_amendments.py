@@ -140,6 +140,12 @@ def test_non_responsive_creator_response_handling_with_adapter():
         core_motivation=None,
         status=StateStatus.FACT
     )
+    state.characters["Bheki"] = CharacterState(
+        name="Bheki",
+        role=CharacterRole.ANTAGONIST,
+        core_motivation="Oppose Zodwa",
+        status=StateStatus.FACT
+    )
     repo.save_state(state)
 
     # 1. First cycle: Model asks for motivation

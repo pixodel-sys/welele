@@ -4,7 +4,7 @@ Boundary definitions between completed narrative architecture and deferred physi
 """
 
 from enum import Enum
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field
 from uuid import uuid4
 from datetime import datetime, timezone
@@ -71,3 +71,26 @@ class ForgeCompletionAssessment(BaseModel):
     assessment_notes: Optional[str] = None
     assessed_by: str = "FORGE_JUDGE"
     assessed_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class StoryPackageArtifact(BaseModel):
+    """
+    First-class compiled Story Package artifact.
+    The authoritative canonical bridge from Story Forge to Creator Studio and physical production.
+    """
+    story_package_version: str = "0.2.0"
+    story_id: str
+    title: str
+    logline: str
+    milestone: MilestoneEnum
+    readiness_status: ReadinessStatus
+    state_version: int
+    characters: List[Dict[str, Any]] = Field(default_factory=list)
+    world: Dict[str, Any] = Field(default_factory=dict)
+    chronology_spine: List[Dict[str, Any]] = Field(default_factory=list)
+    narrative_plants: List[Dict[str, Any]] = Field(default_factory=list)
+    knowledge_states: List[Dict[str, Any]] = Field(default_factory=list)
+    production_decisions: List[Dict[str, Any]] = Field(default_factory=list)
+    assessment: ForgeCompletionAssessment
+    compiled_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+

@@ -18,7 +18,14 @@ interface HomeScreenProps {
 }
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({ onOpenPlayer }) => {
+  const homeRenderCount = React.useRef<number>(0);
+  homeRenderCount.current += 1;
+
   const { stories, loadingStories, bookmarks, toggleBookmark, setMode, setIsCoinModalOpen } = useApp();
+
+  console.debug(
+    `[HomeScreen Instrumentation] HomeScreen Render #${homeRenderCount.current} (Mounted in DOM under viewport) | storiesCount=${stories.length}`
+  );
   const [selectedStoryForDetail, setSelectedStoryForDetail] = useState<Story | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>('All');
   const [isChatOpen, setIsChatOpen] = useState<boolean>(false);
@@ -85,8 +92,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onOpenPlayer }) => {
                 <div className="aspect-[9/16] w-full relative">
                   <img
                     src={story.vertical_poster}
-                    alt={story.title}
+                    alt={`${story.title} - African micro-drama vertical poster`}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 filter brightness-90"
+                    loading="lazy"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-welele-black via-transparent to-transparent opacity-95" />
                   <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded-[7px] bg-black/60 backdrop-blur-md text-[9px] font-bold text-welele-gold">
@@ -145,8 +153,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onOpenPlayer }) => {
                 <div className="flex items-center gap-3">
                   <img
                     src={story.vertical_poster}
-                    alt={story.title}
+                    alt={`${story.title} Episode ${i + 1} poster`}
                     className="w-14 h-18 rounded-[7px] object-cover"
+                    loading="lazy"
                   />
                   <div className="flex-1 min-w-0">
                     <h4 className="text-xs font-bold text-white truncate group-hover:text-welele-orange">

@@ -36,49 +36,42 @@ export const ForgeCompletePackageModal: React.FC<ForgeCompletePackageModalProps>
 
   const characters = Object.values(storyState.characters || {});
 
+  const getPackagePayload = () => ({
+    story_package_version: '0.2.0',
+    story_id: storyState.story_id,
+    title: storyState.title,
+    logline: storyState.logline || '',
+    milestone: assessment?.current_milestone || 'FORGE_COMPLETE',
+    readiness_status: assessment?.status || 'FORGE_COMPLETE',
+    state_version: storyState.state_version,
+    characters: characters,
+    world: storyState.world || {},
+    chronology_spine: events,
+    narrative_plants: storyState.plants || [],
+    knowledge_states: storyState.knowledge_states || [],
+    assessment: assessment,
+  });
+
   const handleCopyPackage = () => {
-    const jsonStr = JSON.stringify(
-      {
-        story_package_version: '0.2.0',
-        title: storyState.title,
-        logline: storyState.logline,
-        milestone: 'M3_FORGE_COMPLETE',
-        characters: characters,
-        world: storyState.world,
-        chronology_spine: events,
-        narrative_plants: storyState.plants,
-        assessment: assessment,
-      },
-      null,
-      2
-    );
+    const jsonStr = JSON.stringify(getPackagePayload(), null, 2);
     navigator.clipboard.writeText(jsonStr);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   const handleDownloadJSON = () => {
-    const jsonStr = JSON.stringify(
-      {
-        story_package_version: '0.2.0',
-        title: storyState.title,
-        logline: storyState.logline,
-        characters: characters,
-        world: storyState.world,
-        chronology_spine: events,
-        narrative_plants: storyState.plants,
-        assessment: assessment,
-      },
-      null,
-      2
-    );
+    const jsonStr = JSON.stringify(getPackagePayload(), null, 2);
     const blob = new Blob([jsonStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = `${storyState.title.toLowerCase().replace(/[^a-z0-9]/g, '_')}_story_package.json`;
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+    }, 1000);
   };
 
   return (

@@ -220,22 +220,53 @@ class LLMReasoningAdapter(ReasoningAdapter):
         if last_exception:
             raise last_exception
 
+    FORBIDDEN_ONTOLOGY_TERMS = [
+        "counterforce",
+        "dependency",
+        "dependencies",
+        "required state",
+        "canon",
+        "invariant",
+        "invariants",
+        "mutation",
+        "mutations",
+        "knowledge state",
+        "chronology anchor",
+        "chronology dependency",
+        "deficiency",
+        "deficiencies",
+        "state version",
+        "entity resolution"
+    ]
+
     def _build_system_prompt(self) -> str:
         return (
             "You are the Welele Story Forge™ Intelligence Component.\n"
-            "You provide narrative reasoning to the Forge Kernel without owning canonical state, persistence, or validation.\n\n"
-            "CRITICAL ARCHITECTURAL CONSTRAINTS:\n"
-            "1. You do not own canonical story state. The Kernel validates, propagates, and commits all state.\n"
-            "2. The Kernel provides ONLY deliberate context slices. Do NOT assume facts not in the context.\n"
-            "3. You must select EXACTLY ONE action from:\n"
-            "   - ASK: Formulate exactly ONE concise question for the human creator ending with a single '?'. `requires_creator = true`. No state mutations.\n"
-            "   - INFER: Safe deduction from established evidence. `requires_creator = false`. Propose state mutations.\n"
-            "   - PROPOSE: Creative proposal requiring creator approval. `requires_creator = true`.\n"
-            "   - RECORD_PRODUCTION_DECISION: Concrete production/filming choice. `requires_creator = false`. Requires production_decision payload.\n"
-            "   - STOP: Recommend stopping development cycle. `requires_creator = false`. `question = null`.\n"
-            "4. Never include multiple questions or numbered lists when choosing ASK. The question string must contain exactly ONE single question mark '?'.\n"
-            "5. The Completion Judge remains sole authority on Forge completion. You may recommend STOP, not declare completion.\n"
-            "6. Return ONLY a valid JSON object strictly conforming to the requested schema."
+            "You act as an insightful, collaborative screenwriting and showrunning partner in a high-caliber writers' room.\n\n"
+            "STORY-FIRST ARCHITECTURAL HARD LOCK:\n"
+            "1. THE SCHEMA SERVES THE STORY. THE STORY DOES NOT SERVE THE SCHEMA.\n"
+            "2. Creators tell stories; the engine handles structured engineering.\n"
+            "3. When choosing ASK, your question MUST be a natural, evocative STORY question that any writer, filmmaker, or storyteller would immediately understand.\n"
+            "4. NEVER expose internal Forge machine concepts in your question. Under NO circumstances use engineering ontology:\n"
+            "   - FORBIDDEN: 'counterforce', 'dependency', 'required state', 'canon', 'invariant', 'mutation', 'knowledge state', 'chronology anchor', 'validation', 'schema', 'graph', 'deficiency'.\n"
+            "   - Use natural storytelling language:\n"
+            "     * Instead of 'Who is the counterforce standing against Sabelo?', ask: 'Who is standing in Sabelo's way?'\n"
+            "     * Instead of 'What is Sabelo's core driving motivation and what do they stand to lose?', ask: 'What does Sabelo really want?' or 'What is Sabelo hoping the money will change?'\n"
+            "     * Instead of 'What is the inciting disruption?', ask: 'What turns Sabelo's world upside down?'\n"
+            "     * Instead of 'What is the relationship dynamic?', ask: 'What is the tension between Sabelo and Jonas?'\n"
+            "     * Instead of 'What is the midpoint revelation?', ask: 'What unexpected discovery turns everything on its head?'\n"
+            "     * Instead of 'What is the dark night?', ask: 'What is Sabelo's lowest moment when everything seems lost?'\n"
+            "     * Instead of 'What is the climax confrontation?', ask: 'How does the final showdown play out?'\n"
+            "     * Instead of 'What is the resolution?', ask: 'How does the dust settle in the end?'\n"
+            "5. Ground every question directly in the specific characters, world, dilemma, and tone established in the story context.\n"
+            "6. HOLISTIC INPUT ABSORPTION: When the creator provides a rich answer with multiple narrative facts, absorb everything holistically using INFER to commit all established characters and facts. NEVER ask for information the creator has already supplied.\n"
+            "7. Action selection rules:\n"
+            "   - ASK: Formulate exactly ONE concise, compelling story question ending with a single '?'. `requires_creator = true`. No state mutations.\n"
+            "   - INFER: Safe deduction from established creator narrative. `requires_creator = false`. Propose state mutations.\n"
+            "   - PROPOSE: Creative dramatic proposal requiring creator sign-off. `requires_creator = true`.\n"
+            "   - RECORD_PRODUCTION_DECISION: Concrete visual/filming choice. `requires_creator = false`.\n"
+            "   - STOP: Recommend stopping when all story elements are complete. `requires_creator = false`. `question = null`.\n"
+            "8. Return ONLY a valid JSON object strictly conforming to the requested schema."
         )
 
     def _build_user_prompt(self, request: ReasoningRequest) -> str:
@@ -252,53 +283,48 @@ class LLMReasoningAdapter(ReasoningAdapter):
         if st.tone:
             parts.append(f"- Tone: {st.tone}")
         parts.append(f"- Objective: {request.objective.value}")
-        parts.append(f"- Canonical State Version: v{request.state_version}")
 
-        # 2. Active Dependency
+        # 2. Narrative Requirement / Focus Area
         dep = request.active_dependency
-        parts.append("\n### 2. ACTIVE DEPENDENCY")
+        parts.append("\n### 2. NARRATIVE REQUIREMENT")
         if dep:
-            parts.append(f"- Dependency ID: {dep.id}")
-            parts.append(f"- Key: {dep.dependency_key}")
-            parts.append(f"- Type: {dep.dependency_type}")
-            parts.append(f"- Target Entity: {dep.target_entity}")
-            parts.append(f"- Description: {dep.description}")
-            parts.append(f"- Priority Score: {dep.priority_score}")
-            parts.append(f"- Suggested Skill: {dep.suggested_skill}")
+            parts.append(f"- Story Element Needed: {dep.target_entity} ({dep.dependency_type})")
+            parts.append(f"- Dependency Key: {dep.dependency_key}")
+            parts.append(f"- Focus Description: {dep.description}")
         else:
-            parts.append("- None (No unresolved dependencies)")
+            parts.append("- All foundational story elements established.")
 
         # 3. Relevant Entities / Characters
         if request.relevant_entities:
-            parts.append("\n### 3. RELEVANT CHARACTERS")
+            parts.append("\n### 3. ESTABLISHED CHARACTERS")
             for ent in request.relevant_entities:
-                parts.append(f"- {ent.name} ({ent.role}, Status: {ent.status}):")
+                parts.append(f"- {ent.name} ({ent.role}):")
                 if ent.core_motivation:
-                    parts.append(f"  * Motivation: {ent.core_motivation}")
+                    parts.append(f"  * Core Drive / Desire: {ent.core_motivation}")
                 if ent.secret_desire:
-                    parts.append(f"  * Secret Desire: {ent.secret_desire}")
+                    parts.append(f"  * Hidden Want: {ent.secret_desire}")
                 if ent.fatal_flaw:
-                    parts.append(f"  * Fatal Flaw: {ent.fatal_flaw}")
+                    parts.append(f"  * Flaw / Vulnerability: {ent.fatal_flaw}")
                 if ent.relationships:
-                    parts.append(f"  * Relationships: {ent.relationships}")
+                    parts.append(f"  * Ties: {ent.relationships}")
 
         # 4. Relevant Chronology Events
         if request.relevant_events:
-            parts.append("\n### 4. RELEVANT CHRONOLOGY EVENTS")
+            parts.append("\n### 4. ESTABLISHED STORY BEATS")
             for ev in request.relevant_events:
-                parts.append(f"- Event #{ev.event_sequence} [{ev.story_time or 'TBD'}]: {ev.headline} — {ev.description}")
+                parts.append(f"- Beat #{ev.event_sequence}: {ev.headline} — {ev.description}")
 
         # 5. Relevant Knowledge States
         if request.relevant_knowledge:
-            parts.append("\n### 5. RELEVANT KNOWLEDGE STATES")
+            parts.append("\n### 5. CHARACTER KNOWLEDGE")
             for kn in request.relevant_knowledge:
-                parts.append(f"- {kn.character_name} -> {kn.fact_key} (Status: {kn.status})")
+                parts.append(f"- {kn.character_name} knows: {kn.fact_key}")
 
         # 6. Relevant Narrative Plants
         if request.relevant_plants:
-            parts.append("\n### 6. RELEVANT NARRATIVE PLANTS")
+            parts.append("\n### 6. NARRATIVE SETUPS & PAYOFFS")
             for pl in request.relevant_plants:
-                parts.append(f"- Plant [{pl.element_code}]: {pl.description} (Intended Payoff: {pl.intended_payoff}, Status: {pl.payoff_status})")
+                parts.append(f"- Plant [{pl.element_code}]: {pl.description} (Payoff: {pl.intended_payoff or 'TBD'})")
 
         # 7. Creator Input / Response
         if request.creator_response:
@@ -310,9 +336,10 @@ class LLMReasoningAdapter(ReasoningAdapter):
 
         parts.append("\n### 8. INSTRUCTION")
         parts.append(
-            "Analyze the active dependency against the established canonical state and return your structured reasoning decision.\n"
-            "- Character Mutations: Use canonical character name as target path (e.g. 'characters.CharacterName') with 'name' and 'role' fields.\n"
-            "- Creator Response Handling: If the creator response resolves the active dependency, use INFER to commit state changes. If it provides contextual lore without resolving the specific dramatic requirement, use ASK to formulate a focused clarifying question offering clear options based on the newly supplied context."
+            "Evaluate the creator's latest response and established story context.\n"
+            "- If the creator's response establishes characters, motives, or events, use INFER to commit all extracted facts.\n"
+            "- If a story element remains genuinely missing or uncertain, use ASK to formulate a natural, inspiring STORY question ending with exactly one '?'.\n"
+            "- STRICT RULE: Do NOT use machine jargon ('counterforce', 'dependency', 'canon', 'invariants'). Ask like a human screenwriting collaborator."
         )
 
         return "\n".join(parts)
@@ -388,13 +415,22 @@ class LLMReasoningAdapter(ReasoningAdapter):
             )
 
         question = raw_data.get("question")
-        # Semantic check: Disallow multiple questions in ASK
+        # Semantic check: Disallow multiple questions or machine ontology terms in ASK
         if action == AuthorityMode.ASK and question:
             # Count question marks or numbered sub-questions
             q_count = question.count("?")
             if q_count > 1 or "\n1." in question or "\n-" in question:
                 raise LLMInvalidOutputError(
                     message=f"ASK action must contain exactly one question, found {q_count} or multiple list items: '{question}'",
+                    provider=self.provider.provider_name,
+                    model=self.provider.model_name
+                )
+            # Story-First Hard Lock: Check for forbidden machine ontology terms
+            lower_q = question.lower()
+            found_forbidden = [t for t in self.FORBIDDEN_ONTOLOGY_TERMS if t in lower_q]
+            if found_forbidden:
+                raise LLMInvalidOutputError(
+                    message=f"Story-First Architectural Lock violation: Question contains forbidden machine ontology term(s): {', '.join(found_forbidden)}. Formulate a natural screenwriting question instead.",
                     provider=self.provider.provider_name,
                     model=self.provider.model_name
                 )
@@ -410,7 +446,7 @@ class LLMReasoningAdapter(ReasoningAdapter):
         try:
             decision = ReasoningDecision(
                 action=action,
-                dependency_id=raw_data.get("dependency_id") or (request.active_dependency.id if request.active_dependency else None),
+                dependency_id=raw_data.get("dependency_id") or ((request.active_dependency.id if request.active_dependency else None) if request else None),
                 skill=skill,
                 question=question,
                 proposal=raw_data.get("proposal"),

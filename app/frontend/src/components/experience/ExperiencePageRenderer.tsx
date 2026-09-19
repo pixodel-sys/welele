@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { ExperienceManifest, ExperienceSection } from '../../types/experience';
 import { Story, Episode } from '../../types';
 import { experienceApi } from '../../services/api';
@@ -35,11 +35,14 @@ export const ExperiencePageRenderer: React.FC<ExperiencePageRendererProps> = ({
   onSectionClick,
 }) => {
   const { stories } = useApp();
+  const renderCount = useRef<number>(0);
+  renderCount.current += 1;
+  const effectRunCount = useRef<number>(0);
 
   // Instant fallback manifest ready on first frame
   const fallbackManifest = useMemo(
     () => getDefaultExperienceManifest(pageId, stories),
-    [pageId, stories]
+    [pageId]
   );
 
   const [manifest, setManifest] = useState<ExperienceManifest>(() => {
@@ -52,6 +55,10 @@ export const ExperiencePageRenderer: React.FC<ExperiencePageRendererProps> = ({
   const [loading, setLoading] = useState<boolean>(false);
 
   useEffect(() => {
+    effectRunCount.current += 1;
+    console.debug(
+      `[WEE Instrumentation] pageId='${pageId}' effectRunCount=${effectRunCount.current} totalRenders=${renderCount.current}`
+    );
     if (manifestOverride) {
       setManifest(hydrateManifest(manifestOverride, stories));
       return;
@@ -66,13 +73,13 @@ export const ExperiencePageRenderer: React.FC<ExperiencePageRendererProps> = ({
         if (data && Array.isArray(data.sections) && data.sections.length > 0) {
           setManifest(hydrateManifest(data, stories));
         } else {
-          setManifest(fallbackManifest);
+          setManifest(getDefaultExperienceManifest(pageId, stories));
         }
       })
       .catch((err) => {
         if (!isMounted) return;
         console.warn(`[WEE Surface Renderer] Network/backend unavailable for ${pageId}, using canonical manifest:`, err);
-        setManifest(fallbackManifest);
+        setManifest(getDefaultExperienceManifest(pageId, stories));
       })
       .finally(() => {
         if (isMounted) setLoading(false);
@@ -81,7 +88,7 @@ export const ExperiencePageRenderer: React.FC<ExperiencePageRendererProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [pageId, manifestOverride, stories, fallbackManifest]);
+  }, [pageId, manifestOverride]);
 
   if (!manifest || !manifest.sections || manifest.sections.length === 0) {
     return null;

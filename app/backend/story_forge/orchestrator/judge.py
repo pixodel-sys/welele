@@ -70,18 +70,23 @@ class ForgeJudge:
                 missing_invariants.append("M1_PROTAGONIST_MOTIVATION_REQUIRED")
 
             # 2. Flexible Counterforce verification (Character, Institution, Supernatural Force, System)
+            logline_text = (state.logline or "").lower()
+            has_systemic_counterforce = any(
+                term in logline_text
+                for term in ("drought", "famine", "blizzard", "storm", "corruption", "poverty", "syndicate", "debt", "disaster", "opposing", "enemy", "rival", "disease", "illness", "survival", "crisis")
+            )
             has_counterforce = (
                 any(c.role == CharacterRole.ANTAGONIST for c in state.characters.values()) or
-                len(state.characters) >= 2 or
                 len(state.world.rules_and_lore) > 0 or
-                any("debt" in (getattr(p, 'plant_name', None) or p.element_code).lower() or "retribution" in (getattr(p, 'plant_name', None) or p.element_code).lower() for p in state.plants)
+                has_systemic_counterforce or
+                any("debt" in (getattr(p, 'plant_name', None) or p.element_code).lower() or "retribution" in (getattr(p, 'plant_name', None) or p.element_code).lower() or "conflict" in (getattr(p, 'plant_name', None) or p.element_code).lower() for p in state.plants)
             )
             if not has_counterforce:
                 m1_passed = False
                 missing_invariants.append("M1_COUNTERFORCE_REQUIRED")
 
             # 3. Relational dynamic / collision edge
-            has_relationships = any(len(c.relationships) > 0 for c in state.characters.values()) or len(state.characters) >= 2
+            has_relationships = any(len(c.relationships) > 0 for c in state.characters.values())
             if not has_relationships:
                 m1_passed = False
                 missing_invariants.append("M1_RELATIONSHIP_DYNAMIC_REQUIRED")
@@ -109,11 +114,13 @@ class ForgeJudge:
             explicit_ending = getattr(state, 'explicit_ending_declared', False)
 
             has_structural_arc = False
-            if len(all_chronology) >= 6:
+            if len(all_chronology) == 0:
+                has_structural_arc = False
+            elif len(all_chronology) >= 6:
                 has_structural_arc = True
             elif explicit_ending and len(all_chronology) >= 3:
                 has_structural_arc = True
-            else:
+            elif len(all_chronology) >= 3:
                 anchor_types = {getattr(e, 'anchor_type', None) for e in all_chronology if getattr(e, 'anchor_type', None)}
                 if explicit_ending:
                     anchor_types.add("RESOLUTION")
@@ -146,6 +153,15 @@ class ForgeJudge:
             if len(prod_decisions) == 0 and ("locations" in logline_lower or "budget" in logline_lower or "micro-drama" in logline_lower):
                 m3_passed = False
                 missing_invariants.append("M3_PRODUCTION_DECISIONS_REQUIRED")
+
+            # Substantive package validation: must not be an empty shell
+            if len(state.characters) < 2 or not any(len(c.relationships) > 0 for c in state.characters.values()):
+                m3_passed = False
+                missing_invariants.append("M3_DRAMATIC_RELATIONSHIPS_REQUIRED")
+
+            if len(all_chronology) == 0:
+                m3_passed = False
+                missing_invariants.append("M3_CHRONOLOGY_SPINE_REQUIRED")
 
             if m3_passed:
                 satisfied_milestones.append(MilestoneEnum.M3_FORGE_COMPLETE)

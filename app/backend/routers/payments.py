@@ -77,7 +77,28 @@ def process_airtime_direct_charge(req: AirtimeChargePayload):
         coins_equivalent=req.coins_equivalent or 0
     )
 
-    # If charging for coin pack, credit the wallet & ledger
+    # 1. Authoritative payment failure check
+    if result.get("status") == "failed":
+        db.insert("transactions", {
+            "id": result["transaction_id"],
+            "user_id": req.user_id,
+            "type": f"airtime_{req.charge_type}",
+            "carrier": result.get("carrier_name", req.carrier_id),
+            "phone": req.phone_number,
+            "amount_zar": req.amount_zar,
+            "coins": 0,
+            "target_id": req.target_id,
+            "status": "FAILED",
+            "error": result.get("error", "Declined"),
+            "reference": result.get("reference"),
+            "timestamp": result["timestamp"]
+        })
+        raise HTTPException(
+            status_code=402,
+            detail=result.get("error", "Payment could not be completed by carrier.")
+        )
+
+    # 2. Process Successful Payment Entitlements
     if req.charge_type in ["coin_pack", "topup"] and req.coins_equivalent and req.coins_equivalent > 0:
         ledger_service.credit_coins(
             user_id=req.user_id,
@@ -87,6 +108,17 @@ def process_airtime_direct_charge(req: AirtimeChargePayload):
             reference_id=result["reference"],
             description=f"Purchased via {result['carrier_name']} Airtime (R{req.amount_zar:.2f})"
         )
+    elif req.charge_type == "episode_unlock":
+        existing_unlocks = db.get("unlocked_episodes") or []
+        already = any(u.get("user_id") == req.user_id and u.get("episode_id") == req.target_id for u in existing_unlocks)
+        if not already:
+            db.insert("unlocked_episodes", {
+                "user_id": req.user_id,
+                "episode_id": req.target_id,
+                "series_id": req.series_id,
+                "unlocked_at": result["timestamp"],
+                "payment_reference": result["reference"]
+            })
 
     # Save payment transaction record
     db.insert("transactions", {
@@ -98,9 +130,22 @@ def process_airtime_direct_charge(req: AirtimeChargePayload):
         "amount_zar": req.amount_zar,
         "coins": req.coins_equivalent or 0,
         "target_id": req.target_id,
+        "status": "COMPLETED",
         "reference": result["reference"],
         "timestamp": result["timestamp"]
     })
+
+    from services.audit_service import audit_service
+    audit_service.record_trust_event(
+        domain="COMMERCE",
+        event_type="payment.airtime_charge",
+        actor_id=req.user_id,
+        actor_role="viewer",
+        target_type=req.charge_type,
+        target_id=req.target_id,
+        after_state={"status": "completed", "amount_zar": req.amount_zar, "transaction_id": result["transaction_id"]},
+        metadata={"carrier": result["carrier_name"], "reference": result["reference"]}
+    )
 
     return {
         "success": True,

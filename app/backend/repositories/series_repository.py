@@ -696,6 +696,103 @@ class SeriesRepository(BaseRepository):
                     "updated_at": datetime.now(timezone.utc).isoformat()
                 })
 
+        # 4. Internal Test Proving Dataset — JELLYFISH (Workstream 1 & 2)
+        # CRITICAL CONTENT RULE: Used exclusively for machine proving; NEVER exposed in public viewer catalog
+        internal_test_series_id = "series_internal_jellyfish_test"
+        if internal_test_series_id not in existing_series_ids:
+            self.local_insert("series", {
+                "id": internal_test_series_id,
+                "ip_id": "ip_internal_jellyfish_test",
+                "season_number": 1,
+                "title": "Internal Machine Proving (Jellyfish)",
+                "tagline": "Internal test suite dataset. Not for public viewer distribution.",
+                "synopsis": "Automated pipeline and machine proving fixture using vertical Jellyfish master assets.",
+                "cover_image": "/posters/jellyfish_test.jpg",
+                "vertical_poster": "/posters/jellyfish_test.jpg",
+                "genre": "System Proving",
+                "rating": 5.0,
+                "total_episodes": 2,
+                "free_episodes": 1,
+                "coin_price_per_episode": 5,
+                "is_published": False,
+                "is_internal_test": True,
+                "lifecycle_state": "INTERNAL_TEST",
+                "creator_id": "system_tester",
+                "creator_name": "Welele QA Engine",
+                "creator_avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80",
+                "available_languages": ["English"],
+                "tags": ["#InternalTest", "#JellyfishProving"],
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            })
+
+        if "ep_jellyfish_1" not in existing_ep_ids:
+            self.local_insert("episodes", {
+                "id": "ep_jellyfish_1",
+                "series_id": internal_test_series_id,
+                "episode_number": 1,
+                "title": "Jellyfish Proving Flight 1",
+                "synopsis": "Free episode proving vertical playback, telemetry milestone guards, and progression.",
+                "duration_seconds": 30,
+                "is_free": True,
+                "coin_price": 0,
+                "unlock_price_coins": 0,
+                "cliffhanger_time_seconds": 25,
+                "cliffhanger_hook": "Testing automated milestone dispatch and progression hook.",
+                "status": "published",
+                "is_internal_test": True,
+                "lifecycle_state": "INTERNAL_TEST",
+                "readiness_state": "PRODUCTION_READY",
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
+            self.local_insert("media_assets", {
+                "id": "media_ep_jellyfish_1",
+                "episode_id": "ep_jellyfish_1",
+                "storage_key": "masters/internal_test/jellyfish.mp4",
+                "master_video_url": "/videos/jellyfish.mp4",
+                "hls_master_manifest_url": "https://cdn.welele.media/hls/internal_test/jellyfish/master.m3u8",
+                "thumbnail_url": "/posters/jellyfish_test.jpg",
+                "duration_seconds": 30,
+                "transcoding_status": "READY",
+                "is_internal_test": True,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            })
+
+        if "ep_jellyfish_2" not in existing_ep_ids:
+            self.local_insert("episodes", {
+                "id": "ep_jellyfish_2",
+                "series_id": internal_test_series_id,
+                "episode_number": 2,
+                "title": "Jellyfish Proving Flight 2 (Locked)",
+                "synopsis": "Locked episode proving value proposition, payment rail, ledger entitlement, and unlock.",
+                "duration_seconds": 30,
+                "is_free": False,
+                "coin_price": 5,
+                "unlock_price_coins": 5,
+                "cliffhanger_time_seconds": 25,
+                "cliffhanger_hook": "Testing locked paywall state and entitlement unlock.",
+                "status": "published",
+                "is_internal_test": True,
+                "lifecycle_state": "INTERNAL_TEST",
+                "readiness_state": "PRODUCTION_READY",
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
+            self.local_insert("media_assets", {
+                "id": "media_ep_jellyfish_2",
+                "episode_id": "ep_jellyfish_2",
+                "storage_key": "masters/internal_test/jellyfish.mp4",
+                "master_video_url": "/videos/jellyfish.mp4",
+                "hls_master_manifest_url": "https://cdn.welele.media/hls/internal_test/jellyfish/master.m3u8",
+                "thumbnail_url": "/posters/jellyfish_test.jpg",
+                "duration_seconds": 30,
+                "transcoding_status": "READY",
+                "is_internal_test": True,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            })
+
+
     def list_feed(self, genre: Optional[str] = None, language: Optional[str] = None) -> List[Dict[str, Any]]:
         all_series = self.local_get("series")
         all_episodes = self.local_get("episodes")
@@ -705,13 +802,20 @@ class SeriesRepository(BaseRepository):
 
         result = []
         for s in all_series:
-            if not s.get("is_published", True):
+            # STRICT PUBLIC BOUNDARY: Exclude unpublished series and internal test datasets
+            if not s.get("is_published", True) or s.get("is_internal_test", False) or s.get("lifecycle_state") == "INTERNAL_TEST":
                 continue
             if genre and s.get("genre") != genre:
                 continue
 
             s_copy = dict(s)
-            s_episodes = [e for e in all_episodes if e.get("series_id") == s["id"] and e.get("status") == "published"]
+            s_episodes = [
+                e for e in all_episodes 
+                if e.get("series_id") == s["id"] 
+                and e.get("status") == "published"
+                and not e.get("is_internal_test", False)
+                and e.get("lifecycle_state") != "INTERNAL_TEST"
+            ]
             s_episodes.sort(key=lambda x: x.get("episode_number", 0))
 
             hydrated_eps = []
@@ -912,14 +1016,21 @@ class SeriesRepository(BaseRepository):
         now_ts = datetime.now(timezone.utc).isoformat()
         target_status = "published" if decision == "approved" else decision
 
-        updated = self.local_update("episodes", "id", episode_id, {
+        update_payload = {
             "status": target_status,
             "moderation_decision": decision,
             "moderation_feedback": feedback,
             "reviewed_by": reviewer_id,
             "reviewed_at": now_ts,
             "updated_at": now_ts
-        })
+        }
+        # CMS PUBLISH PROMOTION (Workstream 3): Approved content promoted to PRODUCTION_READY
+        if decision == "approved":
+            update_payload["lifecycle_state"] = "PUBLISHED"
+            update_payload["readiness_state"] = "PRODUCTION_READY"
+            update_payload["is_empty_draft"] = False
+
+        updated = self.local_update("episodes", "id", episode_id, update_payload)
         return updated
 
     def archive_episode(

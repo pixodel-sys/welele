@@ -186,6 +186,18 @@ export const CreatorStudioShell: React.FC = () => {
         {/* Creator Command Actions */}
         <div className="flex items-center gap-2 flex-wrap shrink-0">
           <button
+            onClick={() => setActiveNavTab('story_forge')}
+            className={`px-3.5 py-2 rounded-[7px] font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm cursor-pointer ${
+              activeNavTab === 'story_forge'
+                ? 'bg-gradient-to-r from-[#FF6500] to-[#FF8500] text-black shadow-md shadow-orange-500/20'
+                : 'bg-gradient-to-r from-orange-500/20 to-amber-500/20 hover:from-orange-500/30 hover:to-amber-500/30 border border-orange-500/40 text-amber-300'
+            }`}
+          >
+            <Flame className="w-3.5 h-3.5 text-[#FF6500]" />
+            <span>🔥 Story Forge™</span>
+          </button>
+
+          <button
             onClick={() => setActiveNavTab('story_review')}
             className={`px-3.5 py-2 rounded-[7px] font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm cursor-pointer ${
               activeNavTab === 'story_review'
@@ -212,14 +224,6 @@ export const CreatorStudioShell: React.FC = () => {
           >
             <PlusCircle className="w-3.5 h-3.5 text-pink-400" />
             <span>+ Create Show</span>
-          </button>
-
-          <button
-            onClick={() => handleOpenPipeline(selectedSeriesId || stories[0]?.id)}
-            className="px-4 py-2 rounded-[7px] bg-gradient-to-r from-[#E6007A] to-[#FF2A6D] text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-pink-500/20 hover:opacity-95 transition-all cursor-pointer"
-          >
-            <PlusCircle className="w-4 h-4" />
-            <span>+ Add Episode</span>
           </button>
 
           <button

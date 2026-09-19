@@ -52,7 +52,6 @@ export const CreatorStoryStudio: React.FC<CreatorStoryStudioProps> = ({
 }) => {
   const isForgeComplete =
     assessment?.status === 'FORGE_COMPLETE' ||
-    currentAction?.action === 'STOP' ||
     assessment?.current_milestone === 'FORGE_COMPLETE';
 
   const characterCount = Object.keys(storyState.characters || {}).length;
@@ -89,7 +88,7 @@ export const CreatorStoryStudio: React.FC<CreatorStoryStudioProps> = ({
           </div>
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 border border-white/5">
             <Film className="w-3.5 h-3.5 text-emerald-400" />
-            <span>{eventsCount} / 6 Beats</span>
+            <span>{eventsCount === 0 ? 'Story Foundation' : `${eventsCount} / 6 Beats`}</span>
           </div>
         </div>
       </div>

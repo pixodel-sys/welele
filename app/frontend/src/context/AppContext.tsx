@@ -318,14 +318,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         message: res.message || `Unlocked with R${amountZar.toFixed(2)} airtime!`,
         remainingAirtime: Math.max(0, airtimeBalance - amountZar),
       };
-    } catch (err) {
-      console.error('Airtime charge fallback:', err);
-      setAirtimeBalance((prev) => Math.max(0, prev - amountZar));
-      setUnlockedEpisodes((prev) => new Set(prev).add(episodeId));
+    } catch (err: any) {
+      console.error('Airtime charge error:', err);
+      const errorMsg = err?.response?.data?.detail || err?.message || 'Payment could not be completed.';
       return {
-        success: true,
-        message: `Unlocked via ${selectedCarrier.replace('_', ' ').toUpperCase()} (R${amountZar.toFixed(2)})!`,
-        remainingAirtime: Math.max(0, airtimeBalance - amountZar),
+        success: false,
+        message: typeof errorMsg === 'string' ? errorMsg : 'Payment rejected by carrier.',
+        remainingAirtime: airtimeBalance,
       };
     }
   };
@@ -354,17 +353,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         success: true,
         message: `Activated ${pass.name}! R${pass.price_zar.toFixed(2)} deducted from ${selectedCarrier.replace('_', ' ').toUpperCase()} airtime.`,
       };
-    } catch (err) {
-      setAirtimeBalance((prev) => Math.max(0, prev - pass.price_zar));
-      if (pass.coins_grant > 0) setCoins((prev) => prev + pass.coins_grant);
-      setActivePasses((prev) => {
-        const next = new Set(prev).add(pass.id);
-        localStorage.setItem('welele_active_passes', JSON.stringify(Array.from(next)));
-        return next;
-      });
+    } catch (err: any) {
+      console.error('Pass purchase error:', err);
+      const errorMsg = err?.response?.data?.detail || err?.message || 'Pass purchase failed.';
       return {
-        success: true,
-        message: `Activated ${pass.name} via Airtime!`,
+        success: false,
+        message: typeof errorMsg === 'string' ? errorMsg : 'Pass purchase could not be completed.',
       };
     }
   };

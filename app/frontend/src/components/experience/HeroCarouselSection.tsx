@@ -98,7 +98,7 @@ export const HeroCarouselSection: React.FC<HeroCarouselSectionProps> = ({
 
           return (
             <div
-              key={slotItem.slot_id || s.id}
+              key={`${slotItem.slot_id || s.id}_${idx}`}
               className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
                 isActive ? 'opacity-100 pointer-events-auto z-0' : 'opacity-0 pointer-events-none z-[-1]'
               }`}
@@ -118,7 +118,7 @@ export const HeroCarouselSection: React.FC<HeroCarouselSectionProps> = ({
                   src={art}
                   alt={s.title}
                   onError={(e) => {
-                    const fallback = s.cover_image || s.vertical_poster || '/banners/blood_ties_banner.jpg';
+                    const fallback = '/banners/blood_ties_banner.jpg';
                     if (e.currentTarget.src !== fallback) {
                       e.currentTarget.src = fallback;
                     }
@@ -263,7 +263,7 @@ export const HeroCarouselSection: React.FC<HeroCarouselSectionProps> = ({
             const isCurrent = idx === activeIndex;
             return (
               <button
-                key={slotItem.slot_id || s.id}
+                key={`${slotItem.slot_id || s.id}_rail_${idx}`}
                 onClick={() => {
                   setActiveIndex(idx);
                   setShowVideoTeaser(false);
@@ -281,7 +281,7 @@ export const HeroCarouselSection: React.FC<HeroCarouselSectionProps> = ({
                     src={s.vertical_poster || s.cover_image}
                     alt={s.title}
                     onError={(e) => {
-                      const fallback = s.cover_image || s.vertical_poster || '/posters/blood_ties.jpg';
+                      const fallback = '/posters/blood_ties.jpg';
                       if (e.currentTarget.src !== fallback) {
                         e.currentTarget.src = fallback;
                       }

@@ -138,8 +138,18 @@ def test_m2_six_canonical_chronology_anchors():
         logline="A vertical micro-drama series set in rural Bergville locations about a woman confronting an ancestral debt."
     )
     state = repo.get_current_state(story_id)
-    state.characters["Zodwa"] = CharacterState(name="Zodwa", role=CharacterRole.PROTAGONIST, core_motivation="Expose truth")
-    state.characters["Bheki"] = CharacterState(name="Bheki", role=CharacterRole.ANTAGONIST, core_motivation="Collect debt")
+    state.characters["Zodwa"] = CharacterState(
+        name="Zodwa",
+        role=CharacterRole.PROTAGONIST,
+        core_motivation="Expose truth",
+        relationships=[CharacterRelationship(target_character="Bheki", relation_type="OPPOSITION", dynamic="Zodwa opposes Bheki")]
+    )
+    state.characters["Bheki"] = CharacterState(
+        name="Bheki",
+        role=CharacterRole.ANTAGONIST,
+        core_motivation="Collect debt",
+        relationships=[CharacterRelationship(target_character="Zodwa", relation_type="OPPOSITION", dynamic="Bheki pursues Zodwa")]
+    )
     repo.save_state(state)
 
     # Add only 3 events (incomplete spine)
@@ -169,8 +179,18 @@ def test_m2_narrative_plant_payoff_linking():
     story_id = "test-m2-plants"
     repo.create_story(story_id=story_id, title="Ancestral Debt", owner_id="creator_1", logline="A thriller about an ancestral debt.")
     state = repo.get_current_state(story_id)
-    state.characters["Zodwa"] = CharacterState(name="Zodwa", role=CharacterRole.PROTAGONIST, core_motivation="Expose truth")
-    state.characters["Bheki"] = CharacterState(name="Bheki", role=CharacterRole.ANTAGONIST, core_motivation="Collect debt")
+    state.characters["Zodwa"] = CharacterState(
+        name="Zodwa",
+        role=CharacterRole.PROTAGONIST,
+        core_motivation="Expose truth",
+        relationships=[CharacterRelationship(target_character="Bheki", relation_type="OPPOSITION", dynamic="Zodwa opposes Bheki")]
+    )
+    state.characters["Bheki"] = CharacterState(
+        name="Bheki",
+        role=CharacterRole.ANTAGONIST,
+        core_motivation="Collect debt",
+        relationships=[CharacterRelationship(target_character="Zodwa", relation_type="OPPOSITION", dynamic="Bheki pursues Zodwa")]
+    )
     state.plants.append(NarrativePlant(plant_name="ancestral_ledger", description="Secret book", payoff_status="PLANTED", intended_payoff=None))
     repo.save_state(state)
 
@@ -206,8 +226,18 @@ def test_m3_forge_complete_multi_gate():
         logline="A supernatural vertical micro-drama thriller set in rural Bergville and urban Johannesburg locations."
     )
     state = repo.get_current_state(story_id)
-    state.characters["Zodwa"] = CharacterState(name="Zodwa", role=CharacterRole.PROTAGONIST, core_motivation="Expose truth")
-    state.characters["Bheki"] = CharacterState(name="Bheki", role=CharacterRole.ANTAGONIST, core_motivation="Collect debt")
+    state.characters["Zodwa"] = CharacterState(
+        name="Zodwa",
+        role=CharacterRole.PROTAGONIST,
+        core_motivation="Expose truth",
+        relationships=[CharacterRelationship(target_character="Bheki", relation_type="OPPOSITION", dynamic="Zodwa opposes Bheki")]
+    )
+    state.characters["Bheki"] = CharacterState(
+        name="Bheki",
+        role=CharacterRole.ANTAGONIST,
+        core_motivation="Collect debt",
+        relationships=[CharacterRelationship(target_character="Zodwa", relation_type="OPPOSITION", dynamic="Bheki pursues Zodwa")]
+    )
     state.plants.append(NarrativePlant(plant_name="ancestral_ledger", description="Secret book", intended_payoff="Used in climax"))
     state.world = WorldSetting(rules_and_lore=["Supernatural solstice deadline"])
     repo.save_state(state)

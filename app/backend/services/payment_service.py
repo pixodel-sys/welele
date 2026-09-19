@@ -252,6 +252,25 @@ class SouthAfricaMonetisationProvider(BaseMonetisationProvider):
         ref = f"ZA-{carrier['name'][:3].upper()}-{uuid.uuid4().hex[:6].upper()}"
         timestamp = datetime.datetime.now(datetime.timezone.utc).isoformat()
 
+        # Deterministic Failure Simulation: Numbers ending in '0001' or declined test simulate carrier decline
+        if phone_number.endswith("0001") or carrier_id == "declined_test" or amount <= 0:
+            return {
+                "transaction_id": tx_id,
+                "status": "failed",
+                "region": "ZA",
+                "charge_type": charge_type,
+                "target_id": target_id,
+                "carrier_id": carrier["id"],
+                "carrier_name": carrier["name"],
+                "phone_number": phone_number,
+                "amount_zar": amount,
+                "currency": "ZAR",
+                "coins_credited": 0,
+                "reference": ref,
+                "error": "Carrier transaction rejected: Insufficient airtime balance.",
+                "timestamp": timestamp
+            }
+
         return {
             "transaction_id": tx_id,
             "status": "completed",

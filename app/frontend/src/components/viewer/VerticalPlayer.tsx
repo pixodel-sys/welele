@@ -31,6 +31,7 @@ import {
   Minimize,
   ChevronRight,
   Film,
+  RotateCcw,
 } from 'lucide-react';
 import { useContentProtection } from '../../hooks/useContentProtection';
 import { mediaStore } from '../../services/mediaStore';
@@ -110,6 +111,10 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
   const [storedDbKeys, setStoredDbKeys] = useState<string[]>([]);
   const [resolvedSourceKey, setResolvedSourceKey] = useState<string>('');
   const [showDebugHud, setShowDebugHud] = useState<boolean>(true);
+
+  // Workstream 4: Playback Resumption State & Persistence Ref
+  const lastResumeSaveRef = useRef<number>(0);
+  const [resumeNotice, setResumeNotice] = useState<string | null>(null);
 
   // Welele Immersive Viewing Law: 5-second auto-hide timer for unencumbered story watching
   const [showControls, setShowControls] = useState<boolean>(true);
@@ -196,6 +201,20 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
         if (isPlaying) {
           videoRef.current.pause();
           setIsPlaying(false);
+          // Workstream 4: Immediately persist progress on pause
+          if (currentStory && currentEpisode && currentTime > 1) {
+            try {
+              localStorage.setItem(
+                `welele_resume_${currentStory.id}`,
+                JSON.stringify({
+                  seriesId: currentStory.id,
+                  episodeId: currentEpisode.id,
+                  progressTime: Math.round(currentTime),
+                  timestamp: Date.now(),
+                })
+              );
+            } catch (e) {}
+          }
         } else {
           videoRef.current.play().catch(() => {});
           setIsPlaying(true);
@@ -642,6 +661,26 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
       } else if (pct >= 90 && pct < 99) {
         telemetryService.track({ event_family: 'WATCH', event_type: 'PLAYBACK_PROGRESS', content_id: currentEpisode.id, series_id: currentStory.id, episode_id: currentEpisode.id, position_seconds: curr, duration_seconds: dur, milestone_pct: 90 });
       }
+
+      // Workstream 4: Throttled Playback Resumption Persistence (Every 2 seconds)
+      if (curr > 1) {
+        const now = Date.now();
+        if (!lastResumeSaveRef.current || now - lastResumeSaveRef.current > 2000) {
+          lastResumeSaveRef.current = now;
+          try {
+            localStorage.setItem(
+              `welele_resume_${currentStory.id}`,
+              JSON.stringify({
+                seriesId: currentStory.id,
+                episodeId: currentEpisode.id,
+                progressTime: Math.round(curr),
+                duration: Math.round(dur),
+                timestamp: now,
+              })
+            );
+          } catch (e) {}
+        }
+      }
     }
 
     // Dynamic subtitle lines localized to South Africa & Pan-African languages
@@ -1043,6 +1082,30 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
             onContextMenu={(e) => e.preventDefault()}
             onDragStart={(e) => e.preventDefault()}
             onTimeUpdate={handleTimeUpdate}
+            onLoadedMetadata={() => {
+              // Workstream 4: Restore playback position on load if saved
+              if (currentStory && currentEpisode) {
+                try {
+                  const saved = localStorage.getItem(`welele_resume_${currentStory.id}`);
+                  if (saved) {
+                    const parsed = JSON.parse(saved);
+                    if (
+                      parsed.episodeId === currentEpisode.id &&
+                      parsed.progressTime > 3 &&
+                      videoRef.current &&
+                      parsed.progressTime < (videoRef.current.duration || 80) - 5
+                    ) {
+                      videoRef.current.currentTime = parsed.progressTime;
+                      setCurrentTime(parsed.progressTime);
+                      const mins = Math.floor(parsed.progressTime / 60);
+                      const secs = (parsed.progressTime % 60).toString().padStart(2, '0');
+                      setResumeNotice(`Resumed at ${mins}:${secs}`);
+                      setTimeout(() => setResumeNotice(null), 3000);
+                    }
+                  }
+                } catch (e) {}
+              }
+            }}
             onPlay={() => setMediaError(null)}
             onError={(e) => {
               const err = e.currentTarget.error;
@@ -1145,6 +1208,14 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
             >
               <ShieldCheck className="w-3 h-3 text-emerald-400" />
               <span>DRM ENCRYPTED</span>
+            </div>
+          )}
+
+          {/* Workstream 4: Playback Resumed HUD Notice */}
+          {resumeNotice && (
+            <div className="absolute top-14 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/85 backdrop-blur-md border border-[#FF6500]/60 text-white text-[11px] font-bold shadow-2xl animate-fade-in pointer-events-none">
+              <RotateCcw className="w-3.5 h-3.5 text-[#FF6500] animate-spin-reverse" />
+              <span>{resumeNotice}</span>
             </div>
           )}
         </div>

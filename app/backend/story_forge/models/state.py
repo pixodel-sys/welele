@@ -45,12 +45,31 @@ class CharacterState(BaseModel):
     aliases: List[str] = Field(default_factory=list)
     role: CharacterRole = CharacterRole.UNRESOLVED
     archetype: Optional[str] = None
+    gender: Optional[str] = None
+    pronouns: Optional[str] = None
+    summary: Optional[str] = None
     core_motivation: Optional[str] = None
     secret_desire: Optional[str] = None
     fatal_flaw: Optional[str] = None
     status: StateStatus = StateStatus.FACT
     relationships: List[CharacterRelationship] = Field(default_factory=list)
     attributes: Dict[str, Any] = Field(default_factory=dict)
+
+
+class ConstraintStatus(str, Enum):
+    ACTIVE = "ACTIVE"
+    SUPERSEDED = "SUPERSEDED"
+    RESOLVED = "RESOLVED"
+
+
+class StoryConstraint(BaseModel):
+    constraint_id: str = Field(default_factory=lambda: f"const_{uuid4().hex[:8]}")
+    category: str = "DEADLINE"  # DEADLINE, REVEAL_CONDITION, STAKES, RULE, DECISION
+    description: str
+    status: ConstraintStatus = ConstraintStatus.ACTIVE
+    superseded_by: Optional[str] = None
+    source_context: Optional[str] = None
+    created_turn: int = 1
 
 
 class KnowledgeStatus(str, Enum):
@@ -105,12 +124,14 @@ class StoryState(BaseModel):
     logline: Optional[str] = None
     theme: Optional[str] = None
     tone: Optional[str] = None
+    story_document_context: Optional[str] = None
     world: WorldSetting = Field(default_factory=WorldSetting)
     characters: Dict[str, CharacterState] = Field(default_factory=dict)
     chronology: List[Any] = Field(default_factory=list)
     explicit_ending_declared: bool = False
     knowledge_states: List[KnowledgeState] = Field(default_factory=list)
     plants: List[NarrativePlant] = Field(default_factory=list)
+    constraints: List[StoryConstraint] = Field(default_factory=list)
     raw_creator_notes: List[str] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -126,3 +147,4 @@ class StoryState(BaseModel):
                 if rel.status == StateStatus.UNRESOLVED:
                     count += 1
         return count
+

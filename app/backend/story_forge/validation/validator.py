@@ -94,7 +94,7 @@ class StoryValidator:
 
         # 2. Validate Knowledge States
         for k in state.knowledge_states:
-            if k.character_name not in state.characters:
+            if k.character_name != "Audience" and k.character_name not in state.characters:
                 result.add_error(
                     entity=k.character_name,
                     path=f"knowledge.{k.character_name}",

@@ -68,6 +68,9 @@ export interface StoryState {
   characters: Record<string, CharacterState>;
   world: WorldSetting;
   plants: NarrativePlant[];
+  chronology?: ChronologyEvent[];
+  knowledge_states?: any[];
+  explicit_ending_declared?: boolean;
 }
 
 export interface PriorityComponents {
@@ -233,3 +236,22 @@ export interface IntelligenceProjection {
   total_dependencies: number;
   resolved_dependencies_count: number;
 }
+
+export interface StoryPackageArtifact {
+  story_package_version: string;
+  story_id: string;
+  title: string;
+  logline: string;
+  milestone: MilestoneEnum;
+  readiness_status: ReadinessStatus;
+  state_version: number;
+  characters: CharacterState[];
+  world: WorldSetting | Record<string, any>;
+  chronology_spine: ChronologyEvent[];
+  narrative_plants: NarrativePlant[];
+  knowledge_states: any[];
+  production_decisions: any[];
+  assessment: ForgeCompletionAssessment;
+  compiled_at?: string;
+}
+

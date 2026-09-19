@@ -289,13 +289,18 @@ class DependencyEngine:
             if c.role == CharacterRole.PROTAGONIST or (len(state.characters) == 1 and c.status == StateStatus.FACT)
         ]
         has_valid_protagonist = len(protagonists) > 0 and all(bool(c.core_motivation and c.core_motivation.strip()) for c in state.characters.values())
+        logline_text = (state.logline or "").lower()
+        has_systemic_counterforce = any(
+            term in logline_text
+            for term in ("drought", "famine", "blizzard", "storm", "corruption", "poverty", "syndicate", "debt", "disaster", "opposing", "enemy", "rival", "disease", "illness", "survival", "crisis")
+        )
         has_counterforce = (
             any(c.role == CharacterRole.ANTAGONIST for c in state.characters.values()) or
-            len(state.characters) >= 2 or
             len(state.world.rules_and_lore) > 0 or
-            any("conflict" in (getattr(p, 'plant_name', None) or p.element_code).lower() or "retribution" in (getattr(p, 'plant_name', None) or p.element_code).lower() for p in state.plants)
+            has_systemic_counterforce or
+            any("conflict" in (getattr(p, 'plant_name', None) or p.element_code).lower() or "retribution" in (getattr(p, 'plant_name', None) or p.element_code).lower() or "debt" in (getattr(p, 'plant_name', None) or p.element_code).lower() for p in state.plants)
         )
-        has_relationships = any(len(c.relationships) > 0 for c in state.characters.values()) or len(state.characters) >= 2
+        has_relationships = any(len(c.relationships) > 0 for c in state.characters.values())
 
         # Anchor types present
         anchor_types = {getattr(e, 'anchor_type', None) for e in all_events if getattr(e, 'anchor_type', None)}
@@ -335,7 +340,23 @@ class DependencyEngine:
                 is_satisfied = True
 
             # Relationship dynamic
-            elif (key.startswith("REL_") or key == "RELATIONSHIP_DYNAMIC_CORE") and has_relationships:
+            elif key.startswith("REL_"):
+                parts = key.split("_")
+                if len(parts) >= 3:
+                    c1_key = parts[1].lower()
+                    c2_key = parts[2].lower()
+                    c1_obj = next((c for c in state.characters.values() if c.name.lower() == c1_key or c.name.upper().replace(" ", "_") == parts[1]), None)
+                    c2_obj = next((c for c in state.characters.values() if c.name.lower() == c2_key or c.name.upper().replace(" ", "_") == parts[2]), None)
+                    if c1_obj and c2_obj:
+                        has_link = any(r.target_character.lower() == c2_obj.name.lower() for r in c1_obj.relationships) or \
+                                   any(r.target_character.lower() == c1_obj.name.lower() for r in c2_obj.relationships)
+                        if has_link:
+                            is_satisfied = True
+                    elif has_relationships:
+                        is_satisfied = True
+                elif has_relationships:
+                    is_satisfied = True
+            elif key == "RELATIONSHIP_DYNAMIC_CORE" and has_relationships:
                 is_satisfied = True
 
             # World rules
@@ -457,11 +478,16 @@ class DependencyEngine:
                     )
 
         # 2. Flexible Counterforce (Character, Institution, Supernatural Force, Systemic)
+        logline_text = (state.logline or "").lower()
+        has_systemic_counterforce = any(
+            term in logline_text
+            for term in ("drought", "famine", "blizzard", "storm", "corruption", "poverty", "syndicate", "debt", "disaster", "opposing", "enemy", "rival", "disease", "illness", "survival", "crisis")
+        )
         has_counterforce = (
             any(c.role == CharacterRole.ANTAGONIST for c in state.characters.values()) or
-            len(state.characters) >= 2 or
             len(state.world.rules_and_lore) > 0 or
-            any("conflict" in (getattr(p, 'plant_name', None) or p.element_code).lower() or "retribution" in (getattr(p, 'plant_name', None) or p.element_code).lower() for p in state.plants)
+            has_systemic_counterforce or
+            any("conflict" in (getattr(p, 'plant_name', None) or p.element_code).lower() or "retribution" in (getattr(p, 'plant_name', None) or p.element_code).lower() or "debt" in (getattr(p, 'plant_name', None) or p.element_code).lower() for p in state.plants)
         )
         if not has_counterforce:
             add_required(
@@ -474,7 +500,7 @@ class DependencyEngine:
             )
 
         # 3. Relationship Dynamic
-        has_relationships = any(len(c.relationships) > 0 for c in state.characters.values()) or len(state.characters) >= 2
+        has_relationships = any(len(c.relationships) > 0 for c in state.characters.values())
         if len(state.characters) >= 2 and not has_relationships:
             add_required(
                 "RELATIONSHIP_DYNAMIC_CORE",
@@ -558,8 +584,8 @@ class DependencyEngine:
     @classmethod
     def format_targeted_deficiency_question(cls, dep: Dependency, state: StoryState) -> str:
         """
-        Produces an exact, targeted creative question for a specific deficiency.
-        Generic 'What's next?' or open-ended fallbacks are strictly prohibited.
+        Produces an exact, targeted creative question for a specific narrative requirement.
+        Zero machine ontology or generic placeholders are permitted.
         """
         key = dep.dependency_key
         protagonist_name = "the protagonist"
@@ -572,43 +598,44 @@ class DependencyEngine:
             return "What is the core premise and primary dramatic conflict of this story?"
 
         if key == "PREMISE_PROTAGONIST_DEFINITION":
-            return "Who is the central protagonist, and what is their immediate situation at the opening?"
+            return "Who is the central character, and what is their situation at the start of the story?"
 
         if key.startswith("CHAR_MOTIVATION_"):
             char_name = dep.target_entity or key.replace("CHAR_MOTIVATION_", "").replace("_", " ").title()
-            return f"What is {char_name}'s core driving motivation and what do they stand to lose?"
+            return f"What does {char_name} really want, and what are they afraid will happen if they fail?"
 
         if key == "PREMISE_COUNTERFORCE_DEFINITION":
-            return f"Who or what is the primary opposing force or counterforce standing against {protagonist_name}?"
+            return f"Who is standing in {protagonist_name}'s way?"
 
         if key.startswith("REL_") or key == "RELATIONSHIP_DYNAMIC_CORE":
-            return f"What is the crucial relationship dynamic and emotional tension between {protagonist_name} and the opposing characters?"
+            return f"What is the friction or emotional tension between {protagonist_name} and the people around them?"
 
         if key == "WORLD_RULE_SPECIFICATION":
-            return "What are the essential governing rules, limits, or consequences operating in this story's world?"
+            return "What are the unspoken rules, boundaries, or dangers of this world that the characters must live with?"
 
         if key.startswith("EVENT_01_INCITING_DISRUPTION"):
-            return f"What is the inciting disruption that shatters {protagonist_name}'s normal life and launches the story?"
+            return f"What unexpected event shatters {protagonist_name}'s ordinary world and starts this story?"
 
         if key.startswith("EVENT_02_POINT_OF_NO_RETURN"):
-            return f"What commitment or irreversible choice marks {protagonist_name}'s point of no return?"
+            return f"What choice does {protagonist_name} make that means there is no going back?"
 
         if key.startswith("EVENT_03_MIDPOINT_REVELATION"):
-            return f"What pivotal revelation or shift occurs at the midpoint that raises the stakes for {protagonist_name}?"
+            return f"What surprising revelation or shift happens halfway through that raises the stakes for {protagonist_name}?"
 
         if key.startswith("EVENT_04_DARK_NIGHT"):
-            return f"What is the low point or dark night where {protagonist_name}'s vulnerabilities are exposed and failure seems certain?"
+            return f"What is {protagonist_name}'s lowest moment, where everything seems lost?"
 
         if key.startswith("EVENT_05_CLIMAX"):
-            return f"How does the decisive climax confrontation between {protagonist_name} and the counterforce unfold?"
+            return f"How does the decisive final showdown unfold for {protagonist_name}?"
 
         if key.startswith("EVENT_06_RESOLUTION"):
-            return f"What is the final resolution and new status quo established after the climactic confrontation?"
+            return f"When the dust settles, how has {protagonist_name}'s world permanently changed?"
 
         if key.startswith("PLANT_PAYOFF_LINK_"):
-            return f"How does the setup of '{dep.target_entity}' pay off dramatically later in the story?"
+            return f"How does the story pay off '{dep.target_entity}' in a surprising or dramatic way?"
 
         # Fallback to targeted description
-        return f"Regarding {dep.target_entity or 'the narrative'}: {dep.description.rstrip('.')}. How does this develop in your story?"
+        return f"How does '{dep.target_entity or 'this part of the story'}' develop?"
+
 
 

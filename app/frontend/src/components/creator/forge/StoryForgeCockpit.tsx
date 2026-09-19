@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { storyForgeApi } from '../../../services/storyForgeApi';
 import {
   StoryState,
@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 
 export const StoryForgeCockpit: React.FC = () => {
+  const isSubmittingRef = useRef<boolean>(false);
   // Session & Story State
   const [activeStoryId, setActiveStoryId] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -47,22 +48,48 @@ export const StoryForgeCockpit: React.FC = () => {
     storyId: string,
     initialPremise?: string,
     creativeObjective?: string,
-    productionObjective?: string
+    productionObjective?: string,
+    documentContext?: string
   ) => {
     setActiveStoryId(storyId);
     setIsLoading(true);
     setErrorMessage(null);
 
+    const clientEntryStart = performance.now();
     try {
       const sess = await storyForgeApi.startSession(storyId, {
         creator_id: 'creator_current',
         initial_premise: initialPremise,
+        story_document_context: documentContext,
         creative_objective: creativeObjective,
         production_objective: productionObjective,
       });
 
       setSessionId(sess.id);
       await refreshAllData(storyId, sess.id);
+
+      const clientEntryEnd = performance.now();
+      const totalEntryLatency = Math.round(clientEntryEnd - clientEntryStart);
+      const timings = sess?._timingBreakdown;
+
+      if (timings) {
+        const uiStateSyncMs = Math.max(0, Math.round(totalEntryLatency - timings.roundTripMs));
+        const ingestionTransportMs = Math.round(timings.ingestionMs + timings.networkTransportMs);
+        console.log(
+          `%c[Story Forge Entry Telemetry]\n` +
+          `┌────────────────────────┬─────────────┐\n` +
+          `│ Phase                  │ Duration    │\n` +
+          `├────────────────────────┼─────────────┤\n` +
+          `│ Ingestion & Transport  │ ${ingestionTransportMs.toString().padStart(6, ' ')} ms │\n` +
+          `│ LLM Processing         │ ${timings.llmMs.toFixed(0).padStart(6, ' ')} ms │\n` +
+          `│ Forge Reconciliation   │ ${timings.reconciliationMs.toFixed(0).padStart(6, ' ')} ms │\n` +
+          `│ UI State Sync & Ready  │ ${uiStateSyncMs.toString().padStart(6, ' ')} ms │\n` +
+          `├────────────────────────┼─────────────┤\n` +
+          `│ Total Entry Latency    │ ${totalEntryLatency.toString().padStart(6, ' ')} ms │\n` +
+          `└────────────────────────┴─────────────┘`,
+          'color: #FFA000; font-family: monospace; font-weight: bold;'
+        );
+      }
     } catch (err: any) {
       const msg = err.response?.data?.detail || err.message || 'Failed to start Forge session.';
       setErrorMessage(msg);
@@ -93,12 +120,14 @@ export const StoryForgeCockpit: React.FC = () => {
     }
   };
 
-  // Submit creator input with automatic transition collapsing
+  // Submit creator input with automatic transition collapsing and atomic state settlement
   const handleSubmitResponse = async (
     responseText: string,
     proposalAction?: 'ACCEPT' | 'REJECT' | 'MODIFY'
   ) => {
     if (!sessionId || !activeStoryId) return;
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
 
     setIsLoading(true);
     setIsWorkingThroughStory(true);
@@ -111,46 +140,49 @@ export const StoryForgeCockpit: React.FC = () => {
         proposal_action: proposalAction,
       });
 
-      setStoryState(cycleResult.current_state);
-
-      // Refresh current action & completion
+      let nextStoryState = cycleResult.current_state;
       let actionData = await storyForgeApi.getCurrentAction(sessionId);
       let compData = await storyForgeApi.getCompletion(activeStoryId);
-      setCurrentAction(actionData);
-      setAssessment(compData);
 
       // Autonomous transition collapsing:
-      // If the action does not require creator authority (e.g. INFER, RECORD_PRODUCTION_DECISION)
-      // and has not reached terminal completion, advance automatically without disrupting creator.
+      // If there is no question waiting for creator and the action does not require creator authority
+      // (e.g. background RECORD_PRODUCTION_DECISION), advance automatically without flashing UI.
       let safetyLoops = 0;
       while (
         safetyLoops < 8 &&
         compData.status !== 'FORGE_COMPLETE' &&
         actionData.action !== 'STOP' &&
+        !actionData.question &&
         !actionData.requires_creator &&
         actionData.action !== 'ASK' &&
         actionData.action !== 'PROPOSE'
       ) {
         safetyLoops++;
         setWorkingStatusMessage('Synthesizing dramatic continuity and updating story arc…');
-        await new Promise((resolve) => setTimeout(resolve, 400));
+        await new Promise((resolve) => setTimeout(resolve, 350));
 
         const autoRes = await storyForgeApi.submitInput(sessionId, {});
-        setStoryState(autoRes.current_state);
+        nextStoryState = autoRes.current_state;
 
         actionData = await storyForgeApi.getCurrentAction(sessionId);
         compData = await storyForgeApi.getCompletion(activeStoryId);
-        setCurrentAction(actionData);
-        setAssessment(compData);
       }
 
-      await refreshAllData(activeStoryId, sessionId);
+      // Fetch latest dependencies
+      const depsData = await storyForgeApi.getDependencies(activeStoryId);
+
+      // Atomic commit: Only commit the new state and reveal the next question once the complete cycle has resolved
+      setStoryState(nextStoryState);
+      setAssessment(compData);
+      setDependencies(depsData);
+      setCurrentAction(actionData);
     } catch (err: any) {
       const msg = err.response?.data?.detail || err.message || 'Error processing story cycle.';
       setErrorMessage(msg);
     } finally {
-      setIsLoading(false);
       setIsWorkingThroughStory(false);
+      setIsLoading(false);
+      isSubmittingRef.current = false;
     }
   };
 
@@ -176,8 +208,8 @@ export const StoryForgeCockpit: React.FC = () => {
   if (!activeStoryId || !storyState) {
     return (
       <StoryIntakeScreen
-        onStoryCreated={(id, premise, creativeObj, prodObj) =>
-          initializeSession(id, premise, creativeObj, prodObj)
+        onStoryCreated={(id, premise, creativeObj, prodObj, docCtx) =>
+          initializeSession(id, premise, creativeObj, prodObj, docCtx)
         }
         onResumeStory={(id) => initializeSession(id)}
       />
