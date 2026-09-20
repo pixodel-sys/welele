@@ -74552,6 +74552,1816 @@
       "source": null,
       "metadata": {},
       "ingested_at": "2026-09-18T15:33:49.042128+00:00"
+    },
+    {
+      "event_id": "evt_p5m4ndo0h_1789889269732",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T07:27:49.732Z",
+      "session_id": "sess_r7v61hmnm_1789889268749",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "HOME_SCREEN",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "storiesCount": 14,
+        "activeCategory": "All"
+      },
+      "ingested_at": "2026-09-20T07:27:50.908114+00:00"
+    },
+    {
+      "event_id": "evt_3l9pmuog6_1789889269738",
+      "event_family": "OPEN",
+      "event_type": "APP_OPEN",
+      "occurred_at": "2026-09-20T07:27:49.738Z",
+      "session_id": "sess_r7v61hmnm_1789889268749",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "PLATFORM",
+      "content_id": "welele_pwa",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "APP_INIT",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36",
+        "screen": "1920x953"
+      },
+      "ingested_at": "2026-09-20T07:27:51.352217+00:00"
+    },
+    {
+      "event_id": "evt_z3tv5g846_1789889269743",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T07:27:49.743Z",
+      "session_id": "sess_r7v61hmnm_1789889268749",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "HOME_SCREEN",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "storiesCount": 14,
+        "activeCategory": "All"
+      },
+      "ingested_at": "2026-09-20T07:27:51.353982+00:00"
+    },
+    {
+      "event_id": "evt_p_01_53f32f",
+      "event_family": "OPEN",
+      "event_type": "APP_OPEN",
+      "occurred_at": "2026-09-20T07:42:50.913380+00:00",
+      "session_id": "sess_live_prod_53f32f",
+      "viewer_id": "usr_prod_53f32f",
+      "anonymous_id": null,
+      "content_type": "PLATFORM",
+      "content_id": "welele_pwa",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": null,
+      "environment": "production",
+      "is_test": false,
+      "metadata": {},
+      "ingested_at": "2026-09-20T07:42:49.945259+00:00"
+    },
+    {
+      "event_id": "evt_p_02_53f32f",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T07:42:52.913380+00:00",
+      "session_id": "sess_live_prod_53f32f",
+      "viewer_id": "usr_prod_53f32f",
+      "anonymous_id": null,
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": null,
+      "environment": "production",
+      "is_test": false,
+      "metadata": {},
+      "ingested_at": "2026-09-20T07:42:50.919322+00:00"
+    },
+    {
+      "event_id": "evt_p_03_53f32f",
+      "event_family": "OPEN",
+      "event_type": "CONTENT_OPENED",
+      "occurred_at": "2026-09-20T07:42:55.913380+00:00",
+      "session_id": "sess_live_prod_53f32f",
+      "viewer_id": "usr_prod_53f32f",
+      "anonymous_id": null,
+      "content_type": "SERIES",
+      "content_id": "story_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": null,
+      "environment": "production",
+      "is_test": false,
+      "metadata": {
+        "title": "Blood Ties"
+      },
+      "ingested_at": "2026-09-20T07:42:51.294656+00:00"
+    },
+    {
+      "event_id": "evt_p_04_53f32f",
+      "event_family": "WATCH",
+      "event_type": "PLAYBACK_STARTED",
+      "occurred_at": "2026-09-20T07:42:57.913380+00:00",
+      "session_id": "sess_live_prod_53f32f",
+      "viewer_id": "usr_prod_53f32f",
+      "anonymous_id": null,
+      "content_type": "EPISODE",
+      "content_id": "ep_bt_1",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_bt_1",
+      "position_seconds": 0.0,
+      "duration_seconds": 90.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": null,
+      "environment": "production",
+      "is_test": false,
+      "metadata": {},
+      "ingested_at": "2026-09-20T07:42:51.656114+00:00"
+    },
+    {
+      "event_id": "evt_p_05_m25_53f32f",
+      "event_family": "WATCH",
+      "event_type": "PLAYBACK_PROGRESS",
+      "occurred_at": "2026-09-20T07:43:11.913380+00:00",
+      "session_id": "sess_live_prod_53f32f",
+      "viewer_id": "usr_prod_53f32f",
+      "anonymous_id": null,
+      "content_type": "EPISODE",
+      "content_id": "ep_bt_1",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_bt_1",
+      "position_seconds": 22.5,
+      "duration_seconds": 0.0,
+      "milestone_pct": 25,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": null,
+      "environment": "production",
+      "is_test": false,
+      "metadata": {},
+      "ingested_at": "2026-09-20T07:42:52.010769+00:00"
+    },
+    {
+      "event_id": "evt_p_05_m50_53f32f",
+      "event_family": "WATCH",
+      "event_type": "PLAYBACK_PROGRESS",
+      "occurred_at": "2026-09-20T07:43:34.913380+00:00",
+      "session_id": "sess_live_prod_53f32f",
+      "viewer_id": "usr_prod_53f32f",
+      "anonymous_id": null,
+      "content_type": "EPISODE",
+      "content_id": "ep_bt_1",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_bt_1",
+      "position_seconds": 45.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": 50,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": null,
+      "environment": "production",
+      "is_test": false,
+      "metadata": {},
+      "ingested_at": "2026-09-20T07:42:52.396978+00:00"
+    },
+    {
+      "event_id": "evt_p_05_m75_53f32f",
+      "event_family": "WATCH",
+      "event_type": "PLAYBACK_PROGRESS",
+      "occurred_at": "2026-09-20T07:43:56.913380+00:00",
+      "session_id": "sess_live_prod_53f32f",
+      "viewer_id": "usr_prod_53f32f",
+      "anonymous_id": null,
+      "content_type": "EPISODE",
+      "content_id": "ep_bt_1",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_bt_1",
+      "position_seconds": 67.5,
+      "duration_seconds": 0.0,
+      "milestone_pct": 75,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": null,
+      "environment": "production",
+      "is_test": false,
+      "metadata": {},
+      "ingested_at": "2026-09-20T07:42:52.763950+00:00"
+    },
+    {
+      "event_id": "evt_p_05_m90_53f32f",
+      "event_family": "WATCH",
+      "event_type": "PLAYBACK_PROGRESS",
+      "occurred_at": "2026-09-20T07:44:10.913380+00:00",
+      "session_id": "sess_live_prod_53f32f",
+      "viewer_id": "usr_prod_53f32f",
+      "anonymous_id": null,
+      "content_type": "EPISODE",
+      "content_id": "ep_bt_1",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_bt_1",
+      "position_seconds": 81.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": 90,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": null,
+      "environment": "production",
+      "is_test": false,
+      "metadata": {},
+      "ingested_at": "2026-09-20T07:42:53.116922+00:00"
+    },
+    {
+      "event_id": "evt_p_06_like_53f32f",
+      "event_family": "REACT",
+      "event_type": "REACTION_ADDED",
+      "occurred_at": "2026-09-20T07:44:14.913380+00:00",
+      "session_id": "sess_live_prod_53f32f",
+      "viewer_id": "usr_prod_53f32f",
+      "anonymous_id": null,
+      "content_type": "SERIES",
+      "content_id": "story_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": null,
+      "environment": "production",
+      "is_test": false,
+      "metadata": {
+        "reaction_type": "LIKE"
+      },
+      "ingested_at": "2026-09-20T07:42:53.491633+00:00"
+    },
+    {
+      "event_id": "evt_p_07_paywall_53f32f",
+      "event_family": "CONTINUE",
+      "event_type": "GATED_CONTENT_PRESENTED",
+      "occurred_at": "2026-09-20T07:44:20.913380+00:00",
+      "session_id": "sess_live_prod_53f32f",
+      "viewer_id": "usr_prod_53f32f",
+      "anonymous_id": null,
+      "content_type": "EPISODE",
+      "content_id": "ep_bt_2",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_bt_2",
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": null,
+      "environment": "production",
+      "is_test": false,
+      "metadata": {
+        "content_state": "UNAVAILABLE",
+        "coin_price": 5,
+        "is_available": false,
+        "playback_started": false
+      },
+      "ingested_at": "2026-09-20T07:42:53.878792+00:00"
+    },
+    {
+      "event_id": "evt_p_08_payinit_53f32f",
+      "event_family": "PAY",
+      "event_type": "PAYMENT_INITIATED",
+      "occurred_at": "2026-09-20T07:44:24.913380+00:00",
+      "session_id": "sess_live_prod_53f32f",
+      "viewer_id": "usr_prod_53f32f",
+      "anonymous_id": null,
+      "content_type": "EPISODE",
+      "content_id": "ep_bt_2",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_bt_2",
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": null,
+      "environment": "production",
+      "is_test": false,
+      "metadata": {
+        "method": "COINS",
+        "cost": 5
+      },
+      "ingested_at": "2026-09-20T07:42:54.307627+00:00"
+    },
+    {
+      "event_id": "evt_p_09_unlocked_53f32f",
+      "event_family": "PAY",
+      "event_type": "CONTENT_UNLOCKED",
+      "occurred_at": "2026-09-20T07:44:27.913380+00:00",
+      "session_id": "sess_live_prod_53f32f",
+      "viewer_id": "usr_prod_53f32f",
+      "anonymous_id": null,
+      "content_type": "EPISODE",
+      "content_id": "ep_bt_2",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_bt_2",
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": null,
+      "environment": "production",
+      "is_test": false,
+      "metadata": {
+        "method": "COINS",
+        "cost": 5
+      },
+      "ingested_at": "2026-09-20T07:42:54.662741+00:00"
+    },
+    {
+      "event_id": "evt_p_10_next_53f32f",
+      "event_family": "CONTINUE",
+      "event_type": "NEXT_EPISODE_SELECTED",
+      "occurred_at": "2026-09-20T07:44:29.913380+00:00",
+      "session_id": "sess_live_prod_53f32f",
+      "viewer_id": "usr_prod_53f32f",
+      "anonymous_id": null,
+      "content_type": "EPISODE",
+      "content_id": "ep_bt_2",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_bt_2",
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": null,
+      "environment": "production",
+      "is_test": false,
+      "metadata": {},
+      "ingested_at": "2026-09-20T07:42:55.029703+00:00"
+    },
+    {
+      "event_id": "evt_p_11_ep2play_53f32f",
+      "event_family": "WATCH",
+      "event_type": "PLAYBACK_STARTED",
+      "occurred_at": "2026-09-20T07:44:31.913380+00:00",
+      "session_id": "sess_live_prod_53f32f",
+      "viewer_id": "usr_prod_53f32f",
+      "anonymous_id": null,
+      "content_type": "EPISODE",
+      "content_id": "ep_bt_2",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_bt_2",
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": null,
+      "environment": "production",
+      "is_test": false,
+      "metadata": {},
+      "ingested_at": "2026-09-20T07:42:55.388198+00:00"
+    },
+    {
+      "event_id": "evt_p_12_return_53f32f",
+      "event_family": "RETURN",
+      "event_type": "SESSION_RETURNED",
+      "occurred_at": "2026-09-20T07:47:49.913380+00:00",
+      "session_id": "sess_live_prod_53f32f",
+      "viewer_id": "usr_prod_53f32f",
+      "anonymous_id": null,
+      "content_type": "SERIES",
+      "content_id": "story_blood_ties",
+      "series_id": "story_blood_ties",
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": null,
+      "environment": "production",
+      "is_test": false,
+      "metadata": {},
+      "ingested_at": "2026-09-20T07:42:55.774757+00:00"
+    },
+    {
+      "event_id": "evt_t_01_53f32f",
+      "event_family": "OPEN",
+      "event_type": "APP_OPEN",
+      "occurred_at": "2026-09-20T07:42:51.913380+00:00",
+      "session_id": "sess_quarantined_test_53f32f",
+      "viewer_id": "usr_test_53f32f",
+      "anonymous_id": null,
+      "content_type": "PLATFORM",
+      "content_id": "welele_pwa",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": null,
+      "environment": "test",
+      "is_test": true,
+      "metadata": {},
+      "ingested_at": "2026-09-20T07:42:56.166204+00:00"
+    },
+    {
+      "event_id": "evt_t_02_53f32f",
+      "event_family": "WATCH",
+      "event_type": "PLAYBACK_STARTED",
+      "occurred_at": "2026-09-20T07:42:59.913380+00:00",
+      "session_id": "sess_quarantined_test_53f32f",
+      "viewer_id": "usr_test_53f32f",
+      "anonymous_id": null,
+      "content_type": "EPISODE",
+      "content_id": "ep_bt_1",
+      "series_id": "story_blood_ties",
+      "episode_id": "ep_bt_1",
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": null,
+      "environment": "test",
+      "is_test": true,
+      "metadata": {},
+      "ingested_at": "2026-09-20T07:42:56.526751+00:00"
+    },
+    {
+      "event_id": "evt_j45hlgz03_1789890434146",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T07:47:14.146Z",
+      "session_id": "sess_hylv4cpnr_1789890432765",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "HOME_SCREEN",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "storiesCount": 14,
+        "activeCategory": "All"
+      },
+      "ingested_at": "2026-09-20T07:47:14.185235+00:00"
+    },
+    {
+      "event_id": "evt_b96wzpcdi_1789890434150",
+      "event_family": "OPEN",
+      "event_type": "APP_OPEN",
+      "occurred_at": "2026-09-20T07:47:14.150Z",
+      "session_id": "sess_hylv4cpnr_1789890432765",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "PLATFORM",
+      "content_id": "welele_pwa",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "APP_INIT",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36",
+        "screen": "1920x953"
+      },
+      "ingested_at": "2026-09-20T07:47:16.495151+00:00"
+    },
+    {
+      "event_id": "evt_9cc4zjogu_1789890434159",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T07:47:14.159Z",
+      "session_id": "sess_hylv4cpnr_1789890432765",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "HOME_SCREEN",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "storiesCount": 14,
+        "activeCategory": "All"
+      },
+      "ingested_at": "2026-09-20T07:47:16.496023+00:00"
+    },
+    {
+      "event_id": "evt_0xpq3caeg_1789890603906",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T07:50:03.906Z",
+      "session_id": "sess_r7v61hmnm_1789889268749",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "HOME_SCREEN",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "storiesCount": 14,
+        "activeCategory": "All"
+      },
+      "ingested_at": "2026-09-20T07:50:03.920892+00:00"
+    },
+    {
+      "event_id": "evt_efibac96z_1789890603919",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T07:50:03.919Z",
+      "session_id": "sess_r7v61hmnm_1789889268749",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "HOME_SCREEN",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "storiesCount": 14,
+        "activeCategory": "All"
+      },
+      "ingested_at": "2026-09-20T07:50:06.359450+00:00"
+    },
+    {
+      "event_id": "evt_jj521ssnk_1789890644190",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T07:50:44.190Z",
+      "session_id": "sess_r7v61hmnm_1789889268749",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "HOME_SCREEN",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "storiesCount": 14,
+        "activeCategory": "All"
+      },
+      "ingested_at": "2026-09-20T07:50:44.208585+00:00"
+    },
+    {
+      "event_id": "evt_zcnk0ix61_1789890644208",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T07:50:44.208Z",
+      "session_id": "sess_r7v61hmnm_1789889268749",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "HOME_SCREEN",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "storiesCount": 14,
+        "activeCategory": "All"
+      },
+      "ingested_at": "2026-09-20T07:50:46.175302+00:00"
+    },
+    {
+      "event_id": "evt_cb9pm18yq_1789890663113",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T07:51:03.113Z",
+      "session_id": "sess_r7v61hmnm_1789889268749",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "HOME_SCREEN",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "storiesCount": 14,
+        "activeCategory": "All"
+      },
+      "ingested_at": "2026-09-20T07:51:03.139497+00:00"
+    },
+    {
+      "event_id": "evt_gxuo7qslg_1789890663123",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T07:51:03.123Z",
+      "session_id": "sess_r7v61hmnm_1789889268749",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "HOME_SCREEN",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "storiesCount": 14,
+        "activeCategory": "All"
+      },
+      "ingested_at": "2026-09-20T07:51:05.647316+00:00"
+    },
+    {
+      "event_id": "evt_peufxn1ry_1789890726190",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T07:52:06.190Z",
+      "session_id": "sess_r7v61hmnm_1789889268749",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "HOME_SCREEN",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "storiesCount": 14,
+        "activeCategory": "All"
+      },
+      "ingested_at": "2026-09-20T07:52:06.209979+00:00"
+    },
+    {
+      "event_id": "evt_dsrgayj44_1789890726192",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T07:52:06.192Z",
+      "session_id": "sess_r7v61hmnm_1789889268749",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "HOME_SCREEN",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "storiesCount": 14,
+        "activeCategory": "All"
+      },
+      "ingested_at": "2026-09-20T07:52:06.860887+00:00"
+    },
+    {
+      "event_id": "evt_1775ht95j_1789890727679",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T07:52:07.679Z",
+      "session_id": "sess_r7v61hmnm_1789889268749",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "HOME_SCREEN",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "storiesCount": 14,
+        "activeCategory": "All"
+      },
+      "ingested_at": "2026-09-20T07:52:07.882510+00:00"
+    },
+    {
+      "event_id": "evt_q8z7tgmyj_1789890727681",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T07:52:07.681Z",
+      "session_id": "sess_r7v61hmnm_1789889268749",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "HOME_SCREEN",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "storiesCount": 14,
+        "activeCategory": "All"
+      },
+      "ingested_at": "2026-09-20T07:52:07.883093+00:00"
+    },
+    {
+      "event_id": "evt_vklc1qzue_1789891030444",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T07:57:10.444Z",
+      "session_id": "sess_hylv4cpnr_1789890432765",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "HOME_SCREEN",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "storiesCount": 14,
+        "activeCategory": "All"
+      },
+      "ingested_at": "2026-09-20T07:57:10.465292+00:00"
+    },
+    {
+      "event_id": "evt_ljinel0o3_1789891030446",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T07:57:10.446Z",
+      "session_id": "sess_hylv4cpnr_1789890432765",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "HOME_SCREEN",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "storiesCount": 14,
+        "activeCategory": "All"
+      },
+      "ingested_at": "2026-09-20T07:57:11.118171+00:00"
+    },
+    {
+      "event_id": "evt_4ep60tqdq_1789891050955",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T07:57:30.955Z",
+      "session_id": "sess_hylv4cpnr_1789890432765",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "HOME_SCREEN",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "storiesCount": 14,
+        "activeCategory": "All"
+      },
+      "ingested_at": "2026-09-20T07:57:30.988351+00:00"
+    },
+    {
+      "event_id": "evt_3b2l5bbri_1789891050959",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T07:57:30.959Z",
+      "session_id": "sess_hylv4cpnr_1789890432765",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "HOME_SCREEN",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "storiesCount": 14,
+        "activeCategory": "All"
+      },
+      "ingested_at": "2026-09-20T07:57:31.712152+00:00"
+    },
+    {
+      "event_id": "evt_1dfxensl7_1789891059678",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T07:57:39.678Z",
+      "session_id": "sess_hylv4cpnr_1789890432765",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "HOME_SCREEN",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "storiesCount": 14,
+        "activeCategory": "All"
+      },
+      "ingested_at": "2026-09-20T07:57:39.704386+00:00"
+    },
+    {
+      "event_id": "evt_v969np3sm_1789891059680",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T07:57:39.680Z",
+      "session_id": "sess_hylv4cpnr_1789890432765",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "HOME_SCREEN",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "storiesCount": 14,
+        "activeCategory": "All"
+      },
+      "ingested_at": "2026-09-20T07:57:40.631983+00:00"
+    },
+    {
+      "event_id": "evt_oryzsc0u8_1789891149176",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T07:59:09.176Z",
+      "session_id": "sess_r7v61hmnm_1789889268749",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "HOME_SCREEN",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "storiesCount": 14,
+        "activeCategory": "All"
+      },
+      "ingested_at": "2026-09-20T07:59:09.190988+00:00"
+    },
+    {
+      "event_id": "evt_2xb5pscra_1789891149190",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T07:59:09.190Z",
+      "session_id": "sess_r7v61hmnm_1789889268749",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "HOME_SCREEN",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "storiesCount": 14,
+        "activeCategory": "All"
+      },
+      "ingested_at": "2026-09-20T07:59:11.127075+00:00"
+    },
+    {
+      "event_id": "evt_6we7t3ktw_1789891469027",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T08:04:29.027Z",
+      "session_id": "sess_hylv4cpnr_1789890432765",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "HOME_SCREEN",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "storiesCount": 14,
+        "activeCategory": "All"
+      },
+      "ingested_at": "2026-09-20T08:04:47.322088+00:00"
+    },
+    {
+      "event_id": "evt_db5qutqnt_1789891469029",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T08:04:29.029Z",
+      "session_id": "sess_hylv4cpnr_1789890432765",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "HOME_SCREEN",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "storiesCount": 14,
+        "activeCategory": "All"
+      },
+      "ingested_at": "2026-09-20T08:04:48.454850+00:00"
+    },
+    {
+      "event_id": "evt_uryhd0bvy_1789891487821",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T08:04:47.821Z",
+      "session_id": "sess_hylv4cpnr_1789890432765",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "HOME_SCREEN",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "storiesCount": 14,
+        "activeCategory": "All"
+      },
+      "ingested_at": "2026-09-20T08:04:48.455821+00:00"
+    },
+    {
+      "event_id": "evt_xkbem0xg6_1789891487831",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T08:04:47.831Z",
+      "session_id": "sess_hylv4cpnr_1789890432765",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "HOME_SCREEN",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "storiesCount": 14,
+        "activeCategory": "All"
+      },
+      "ingested_at": "2026-09-20T08:04:48.456343+00:00"
+    },
+    {
+      "event_id": "evt_t9dg5uwns_1789891546229",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T08:05:46.229Z",
+      "session_id": "sess_hylv4cpnr_1789890432765",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "HOME_SCREEN",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "storiesCount": 14,
+        "activeCategory": "All"
+      },
+      "ingested_at": "2026-09-20T08:05:46.249519+00:00"
+    },
+    {
+      "event_id": "evt_up7gchqgj_1789891546231",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T08:05:46.231Z",
+      "session_id": "sess_hylv4cpnr_1789890432765",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "HOME_SCREEN",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "storiesCount": 14,
+        "activeCategory": "All"
+      },
+      "ingested_at": "2026-09-20T08:05:47.076887+00:00"
+    },
+    {
+      "event_id": "evt_mkq2manwr_1789891633015",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T08:07:13.015Z",
+      "session_id": "sess_hylv4cpnr_1789890432765",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "HOME_SCREEN",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "storiesCount": 14,
+        "activeCategory": "All"
+      },
+      "ingested_at": "2026-09-20T08:07:13.054742+00:00"
+    },
+    {
+      "event_id": "evt_uj0vwouzw_1789891633017",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T08:07:13.017Z",
+      "session_id": "sess_hylv4cpnr_1789890432765",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "HOME_SCREEN",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "storiesCount": 14,
+        "activeCategory": "All"
+      },
+      "ingested_at": "2026-09-20T08:07:14.085489+00:00"
+    },
+    {
+      "event_id": "evt_s9dzi8w14_1789891639523",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T08:07:19.523Z",
+      "session_id": "sess_hylv4cpnr_1789890432765",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "HOME_SCREEN",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "storiesCount": 14,
+        "activeCategory": "All"
+      },
+      "ingested_at": "2026-09-20T08:07:19.539470+00:00"
+    },
+    {
+      "event_id": "evt_llgtljeyi_1789891639528",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T08:07:19.528Z",
+      "session_id": "sess_hylv4cpnr_1789890432765",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "HOME_SCREEN",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "storiesCount": 14,
+        "activeCategory": "All"
+      },
+      "ingested_at": "2026-09-20T08:07:20.409167+00:00"
+    },
+    {
+      "event_id": "evt_sptz2q3xn_1789892374189",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T08:19:34.189Z",
+      "session_id": "sess_r7v61hmnm_1789889268749",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "HOME_SCREEN",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "storiesCount": 14,
+        "activeCategory": "All"
+      },
+      "ingested_at": "2026-09-20T08:19:38.534395+00:00"
+    },
+    {
+      "event_id": "evt_n5yazvxle_1789892374204",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T08:19:34.204Z",
+      "session_id": "sess_r7v61hmnm_1789889268749",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "HOME_SCREEN",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "storiesCount": 14,
+        "activeCategory": "All"
+      },
+      "ingested_at": "2026-09-20T08:19:38.561312+00:00"
+    },
+    {
+      "event_id": "evt_5c11qgbu8_1789892399369",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T08:19:59.369Z",
+      "session_id": "sess_r7v61hmnm_1789889268749",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "HOME_SCREEN",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "storiesCount": 14,
+        "activeCategory": "All"
+      },
+      "ingested_at": "2026-09-20T08:19:59.395603+00:00"
+    },
+    {
+      "event_id": "evt_5hreophed_1789892399386",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T08:19:59.386Z",
+      "session_id": "sess_r7v61hmnm_1789889268749",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "HOME_SCREEN",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "storiesCount": 14,
+        "activeCategory": "All"
+      },
+      "ingested_at": "2026-09-20T08:20:01.122027+00:00"
+    },
+    {
+      "event_id": "evt_k13yc4jdb_1789892782171",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T08:26:22.171Z",
+      "session_id": "sess_r7v61hmnm_1789889268749",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "HOME_SCREEN",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "storiesCount": 14,
+        "activeCategory": "All"
+      },
+      "ingested_at": "2026-09-20T08:26:22.331652+00:00"
+    },
+    {
+      "event_id": "evt_d60harrug_1789892782191",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T08:26:22.191Z",
+      "session_id": "sess_r7v61hmnm_1789889268749",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "HOME_SCREEN",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "storiesCount": 14,
+        "activeCategory": "All"
+      },
+      "ingested_at": "2026-09-20T08:26:23.232976+00:00"
+    },
+    {
+      "event_id": "evt_0n02tzva7_1789892787176",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T08:26:27.176Z",
+      "session_id": "sess_hylv4cpnr_1789890432765",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "HOME_SCREEN",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "storiesCount": 14,
+        "activeCategory": "All"
+      },
+      "ingested_at": "2026-09-20T08:26:27.187040+00:00"
+    },
+    {
+      "event_id": "evt_bzdt4f270_1789892787198",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T08:26:27.198Z",
+      "session_id": "sess_hylv4cpnr_1789890432765",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "HOME_SCREEN",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "storiesCount": 14,
+        "activeCategory": "All"
+      },
+      "ingested_at": "2026-09-20T08:26:28.338006+00:00"
+    },
+    {
+      "event_id": "evt_dvcw4bs3m_1789893306924",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T08:35:06.924Z",
+      "session_id": "sess_r7v61hmnm_1789889268749",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "HOME_SCREEN",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "storiesCount": 14,
+        "activeCategory": "All"
+      },
+      "ingested_at": "2026-09-20T08:35:07.055711+00:00"
+    },
+    {
+      "event_id": "evt_8hmg1z6yw_1789893306950",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T08:35:06.950Z",
+      "session_id": "sess_r7v61hmnm_1789889268749",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "HOME_SCREEN",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "storiesCount": 14,
+        "activeCategory": "All"
+      },
+      "ingested_at": "2026-09-20T08:35:08.458326+00:00"
+    },
+    {
+      "event_id": "evt_sq1cipzxz_1789893307384",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T08:35:07.384Z",
+      "session_id": "sess_hylv4cpnr_1789890432765",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "HOME_SCREEN",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "storiesCount": 14,
+        "activeCategory": "All"
+      },
+      "ingested_at": "2026-09-20T08:35:08.458825+00:00"
+    },
+    {
+      "event_id": "evt_x4rljrpox_1789893307462",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T08:35:07.462Z",
+      "session_id": "sess_hylv4cpnr_1789890432765",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "HOME_SCREEN",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "storiesCount": 14,
+        "activeCategory": "All"
+      },
+      "ingested_at": "2026-09-20T08:35:08.471214+00:00"
+    },
+    {
+      "event_id": "evt_f60xo0kab_1789905154160",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T11:52:34.160Z",
+      "session_id": "sess_r7v61hmnm_1789889268749",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "HOME_SCREEN",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "storiesCount": 14,
+        "activeCategory": "All"
+      },
+      "ingested_at": "2026-09-20T11:52:46.854571+00:00"
+    },
+    {
+      "event_id": "evt_ip9rdku4b_1789905154117",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T11:52:34.117Z",
+      "session_id": "sess_r7v61hmnm_1789889268749",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "HOME_SCREEN",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "storiesCount": 14,
+        "activeCategory": "All"
+      },
+      "ingested_at": "2026-09-20T11:52:46.784088+00:00"
+    },
+    {
+      "event_id": "evt_9in6ha9sj_1789905541412",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T11:59:01.412Z",
+      "session_id": "sess_r7v61hmnm_1789889268749",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "HOME_SCREEN",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "storiesCount": 14,
+        "activeCategory": "All"
+      },
+      "ingested_at": "2026-09-20T11:59:33.418165+00:00"
+    },
+    {
+      "event_id": "evt_f6ygyfy84_1789905541436",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T11:59:01.436Z",
+      "session_id": "sess_r7v61hmnm_1789889268749",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "HOME_SCREEN",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "storiesCount": 14,
+        "activeCategory": "All"
+      },
+      "ingested_at": "2026-09-20T11:59:33.850145+00:00"
+    },
+    {
+      "event_id": "evt_s1m511g9f_1789905869032",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T12:04:29.032Z",
+      "session_id": "sess_r7v61hmnm_1789889268749",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "HOME_SCREEN",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "storiesCount": 14,
+        "activeCategory": "All"
+      },
+      "ingested_at": "2026-09-20T12:04:29.068763+00:00"
+    },
+    {
+      "event_id": "evt_ph299hmwp_1789905869049",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T12:04:29.049Z",
+      "session_id": "sess_r7v61hmnm_1789889268749",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "HOME_SCREEN",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "storiesCount": 14,
+        "activeCategory": "All"
+      },
+      "ingested_at": "2026-09-20T12:04:29.881309+00:00"
+    },
+    {
+      "event_id": "evt_rxqmffxec_1789906228504",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T12:10:28.504Z",
+      "session_id": "sess_r7v61hmnm_1789889268749",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "HOME_SCREEN",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "storiesCount": 14,
+        "activeCategory": "All"
+      },
+      "ingested_at": "2026-09-20T12:10:28.517064+00:00"
+    },
+    {
+      "event_id": "evt_n7ko5oio0_1789906228521",
+      "event_family": "OPEN",
+      "event_type": "FEED_IMPRESSION",
+      "occurred_at": "2026-09-20T12:10:28.521Z",
+      "session_id": "sess_r7v61hmnm_1789889268749",
+      "viewer_id": null,
+      "anonymous_id": "anon_cmhwc80ew_1789603482467",
+      "content_type": "CATALOG_FEED",
+      "content_id": "home_feed",
+      "series_id": null,
+      "episode_id": null,
+      "position_seconds": 0.0,
+      "duration_seconds": 0.0,
+      "milestone_pct": null,
+      "event_source": "CLIENT",
+      "event_version": "1.0",
+      "source": "HOME_SCREEN",
+      "environment": "staging",
+      "is_test": false,
+      "metadata": {
+        "storiesCount": 14,
+        "activeCategory": "All"
+      },
+      "ingested_at": "2026-09-20T12:10:29.136488+00:00"
     }
   ],
   "production_bibles": [
@@ -128718,6 +130528,2159 @@
       "previous_hash": "cf80630adf854e9c6cdab4b4221ace173f46a6c39210280c13e30c8472323ea7",
       "entry_hash": "9d71ea8234b17f73909c30efa8b7d050106e018deb87ed5e237ade6c453d1a3e",
       "timestamp": "2026-09-18T13:04:43.818639+00:00"
+    },
+    {
+      "sequence_id": 1473,
+      "event_id": "aud_a3ce8add2fec",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "9d71ea8234b17f73909c30efa8b7d050106e018deb87ed5e237ade6c453d1a3e",
+      "entry_hash": "fd8662acd3d61472551ed2f656f52dec05f00072a70f1076db518e911a88746e",
+      "timestamp": "2026-09-20T07:27:52.623908+00:00"
+    },
+    {
+      "sequence_id": 1474,
+      "event_id": "aud_315ae5156cc8",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "fd8662acd3d61472551ed2f656f52dec05f00072a70f1076db518e911a88746e",
+      "entry_hash": "cd9e2a4664bd4b431e8edc4894acd930929f9da33d60ddee14507e25216bc2ca",
+      "timestamp": "2026-09-20T07:27:53.842959+00:00"
+    },
+    {
+      "sequence_id": 1475,
+      "event_id": "aud_1070af088611",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "cd9e2a4664bd4b431e8edc4894acd930929f9da33d60ddee14507e25216bc2ca",
+      "entry_hash": "9e68b60fa511e011e7911a19be792a88d3ada5400a09b3a67703cfb73ea8aa1e",
+      "timestamp": "2026-09-20T07:27:54.329827+00:00"
+    },
+    {
+      "sequence_id": 1476,
+      "event_id": "aud_c07c07e86d63",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "9e68b60fa511e011e7911a19be792a88d3ada5400a09b3a67703cfb73ea8aa1e",
+      "entry_hash": "b75db820ed43d1dc6887374fa62a3e2b8446f516f5b2e1e286617aa358270c62",
+      "timestamp": "2026-09-20T07:27:54.825541+00:00"
+    },
+    {
+      "sequence_id": 1477,
+      "event_id": "aud_461238077b3f",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "b75db820ed43d1dc6887374fa62a3e2b8446f516f5b2e1e286617aa358270c62",
+      "entry_hash": "828b58ee076d8d0c851ef0a3fc2730eb49561ff23dadb9091f13e6f595c12df4",
+      "timestamp": "2026-09-20T07:28:23.737594+00:00"
+    },
+    {
+      "sequence_id": 1478,
+      "event_id": "aud_f2aafab745f3",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "828b58ee076d8d0c851ef0a3fc2730eb49561ff23dadb9091f13e6f595c12df4",
+      "entry_hash": "6b184f00dbcdbc50b9eaadf2a3d31aae95a8e9b20b8c66f93c17c87c2a982736",
+      "timestamp": "2026-09-20T07:28:24.429492+00:00"
+    },
+    {
+      "sequence_id": 1479,
+      "event_id": "aud_121f2ca1de80",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "6b184f00dbcdbc50b9eaadf2a3d31aae95a8e9b20b8c66f93c17c87c2a982736",
+      "entry_hash": "917af067578ab0cae33f544fb0a9403ee382c90a1f55ba3a09c3ec1aa01e28d4",
+      "timestamp": "2026-09-20T07:28:32.896899+00:00"
+    },
+    {
+      "sequence_id": 1480,
+      "event_id": "aud_c7f705800ab2",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "917af067578ab0cae33f544fb0a9403ee382c90a1f55ba3a09c3ec1aa01e28d4",
+      "entry_hash": "dd8e6f07a509e8931567eb08169b7020fddaa69dee39f01365234b7fb047fd8f",
+      "timestamp": "2026-09-20T07:28:33.472538+00:00"
+    },
+    {
+      "sequence_id": 1481,
+      "event_id": "aud_0cf4378a548f",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "dd8e6f07a509e8931567eb08169b7020fddaa69dee39f01365234b7fb047fd8f",
+      "entry_hash": "52ad99f8263c743394b53b7b9cebea02d0e3d700cc3d3433db7d5aa7caeab794",
+      "timestamp": "2026-09-20T07:28:38.604166+00:00"
+    },
+    {
+      "sequence_id": 1482,
+      "event_id": "aud_410fc924c938",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "52ad99f8263c743394b53b7b9cebea02d0e3d700cc3d3433db7d5aa7caeab794",
+      "entry_hash": "c0361755f2b1a3aa6738781901364db44f840be50171a90aa8f91029351d58de",
+      "timestamp": "2026-09-20T07:28:39.369310+00:00"
+    },
+    {
+      "sequence_id": 1483,
+      "event_id": "aud_b4f425c30acf",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "c0361755f2b1a3aa6738781901364db44f840be50171a90aa8f91029351d58de",
+      "entry_hash": "d37c2e2de355bcc453cc755e59579291cd5c610ba4e5cebcf7ba61994516bc96",
+      "timestamp": "2026-09-20T07:28:56.612996+00:00"
+    },
+    {
+      "sequence_id": 1484,
+      "event_id": "aud_07b91378e804",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "d37c2e2de355bcc453cc755e59579291cd5c610ba4e5cebcf7ba61994516bc96",
+      "entry_hash": "4aa695b24f7d00eed844d958445aa0d3a54bcf600f8d74a09b6dda197b53bcf8",
+      "timestamp": "2026-09-20T07:29:00.397954+00:00"
+    },
+    {
+      "sequence_id": 1485,
+      "event_id": "aud_3aa8b8866759",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "4aa695b24f7d00eed844d958445aa0d3a54bcf600f8d74a09b6dda197b53bcf8",
+      "entry_hash": "5e5bb1fe3b207719eb0b0ca0fa2f858b5cd137546d85474503c3a1bbbeb70374",
+      "timestamp": "2026-09-20T07:29:02.947974+00:00"
+    },
+    {
+      "sequence_id": 1486,
+      "event_id": "aud_188233a551bf",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "5e5bb1fe3b207719eb0b0ca0fa2f858b5cd137546d85474503c3a1bbbeb70374",
+      "entry_hash": "eb311be454723816cf87b1c1c13c91ddf2fa87e47c0932722edb4ab1278ada2a",
+      "timestamp": "2026-09-20T07:41:58.281118+00:00"
+    },
+    {
+      "sequence_id": 1487,
+      "event_id": "aud_46842c667859",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "eb311be454723816cf87b1c1c13c91ddf2fa87e47c0932722edb4ab1278ada2a",
+      "entry_hash": "9a23124bd1e6089cd20f5ca8a29e44d3c49adbfc0495f165815e6bf287d0a251",
+      "timestamp": "2026-09-20T07:42:00.329610+00:00"
+    },
+    {
+      "sequence_id": 1488,
+      "event_id": "aud_874050e9c69f",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "9a23124bd1e6089cd20f5ca8a29e44d3c49adbfc0495f165815e6bf287d0a251",
+      "entry_hash": "343e376ca4663c2079da399a72dab2291eb5644dea043172cf9ed41a3d7f0710",
+      "timestamp": "2026-09-20T07:42:01.091444+00:00"
+    },
+    {
+      "sequence_id": 1489,
+      "event_id": "aud_84b312a9729c",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "343e376ca4663c2079da399a72dab2291eb5644dea043172cf9ed41a3d7f0710",
+      "entry_hash": "e2f068e994ac1e846449d80c86de063d5654d874443e5b3ed0a4851d77567d34",
+      "timestamp": "2026-09-20T07:42:01.592442+00:00"
+    },
+    {
+      "sequence_id": 1490,
+      "event_id": "aud_409c57ab3e13",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "e2f068e994ac1e846449d80c86de063d5654d874443e5b3ed0a4851d77567d34",
+      "entry_hash": "8f772e9574e7e28c08d0f812b7600b7346b1296ab78d7fdf94ca4e1d1257f709",
+      "timestamp": "2026-09-20T07:42:02.008699+00:00"
+    },
+    {
+      "sequence_id": 1491,
+      "event_id": "aud_d23a806decc7",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "8f772e9574e7e28c08d0f812b7600b7346b1296ab78d7fdf94ca4e1d1257f709",
+      "entry_hash": "65af23506aaf4e40e984d7808fad238565e6bdf5ee82b99666c4a436be200d8a",
+      "timestamp": "2026-09-20T07:42:02.725143+00:00"
+    },
+    {
+      "sequence_id": 1492,
+      "event_id": "aud_99c2f0b13832",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "65af23506aaf4e40e984d7808fad238565e6bdf5ee82b99666c4a436be200d8a",
+      "entry_hash": "7bd075ccafaf9d6f9b084279db13031563b73c0644c41a36327a642dc5bb7d18",
+      "timestamp": "2026-09-20T07:46:54.551979+00:00"
+    },
+    {
+      "sequence_id": 1493,
+      "event_id": "aud_90e8a3fdb46b",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "7bd075ccafaf9d6f9b084279db13031563b73c0644c41a36327a642dc5bb7d18",
+      "entry_hash": "094876b99ef72a9068e45a6a25d4a7b0348e6aa1113ae9bf6db2b5031431282e",
+      "timestamp": "2026-09-20T07:46:57.036717+00:00"
+    },
+    {
+      "sequence_id": 1494,
+      "event_id": "aud_f2916c8b1b58",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "094876b99ef72a9068e45a6a25d4a7b0348e6aa1113ae9bf6db2b5031431282e",
+      "entry_hash": "1a65f10b1e6890c1f70deb4b179d5209e40a673e83a488d3e06d031f6009ff64",
+      "timestamp": "2026-09-20T07:46:57.771899+00:00"
+    },
+    {
+      "sequence_id": 1495,
+      "event_id": "aud_67cda93ecc58",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "1a65f10b1e6890c1f70deb4b179d5209e40a673e83a488d3e06d031f6009ff64",
+      "entry_hash": "4e4b5c5e3f73625f2ace2a9888d08b52bd96dd1e9e4e3261b5b93eb78057d3ce",
+      "timestamp": "2026-09-20T07:46:58.494194+00:00"
+    },
+    {
+      "sequence_id": 1496,
+      "event_id": "aud_45c752d3b38c",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "4e4b5c5e3f73625f2ace2a9888d08b52bd96dd1e9e4e3261b5b93eb78057d3ce",
+      "entry_hash": "ecd851858e23164c2267fc465f17995c59d2840a5cabd5fc6aba8b4788deb040",
+      "timestamp": "2026-09-20T07:46:59.194205+00:00"
+    },
+    {
+      "sequence_id": 1497,
+      "event_id": "aud_cc147c70af2d",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "ecd851858e23164c2267fc465f17995c59d2840a5cabd5fc6aba8b4788deb040",
+      "entry_hash": "6b2a10d5358beb03cd54198a4076df29f87cdb7f8238fb9cf217549bcc2dd051",
+      "timestamp": "2026-09-20T07:46:59.742205+00:00"
+    },
+    {
+      "sequence_id": 1498,
+      "event_id": "aud_5bd3ada1b9e5",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "creator,admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "creator",
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "b3c18f00de2f6ef9708bce90f28afcc3b7100bdaee4a070ed9d9673706d97428",
+      "previous_hash": "6b2a10d5358beb03cd54198a4076df29f87cdb7f8238fb9cf217549bcc2dd051",
+      "entry_hash": "3e9e51de0f877e13de2878013cd344ab2e7187aaaff50af7abb9d07a908b313c",
+      "timestamp": "2026-09-20T07:47:19.712744+00:00"
+    },
+    {
+      "sequence_id": 1499,
+      "event_id": "aud_98d6b6df13fc",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "creator,admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "creator",
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "b3c18f00de2f6ef9708bce90f28afcc3b7100bdaee4a070ed9d9673706d97428",
+      "previous_hash": "3e9e51de0f877e13de2878013cd344ab2e7187aaaff50af7abb9d07a908b313c",
+      "entry_hash": "8dd115fc78cfb8f69e462d5049281514422988f9bc5434e484d1348ea5d755f1",
+      "timestamp": "2026-09-20T07:47:20.645350+00:00"
+    },
+    {
+      "sequence_id": 1500,
+      "event_id": "aud_48b96255205d",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "8dd115fc78cfb8f69e462d5049281514422988f9bc5434e484d1348ea5d755f1",
+      "entry_hash": "89a07480538b4d66e3aa2e2c4165e7c80f1931c3c9058276f1f88b5313a088fd",
+      "timestamp": "2026-09-20T07:50:06.364853+00:00"
+    },
+    {
+      "sequence_id": 1501,
+      "event_id": "aud_b1e908c10a7d",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "89a07480538b4d66e3aa2e2c4165e7c80f1931c3c9058276f1f88b5313a088fd",
+      "entry_hash": "c5f1f6283f129bf434a6148421f85560529e4566e00fab7d042a6c4ee8eb1aeb",
+      "timestamp": "2026-09-20T07:50:08.306393+00:00"
+    },
+    {
+      "sequence_id": 1502,
+      "event_id": "aud_b5cc2c611f20",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "c5f1f6283f129bf434a6148421f85560529e4566e00fab7d042a6c4ee8eb1aeb",
+      "entry_hash": "5369b3afc20c2938c01891def7f5e2e25c3ad443b440119b4d42fccca177d275",
+      "timestamp": "2026-09-20T07:50:08.800179+00:00"
+    },
+    {
+      "sequence_id": 1503,
+      "event_id": "aud_29703a9fe902",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "5369b3afc20c2938c01891def7f5e2e25c3ad443b440119b4d42fccca177d275",
+      "entry_hash": "cbb0221f3f9d7b2673150d5abb6bcf35ffd723ae6bbca1762193bb82be0c4746",
+      "timestamp": "2026-09-20T07:50:09.266792+00:00"
+    },
+    {
+      "sequence_id": 1504,
+      "event_id": "aud_a0e0ffcbcd8e",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "cbb0221f3f9d7b2673150d5abb6bcf35ffd723ae6bbca1762193bb82be0c4746",
+      "entry_hash": "b8db857ebefa19ce450c989588c898cccd0a00fedd39c439f1b11eb90f538d31",
+      "timestamp": "2026-09-20T07:50:23.587654+00:00"
+    },
+    {
+      "sequence_id": 1505,
+      "event_id": "aud_ae7e231c6331",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "b8db857ebefa19ce450c989588c898cccd0a00fedd39c439f1b11eb90f538d31",
+      "entry_hash": "6204724bccb3fc6bf831ed3c16c6ddf20069e7555beb5b1daeb11331244ce7a5",
+      "timestamp": "2026-09-20T07:50:26.703839+00:00"
+    },
+    {
+      "sequence_id": 1506,
+      "event_id": "aud_d68631537243",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "6204724bccb3fc6bf831ed3c16c6ddf20069e7555beb5b1daeb11331244ce7a5",
+      "entry_hash": "fdaff16d0702d784f9407bd3831a4621cde57bb658d7113bc21e25c8f8065ef8",
+      "timestamp": "2026-09-20T07:50:29.016198+00:00"
+    },
+    {
+      "sequence_id": 1507,
+      "event_id": "aud_6aed1d083e7d",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "fdaff16d0702d784f9407bd3831a4621cde57bb658d7113bc21e25c8f8065ef8",
+      "entry_hash": "d2de335b0540766ac09bd287807acb4880fce2811243b625eb9297ae39b29d82",
+      "timestamp": "2026-09-20T07:50:31.894235+00:00"
+    },
+    {
+      "sequence_id": 1508,
+      "event_id": "aud_0939db6704c5",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "d2de335b0540766ac09bd287807acb4880fce2811243b625eb9297ae39b29d82",
+      "entry_hash": "1e6cd9e4f28cab77f17558f1ca79a42dd7f9bf8a8236684182cdc3de275753f5",
+      "timestamp": "2026-09-20T07:50:33.933147+00:00"
+    },
+    {
+      "sequence_id": 1509,
+      "event_id": "aud_e566ef198a80",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "1e6cd9e4f28cab77f17558f1ca79a42dd7f9bf8a8236684182cdc3de275753f5",
+      "entry_hash": "2bf29bf9de46549b5fab6e0e2ecd4730de78661120daff3c6e1eef2e08aa6d4b",
+      "timestamp": "2026-09-20T07:50:34.616530+00:00"
+    },
+    {
+      "sequence_id": 1510,
+      "event_id": "aud_8885c1e067be",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "2bf29bf9de46549b5fab6e0e2ecd4730de78661120daff3c6e1eef2e08aa6d4b",
+      "entry_hash": "bfae53c248fa5828010ea0da231084952cd0864f1da34da8fa867ebd7f85945e",
+      "timestamp": "2026-09-20T07:50:35.089881+00:00"
+    },
+    {
+      "sequence_id": 1511,
+      "event_id": "aud_e651cfac7a1d",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "bfae53c248fa5828010ea0da231084952cd0864f1da34da8fa867ebd7f85945e",
+      "entry_hash": "9fc66ed9d4e8a031acfe9c48cf60c79da5aae3edad5e19ada0f1429baac1addb",
+      "timestamp": "2026-09-20T07:50:35.577819+00:00"
+    },
+    {
+      "sequence_id": 1512,
+      "event_id": "aud_78abe5b7c0a2",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "9fc66ed9d4e8a031acfe9c48cf60c79da5aae3edad5e19ada0f1429baac1addb",
+      "entry_hash": "19c85e5f3b08df697bde1a8934afe468a3f4f3a4bf0fd59ff3ba0a7d70d78571",
+      "timestamp": "2026-09-20T07:50:46.176297+00:00"
+    },
+    {
+      "sequence_id": 1513,
+      "event_id": "aud_c6e7223bcd24",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "19c85e5f3b08df697bde1a8934afe468a3f4f3a4bf0fd59ff3ba0a7d70d78571",
+      "entry_hash": "573cf1b5f0a300e793a844ee8d317885016d250cdf568839ab13c14425f0bece",
+      "timestamp": "2026-09-20T07:50:48.817229+00:00"
+    },
+    {
+      "sequence_id": 1514,
+      "event_id": "aud_3d9d6d3e141c",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "573cf1b5f0a300e793a844ee8d317885016d250cdf568839ab13c14425f0bece",
+      "entry_hash": "e50ab7ba18af03b66d2e72862c04dc083430b9bcc8d50f56349949d8c2002670",
+      "timestamp": "2026-09-20T07:51:05.656469+00:00"
+    },
+    {
+      "sequence_id": 1515,
+      "event_id": "aud_4db15acdd1b5",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "e50ab7ba18af03b66d2e72862c04dc083430b9bcc8d50f56349949d8c2002670",
+      "entry_hash": "40f3448914ff73faee905cbc413f4840ce98c405f043e40f41c5a2db5dbce281",
+      "timestamp": "2026-09-20T07:51:09.006901+00:00"
+    },
+    {
+      "sequence_id": 1516,
+      "event_id": "aud_496c817801d7",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "40f3448914ff73faee905cbc413f4840ce98c405f043e40f41c5a2db5dbce281",
+      "entry_hash": "49cdb093da17a09fe422a166a0c67400ccc1f7b40a1d80213011cf8643d804f3",
+      "timestamp": "2026-09-20T07:51:09.621224+00:00"
+    },
+    {
+      "sequence_id": 1517,
+      "event_id": "aud_0fca69f939b7",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "49cdb093da17a09fe422a166a0c67400ccc1f7b40a1d80213011cf8643d804f3",
+      "entry_hash": "bfccba48f58e6052bbf057dc8e1a0bcca6353fb8a531037d7526deebdcc408b0",
+      "timestamp": "2026-09-20T07:51:10.261241+00:00"
+    },
+    {
+      "sequence_id": 1518,
+      "event_id": "aud_da8fc47e1138",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "bfccba48f58e6052bbf057dc8e1a0bcca6353fb8a531037d7526deebdcc408b0",
+      "entry_hash": "4e794f1ffa00046f196e4a9fff8802b29e224003b2925816273e140cabec1599",
+      "timestamp": "2026-09-20T07:51:18.321120+00:00"
+    },
+    {
+      "sequence_id": 1519,
+      "event_id": "aud_8ea019dfc792",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "4e794f1ffa00046f196e4a9fff8802b29e224003b2925816273e140cabec1599",
+      "entry_hash": "d348fe38d61b36b2ff20a1182206df8166e80ee572d7a85948e5af30813ab64d",
+      "timestamp": "2026-09-20T07:51:22.464384+00:00"
+    },
+    {
+      "sequence_id": 1520,
+      "event_id": "aud_ddc12f364b94",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "d348fe38d61b36b2ff20a1182206df8166e80ee572d7a85948e5af30813ab64d",
+      "entry_hash": "ab55ab113bf09e3e1ce5caf62f78cc450cfaee7b0da133629050b6e423056961",
+      "timestamp": "2026-09-20T07:51:23.429022+00:00"
+    },
+    {
+      "sequence_id": 1521,
+      "event_id": "aud_a64de4a7434c",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "ab55ab113bf09e3e1ce5caf62f78cc450cfaee7b0da133629050b6e423056961",
+      "entry_hash": "5127108ef027e85e423783e4adc4cb406670f27919d3e1f1300865613a466df3",
+      "timestamp": "2026-09-20T07:51:26.219936+00:00"
+    },
+    {
+      "sequence_id": 1522,
+      "event_id": "aud_d640d4e2f2ec",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "5127108ef027e85e423783e4adc4cb406670f27919d3e1f1300865613a466df3",
+      "entry_hash": "fb6d89e1f81c60ee8f98012b432c10a16c1addeb6307e799c71def6a229a3735",
+      "timestamp": "2026-09-20T07:51:26.956831+00:00"
+    },
+    {
+      "sequence_id": 1523,
+      "event_id": "aud_7d1f8f180a8b",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "fb6d89e1f81c60ee8f98012b432c10a16c1addeb6307e799c71def6a229a3735",
+      "entry_hash": "f4f5ff53cfd76917e74a33bb3f8fa360d38bc95a2ae1063f98f28133f0c59d08",
+      "timestamp": "2026-09-20T07:51:29.344554+00:00"
+    },
+    {
+      "sequence_id": 1524,
+      "event_id": "aud_d65d8d72bf78",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "f4f5ff53cfd76917e74a33bb3f8fa360d38bc95a2ae1063f98f28133f0c59d08",
+      "entry_hash": "021dd05a8f7cb896f877c0c67cb258f370ba3e09f31b8deb9a3e9a484f38116e",
+      "timestamp": "2026-09-20T07:51:29.896405+00:00"
+    },
+    {
+      "sequence_id": 1525,
+      "event_id": "aud_04fed582311c",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "021dd05a8f7cb896f877c0c67cb258f370ba3e09f31b8deb9a3e9a484f38116e",
+      "entry_hash": "c3229d839ae2f4dc13d3a73c43ef1e9cc07548a6b2b1c2ea58f824ef5d769ee6",
+      "timestamp": "2026-09-20T07:51:30.803467+00:00"
+    },
+    {
+      "sequence_id": 1526,
+      "event_id": "aud_eaf2aa81e061",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "c3229d839ae2f4dc13d3a73c43ef1e9cc07548a6b2b1c2ea58f824ef5d769ee6",
+      "entry_hash": "c0d3dcd1e878625445c858757a4fda62c59553745c131635b07fc1f1cc3e99ae",
+      "timestamp": "2026-09-20T07:51:31.912277+00:00"
+    },
+    {
+      "sequence_id": 1527,
+      "event_id": "aud_4f4ed4160b1b",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "creator,admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "creator",
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "b3c18f00de2f6ef9708bce90f28afcc3b7100bdaee4a070ed9d9673706d97428",
+      "previous_hash": "c0d3dcd1e878625445c858757a4fda62c59553745c131635b07fc1f1cc3e99ae",
+      "entry_hash": "6dc6e22e7cb31149a76136fa5612fa07fbe6231716e9a2450422b11f0c4d6c7c",
+      "timestamp": "2026-09-20T07:51:38.560276+00:00"
+    },
+    {
+      "sequence_id": 1528,
+      "event_id": "aud_b21ebefb33a4",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "6dc6e22e7cb31149a76136fa5612fa07fbe6231716e9a2450422b11f0c4d6c7c",
+      "entry_hash": "6bae3c7fd922d06f720d83f81b353cb714365d747dfe25673570c21b630e512c",
+      "timestamp": "2026-09-20T07:51:45.811609+00:00"
+    },
+    {
+      "sequence_id": 1529,
+      "event_id": "aud_47f6e7445dd0",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "6bae3c7fd922d06f720d83f81b353cb714365d747dfe25673570c21b630e512c",
+      "entry_hash": "b8c9df10c2e36124e3fc11d471c7380aace66bdd9c7ce73750a0d285598e8988",
+      "timestamp": "2026-09-20T07:51:46.453804+00:00"
+    },
+    {
+      "sequence_id": 1530,
+      "event_id": "aud_08ade75edce9",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "b8c9df10c2e36124e3fc11d471c7380aace66bdd9c7ce73750a0d285598e8988",
+      "entry_hash": "12bb8693967c5d04284bb06859f28616ff3918973afb4e7eb781ed9e700cfbb6",
+      "timestamp": "2026-09-20T07:51:49.004133+00:00"
+    },
+    {
+      "sequence_id": 1531,
+      "event_id": "aud_cc4dd45c3635",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "12bb8693967c5d04284bb06859f28616ff3918973afb4e7eb781ed9e700cfbb6",
+      "entry_hash": "b5f11f3d66eb2df0597db66887249cc9bdcb379bcd56c9d19abd4e722ea94ee3",
+      "timestamp": "2026-09-20T07:51:49.521921+00:00"
+    },
+    {
+      "sequence_id": 1532,
+      "event_id": "aud_6f74043d9c9f",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "b5f11f3d66eb2df0597db66887249cc9bdcb379bcd56c9d19abd4e722ea94ee3",
+      "entry_hash": "4350eaece62e51a9bb93242c75c0d8ee0728d5c12abadf07a4bd2d2754cc4606",
+      "timestamp": "2026-09-20T07:51:50.024578+00:00"
+    },
+    {
+      "sequence_id": 1533,
+      "event_id": "aud_5be75a96cb2e",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "4350eaece62e51a9bb93242c75c0d8ee0728d5c12abadf07a4bd2d2754cc4606",
+      "entry_hash": "43a43ffc6b315ab03b0ec962b33e4456f79ff6dca390972bd38eedaa738dad39",
+      "timestamp": "2026-09-20T07:51:50.628196+00:00"
+    },
+    {
+      "sequence_id": 1534,
+      "event_id": "aud_75de02b2630d",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "creator,admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "creator",
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "b3c18f00de2f6ef9708bce90f28afcc3b7100bdaee4a070ed9d9673706d97428",
+      "previous_hash": "43a43ffc6b315ab03b0ec962b33e4456f79ff6dca390972bd38eedaa738dad39",
+      "entry_hash": "1789e1251bf46c4c4bcb637cfd7e76102d87af96ef27a36bbf71478231c7a9f9",
+      "timestamp": "2026-09-20T07:51:59.195441+00:00"
+    },
+    {
+      "sequence_id": 1535,
+      "event_id": "aud_cd1d8141c303",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "1789e1251bf46c4c4bcb637cfd7e76102d87af96ef27a36bbf71478231c7a9f9",
+      "entry_hash": "1d08607e057410f5091ee75ca442c941400ea7afe5e5ad697c66d70b94fab068",
+      "timestamp": "2026-09-20T07:52:03.544835+00:00"
+    },
+    {
+      "sequence_id": 1536,
+      "event_id": "aud_a0c56f2174eb",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "1d08607e057410f5091ee75ca442c941400ea7afe5e5ad697c66d70b94fab068",
+      "entry_hash": "959adcb0315a3fcec6087cf96bca048e18fb2b35409e970262656ba07be3c004",
+      "timestamp": "2026-09-20T07:52:04.309014+00:00"
+    },
+    {
+      "sequence_id": 1537,
+      "event_id": "aud_329348ff0f09",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "959adcb0315a3fcec6087cf96bca048e18fb2b35409e970262656ba07be3c004",
+      "entry_hash": "1986d1ba4f1d0a79273f404ee2f5efd8d7333b2da76c30fd336987057ad31f0c",
+      "timestamp": "2026-09-20T07:52:04.823458+00:00"
+    },
+    {
+      "sequence_id": 1538,
+      "event_id": "aud_7b5a47731a4f",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "1986d1ba4f1d0a79273f404ee2f5efd8d7333b2da76c30fd336987057ad31f0c",
+      "entry_hash": "7f1553727ab1f02bc1359345a2b0e5495271809bcea7436d3d2d80c37453a379",
+      "timestamp": "2026-09-20T07:52:05.499238+00:00"
+    },
+    {
+      "sequence_id": 1539,
+      "event_id": "aud_a100471e30b0",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "7f1553727ab1f02bc1359345a2b0e5495271809bcea7436d3d2d80c37453a379",
+      "entry_hash": "e519664ed445d52e68e24c083a6c8af50bc86a728a3da0bb45cd1ab299bb267e",
+      "timestamp": "2026-09-20T07:52:06.861632+00:00"
+    },
+    {
+      "sequence_id": 1540,
+      "event_id": "aud_5e30f965ada5",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "e519664ed445d52e68e24c083a6c8af50bc86a728a3da0bb45cd1ab299bb267e",
+      "entry_hash": "3b7adf89016403da270ea8b5bbb08786e3e7202979ab953748f304969837b9d0",
+      "timestamp": "2026-09-20T07:52:07.881639+00:00"
+    },
+    {
+      "sequence_id": 1541,
+      "event_id": "aud_039bfa1699f1",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "3b7adf89016403da270ea8b5bbb08786e3e7202979ab953748f304969837b9d0",
+      "entry_hash": "e8b738535d8c0d1980737e5679148421bee147c5c682a0036661d7de2538a455",
+      "timestamp": "2026-09-20T07:52:09.575713+00:00"
+    },
+    {
+      "sequence_id": 1542,
+      "event_id": "aud_324c867112d3",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "e8b738535d8c0d1980737e5679148421bee147c5c682a0036661d7de2538a455",
+      "entry_hash": "bfcc37b3ba1ed3173d5948be19893c789e20cbf7b93b982c721977b443552e04",
+      "timestamp": "2026-09-20T07:52:10.217052+00:00"
+    },
+    {
+      "sequence_id": 1543,
+      "event_id": "aud_069c4743e5f9",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "bfcc37b3ba1ed3173d5948be19893c789e20cbf7b93b982c721977b443552e04",
+      "entry_hash": "a1cc18cc967d9a0f2f06752bfcb78a8a1fa24e047a83e848033849766b10bd27",
+      "timestamp": "2026-09-20T07:52:10.889249+00:00"
+    },
+    {
+      "sequence_id": 1544,
+      "event_id": "aud_ea2b73e74388",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "creator,admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "creator",
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "b3c18f00de2f6ef9708bce90f28afcc3b7100bdaee4a070ed9d9673706d97428",
+      "previous_hash": "a1cc18cc967d9a0f2f06752bfcb78a8a1fa24e047a83e848033849766b10bd27",
+      "entry_hash": "dd26a91754285d20ae13f43529fcee321b38569b60e24247bf46331afaf62f68",
+      "timestamp": "2026-09-20T07:52:11.395539+00:00"
+    },
+    {
+      "sequence_id": 1545,
+      "event_id": "aud_c76c3558aa15",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "dd26a91754285d20ae13f43529fcee321b38569b60e24247bf46331afaf62f68",
+      "entry_hash": "4283a799e4e99d2222f44e4ec8102ba0040396ca571825f4b15decad4794143c",
+      "timestamp": "2026-09-20T07:52:11.856980+00:00"
+    },
+    {
+      "sequence_id": 1546,
+      "event_id": "aud_ca0bd1631ace",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "creator,admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "creator",
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "b3c18f00de2f6ef9708bce90f28afcc3b7100bdaee4a070ed9d9673706d97428",
+      "previous_hash": "4283a799e4e99d2222f44e4ec8102ba0040396ca571825f4b15decad4794143c",
+      "entry_hash": "b4fdd799ae1c7aef4361fd43ad9f8941cc13bfbe0ba6e6dadf90d1218d73f60a",
+      "timestamp": "2026-09-20T07:52:12.283665+00:00"
+    },
+    {
+      "sequence_id": 1547,
+      "event_id": "aud_e3efcd854f38",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "b4fdd799ae1c7aef4361fd43ad9f8941cc13bfbe0ba6e6dadf90d1218d73f60a",
+      "entry_hash": "2213a0106cdfcc7273de58345ad9a898cae1ec33e3d3e1f6ed3278f424ad3f42",
+      "timestamp": "2026-09-20T07:52:12.724695+00:00"
+    },
+    {
+      "sequence_id": 1548,
+      "event_id": "aud_4231f748fbf4",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "2213a0106cdfcc7273de58345ad9a898cae1ec33e3d3e1f6ed3278f424ad3f42",
+      "entry_hash": "a84eb8fbdd9a5eed21d5b1ac36484c720fff9c4d8da263e5dc69594931ae848a",
+      "timestamp": "2026-09-20T07:52:13.165090+00:00"
+    },
+    {
+      "sequence_id": 1549,
+      "event_id": "aud_1e7b565750dc",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "a84eb8fbdd9a5eed21d5b1ac36484c720fff9c4d8da263e5dc69594931ae848a",
+      "entry_hash": "cb1ae64e9088974d79c8cb7200e773e0cc42cc3868c88bb1b1904c2c9128d829",
+      "timestamp": "2026-09-20T07:52:13.607935+00:00"
+    },
+    {
+      "sequence_id": 1550,
+      "event_id": "aud_cc583175bca5",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "cb1ae64e9088974d79c8cb7200e773e0cc42cc3868c88bb1b1904c2c9128d829",
+      "entry_hash": "22c9ad28294a655c15e79279b7f2f9f7b26f0f6ab858356ceca5952cb9186637",
+      "timestamp": "2026-09-20T07:52:14.057926+00:00"
+    },
+    {
+      "sequence_id": 1551,
+      "event_id": "aud_118a5b78412d",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "creator,admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "creator",
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "b3c18f00de2f6ef9708bce90f28afcc3b7100bdaee4a070ed9d9673706d97428",
+      "previous_hash": "22c9ad28294a655c15e79279b7f2f9f7b26f0f6ab858356ceca5952cb9186637",
+      "entry_hash": "19833ceb6ad1e3c720cc12dd815564980bdf813b5b229796ce605e23bd4b5f65",
+      "timestamp": "2026-09-20T07:53:03.886643+00:00"
+    },
+    {
+      "sequence_id": 1552,
+      "event_id": "aud_71eb0cde7dc3",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "creator,admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "creator",
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "b3c18f00de2f6ef9708bce90f28afcc3b7100bdaee4a070ed9d9673706d97428",
+      "previous_hash": "19833ceb6ad1e3c720cc12dd815564980bdf813b5b229796ce605e23bd4b5f65",
+      "entry_hash": "ff89bd5d3efbd22565e0308b52f54f097d10cd205d38ee9aa38ae454a7beff0d",
+      "timestamp": "2026-09-20T07:53:08.472516+00:00"
+    },
+    {
+      "sequence_id": 1553,
+      "event_id": "aud_bdc49f82e292",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "creator,admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "creator",
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "b3c18f00de2f6ef9708bce90f28afcc3b7100bdaee4a070ed9d9673706d97428",
+      "previous_hash": "ff89bd5d3efbd22565e0308b52f54f097d10cd205d38ee9aa38ae454a7beff0d",
+      "entry_hash": "5c0fc84bad9cb1e4239f3523f60581d7ac610c92ec8779c9be798d40d884070c",
+      "timestamp": "2026-09-20T07:53:09.376503+00:00"
+    },
+    {
+      "sequence_id": 1554,
+      "event_id": "aud_b54e2a4ab6a8",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "creator,admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "creator",
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "b3c18f00de2f6ef9708bce90f28afcc3b7100bdaee4a070ed9d9673706d97428",
+      "previous_hash": "5c0fc84bad9cb1e4239f3523f60581d7ac610c92ec8779c9be798d40d884070c",
+      "entry_hash": "57f5ca0ae96b653a61f558e5a162042aafca9d1ab65791cf7226ea8f1b9be294",
+      "timestamp": "2026-09-20T07:53:10.352656+00:00"
+    },
+    {
+      "sequence_id": 1555,
+      "event_id": "aud_98b5faa83422",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "creator,admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "creator",
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "b3c18f00de2f6ef9708bce90f28afcc3b7100bdaee4a070ed9d9673706d97428",
+      "previous_hash": "57f5ca0ae96b653a61f558e5a162042aafca9d1ab65791cf7226ea8f1b9be294",
+      "entry_hash": "4161882f26eeae43ca7f8fea8fa2838e1e79b7e36ec9384e0a6ea8bb177c3713",
+      "timestamp": "2026-09-20T07:53:11.511071+00:00"
+    },
+    {
+      "sequence_id": 1556,
+      "event_id": "aud_28c8f0cad1f6",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "creator,admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "creator",
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "b3c18f00de2f6ef9708bce90f28afcc3b7100bdaee4a070ed9d9673706d97428",
+      "previous_hash": "4161882f26eeae43ca7f8fea8fa2838e1e79b7e36ec9384e0a6ea8bb177c3713",
+      "entry_hash": "d0de139f333e7e5e2dacc8bd88521d99ce2187a25f8f863c8ef278d44e3ecf46",
+      "timestamp": "2026-09-20T07:53:12.262072+00:00"
+    },
+    {
+      "sequence_id": 1557,
+      "event_id": "aud_44d7c07b7d87",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "creator,admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "creator",
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "b3c18f00de2f6ef9708bce90f28afcc3b7100bdaee4a070ed9d9673706d97428",
+      "previous_hash": "d0de139f333e7e5e2dacc8bd88521d99ce2187a25f8f863c8ef278d44e3ecf46",
+      "entry_hash": "433edfe5e520fbf1b18f5454e358f26b0ad6c3d68f0cfa81b14c4a6283bc3d24",
+      "timestamp": "2026-09-20T07:57:08.742687+00:00"
+    },
+    {
+      "sequence_id": 1558,
+      "event_id": "aud_166b5366fc38",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "creator,admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "creator",
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "b3c18f00de2f6ef9708bce90f28afcc3b7100bdaee4a070ed9d9673706d97428",
+      "previous_hash": "433edfe5e520fbf1b18f5454e358f26b0ad6c3d68f0cfa81b14c4a6283bc3d24",
+      "entry_hash": "92ec6be1618670bb0f80e09e467c08d67e7919efd21433b8f5cc505f5b93792b",
+      "timestamp": "2026-09-20T07:57:09.485272+00:00"
+    },
+    {
+      "sequence_id": 1559,
+      "event_id": "aud_e5e627f4876c",
+      "domain": "AUTH",
+      "event_type": "auth.login",
+      "actor_id": "usr_creator_zola",
+      "actor_role": "creator",
+      "target_type": "creator_workstation",
+      "target_id": "creator_zola",
+      "before_state": {},
+      "after_state": {
+        "creator_id": "creator_zola",
+        "role": "creator",
+        "kyc_status": "VERIFIED"
+      },
+      "metadata": {
+        "method": "studio_pin",
+        "studio": "Mzansi Epic Films"
+      },
+      "payload_hash": "906a91ad90a381545e93652c7283197c7c1fcd43991b15331d7e5e7e351903c2",
+      "previous_hash": "92ec6be1618670bb0f80e09e467c08d67e7919efd21433b8f5cc505f5b93792b",
+      "entry_hash": "b1294a3cc99d7c8dbf3ca04e289de23f511ed61d4cdd63ca0df02c6284588a88",
+      "timestamp": "2026-09-20T07:57:13.038550+00:00"
+    },
+    {
+      "sequence_id": 1560,
+      "event_id": "aud_cd6adfe6a2c8",
+      "domain": "AUTH",
+      "event_type": "auth.login",
+      "actor_id": "admin_supervisor",
+      "actor_role": "admin",
+      "target_type": "admin_console",
+      "target_id": "global_operations",
+      "before_state": {},
+      "after_state": {
+        "role": "admin",
+        "kyc_status": "SUPER_ADMIN"
+      },
+      "metadata": {
+        "method": "enterprise_2fa",
+        "operator": "ops@welele.media"
+      },
+      "payload_hash": "58718209b8f0680c62a0b98dc5a7f42911b7906279a9c7482e04372eb4977cd4",
+      "previous_hash": "b1294a3cc99d7c8dbf3ca04e289de23f511ed61d4cdd63ca0df02c6284588a88",
+      "entry_hash": "22e0bcf212b1a851df70d82c6605aa7c41750f8ae845bcdd07ccf35906c7e04c",
+      "timestamp": "2026-09-20T07:59:15.439001+00:00"
+    },
+    {
+      "sequence_id": 1561,
+      "event_id": "aud_a14e51461f24",
+      "domain": "AUTH",
+      "event_type": "auth.login",
+      "actor_id": "usr_creator_zola",
+      "actor_role": "creator",
+      "target_type": "creator_workstation",
+      "target_id": "creator_zola",
+      "before_state": {},
+      "after_state": {
+        "creator_id": "creator_zola",
+        "role": "creator",
+        "kyc_status": "VERIFIED"
+      },
+      "metadata": {
+        "method": "studio_pin",
+        "studio": "Mzansi Epic Films"
+      },
+      "payload_hash": "906a91ad90a381545e93652c7283197c7c1fcd43991b15331d7e5e7e351903c2",
+      "previous_hash": "22e0bcf212b1a851df70d82c6605aa7c41750f8ae845bcdd07ccf35906c7e04c",
+      "entry_hash": "1f3acac60919cee456252e8dfacee1abf2ce1bc6bd4b4988117e0363337fab26",
+      "timestamp": "2026-09-20T08:04:10.077832+00:00"
+    },
+    {
+      "sequence_id": 1562,
+      "event_id": "aud_effb8f971306",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "1f3acac60919cee456252e8dfacee1abf2ce1bc6bd4b4988117e0363337fab26",
+      "entry_hash": "ccc0bee771addade3643bb09c74dd533d5822f01d49cf9ca9327032360fc6d09",
+      "timestamp": "2026-09-20T08:11:03.702451+00:00"
+    },
+    {
+      "sequence_id": 1563,
+      "event_id": "aud_0a21f2ce06d1",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "ccc0bee771addade3643bb09c74dd533d5822f01d49cf9ca9327032360fc6d09",
+      "entry_hash": "1127ec8d967ef804d5f2ae4a69d97cec89f47525267569086ca2c643886948e2",
+      "timestamp": "2026-09-20T08:11:04.998022+00:00"
+    },
+    {
+      "sequence_id": 1564,
+      "event_id": "aud_bef9409c9e69",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "1127ec8d967ef804d5f2ae4a69d97cec89f47525267569086ca2c643886948e2",
+      "entry_hash": "0e62d26b32a40347b988b95508c356a688757a1218446f9a654e735dab18b721",
+      "timestamp": "2026-09-20T08:11:05.849364+00:00"
+    },
+    {
+      "sequence_id": 1565,
+      "event_id": "aud_9ced60630438",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "0e62d26b32a40347b988b95508c356a688757a1218446f9a654e735dab18b721",
+      "entry_hash": "d3ff4b37f95ed3c76faa1317d14585bfa22194460e77414b84bdb747bbc4902f",
+      "timestamp": "2026-09-20T08:11:06.403688+00:00"
+    },
+    {
+      "sequence_id": 1566,
+      "event_id": "aud_4518d82d8d3b",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "d3ff4b37f95ed3c76faa1317d14585bfa22194460e77414b84bdb747bbc4902f",
+      "entry_hash": "e4ba2458bf64ede1cb92b218254fac27663ac4bf481d2a3add4f7ea601eaeb9e",
+      "timestamp": "2026-09-20T08:11:08.949745+00:00"
+    },
+    {
+      "sequence_id": 1567,
+      "event_id": "aud_1f58f18631a1",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "e4ba2458bf64ede1cb92b218254fac27663ac4bf481d2a3add4f7ea601eaeb9e",
+      "entry_hash": "348439d275397b1b380f169eea2136f469acf7007f23c086c52d7563f66046f2",
+      "timestamp": "2026-09-20T08:11:09.518240+00:00"
+    },
+    {
+      "sequence_id": 1568,
+      "event_id": "aud_39ea75066bb3",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "348439d275397b1b380f169eea2136f469acf7007f23c086c52d7563f66046f2",
+      "entry_hash": "24db293e0f6f0e8ad59c208a60aa4031e303d3a43d7fdc1690ccdd37fa4f46b2",
+      "timestamp": "2026-09-20T08:11:09.970257+00:00"
+    },
+    {
+      "sequence_id": 1569,
+      "event_id": "aud_2d2cad9a5a97",
+      "domain": "SECURITY",
+      "event_type": "security.permission_denied",
+      "actor_id": "guest_anonymous",
+      "actor_role": "viewer",
+      "target_type": "role_guard",
+      "target_id": "admin",
+      "before_state": {},
+      "after_state": {},
+      "metadata": {
+        "required_roles": [
+          "admin"
+        ],
+        "session_role": "viewer"
+      },
+      "payload_hash": "11f8647e16e1c27d031d64dedd71c6507c0650109dd002bda243b9d3e8609ad1",
+      "previous_hash": "24db293e0f6f0e8ad59c208a60aa4031e303d3a43d7fdc1690ccdd37fa4f46b2",
+      "entry_hash": "a0ebbd9f8df6c18542acd45cd35987e39e7f1790aef4241dbe25eea3078d9ba6",
+      "timestamp": "2026-09-20T08:11:10.421226+00:00"
     }
   ],
   "story_drafts": [
@@ -129496,6 +133459,64 @@
       "id": "draft_f0dd17ab01",
       "updated_at": "2026-09-18T13:04:11.028103+00:00",
       "created_at": "2026-09-18T13:04:11.028103+00:00"
+    },
+    {
+      "draft_id": null,
+      "creator_id": "usr_admin_ops",
+      "creator_name": "Platform Supervisor",
+      "title": "The Ancestral Ledger",
+      "logline": "When a modern Johannesburg accountant discovers an ancient spiritual ledger detailing unpayable ancestral debts, he must outwit both township loan sharks and ancestral spirits before his family name is erased.",
+      "target_format": "VERTICAL_MICRODRAMA",
+      "tone": "Supernatural Comedy / High Stakes Thriller",
+      "themes": [
+        "Ancestral Duty",
+        "Modern Finance",
+        "Family Honor"
+      ],
+      "protagonist_name": "Sipho Ndlovu",
+      "protagonist_want": "Clear his family debt within 48 hours to secure a major corporate promotion.",
+      "protagonist_need": "Accept his ancestral heritage and reconcile with his estranged grandmother.",
+      "counterforce_or_antagonist": "Gogo MaMthembu (ancestral debt keeper) and Bra Mike (ruthless cash loan boss)",
+      "world_setting": "Modern Sandton corporate offices juxtaposed against an ancient ancestral shrine in Soweto",
+      "episode_hooks": [
+        "Ep 1 Hook: Sipho receives a gold ledger stamped with his late grandfather blood print.",
+        "Ep 2 Hook: Bra Mike henchmen corner Sipho, only for the lights to shatter as spirits intervene.",
+        "Ep 3 Hook: Sipho discovers the debt requires a living sacrifice—or solving a 19th-century murder."
+      ],
+      "full_draft_text": "ACT I: Sipho is on the verge of making partner at a Sandton accounting firm. His estranged uncle passes away, leaving him a mysterious locked safe deposit box. Inside is a glowing, leather-bound ledger written in isiZulu and high financial accounting notation.",
+      "version": 1,
+      "id": "draft_d737b87c58",
+      "updated_at": "2026-09-20T07:53:06.184144+00:00",
+      "created_at": "2026-09-20T07:53:06.184144+00:00"
+    },
+    {
+      "draft_id": null,
+      "creator_id": "usr_admin_ops",
+      "creator_name": "Platform Supervisor",
+      "title": "The Ancestral Ledger",
+      "logline": "When a modern Johannesburg accountant discovers an ancient spiritual ledger detailing unpayable ancestral debts, he must outwit both township loan sharks and ancestral spirits before his family name is erased.",
+      "target_format": "VERTICAL_MICRODRAMA",
+      "tone": "Supernatural Comedy / High Stakes Thriller",
+      "themes": [
+        "Ancestral Duty",
+        "Modern Finance",
+        "Family Honor"
+      ],
+      "protagonist_name": "Sipho Ndlovu",
+      "protagonist_want": "Clear his family debt within 48 hours to secure a major corporate promotion.",
+      "protagonist_need": "Accept his ancestral heritage and reconcile with his estranged grandmother.",
+      "counterforce_or_antagonist": "Gogo MaMthembu (ancestral debt keeper) and Bra Mike (ruthless cash loan boss)",
+      "world_setting": "Modern Sandton corporate offices juxtaposed against an ancient ancestral shrine in Soweto",
+      "episode_hooks": [
+        "Ep 1 Hook: Sipho receives a gold ledger stamped with his late grandfather blood print.",
+        "Ep 2 Hook: Bra Mike henchmen corner Sipho, only for the lights to shatter as spirits intervene.",
+        "Ep 3 Hook: Sipho discovers the debt requires a living sacrifice—or solving a 19th-century murder."
+      ],
+      "full_draft_text": "ACT I: Sipho is on the verge of making partner at a Sandton accounting firm. His estranged uncle passes away, leaving him a mysterious locked safe deposit box. Inside is a glowing, leather-bound ledger written in isiZulu and high financial accounting notation.",
+      "version": 1,
+      "id": "draft_7e53156b65",
+      "updated_at": "2026-09-20T07:53:06.304982+00:00",
+      "created_at": "2026-09-20T07:53:06.304982+00:00"
     }
   ],
   "creator_submissions": [

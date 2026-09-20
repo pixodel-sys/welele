@@ -3,6 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { Story, Episode } from '../../types';
 import { WeleleLogo } from '../common/WeleleLogo';
 import { Search, Globe, Sparkles, Play, Heart, Flame, Users, Volume2 } from 'lucide-react';
+import { telemetryService } from '../../services/telemetryService';
 
 interface DiscoverScreenProps {
   onOpenPlayer: (story: Story, episode: Episode) => void;
@@ -14,6 +15,23 @@ export const DiscoverScreen: React.FC<DiscoverScreenProps> = ({ onOpenPlayer }) 
   const [selectedGenre, setSelectedGenre] = useState<string>('All');
   const [selectedLanguage, setSelectedLanguage] = useState<string>('All');
   const [playingSonic, setPlayingSonic] = useState<boolean>(false);
+
+  React.useEffect(() => {
+    if (stories.length > 0) {
+      telemetryService.track({
+        event_family: 'OPEN',
+        event_type: 'FEED_IMPRESSION',
+        content_type: 'CATALOG_FEED',
+        content_id: 'discover_feed',
+        source: 'DISCOVER_SCREEN',
+        metadata: {
+          searchQuery,
+          selectedGenre,
+          selectedLanguage,
+        }
+      });
+    }
+  }, [selectedGenre, selectedLanguage, stories.length > 0]);
 
   const genres = ['All', 'Dynasty & Thriller', 'Crime & Action', 'Romance & Drama', 'Comedy', 'Afrofuturism'];
   const languages = ['All', 'isiZulu', 'isiXhosa', 'Afrikaans', 'Sesotho', 'English', 'Yoruba', 'Swahili', 'Pidgin', 'French'];

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { AppMode, Story, Episode, CoinPack, MarketRegion, SACarrier, AirtimePass } from '../types';
 import { storyApi, monetizationApi, authApi } from '../services/api';
 import { DEFAULT_STORIES } from '../services/mockData';
+import { telemetryService } from '../services/telemetryService';
 
 interface UserProfile {
   id: string;
@@ -430,8 +431,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const toggleLikeStory = (storyId: string) => {
     setLikedStories((prev) => {
       const next = new Set(prev);
-      if (next.has(storyId)) next.delete(storyId);
-      else next.add(storyId);
+      const isNowLiked = !next.has(storyId);
+      if (next.has(storyId)) {
+        next.delete(storyId);
+      } else {
+        next.add(storyId);
+      }
+
+      // Phase 3A: Reaction engagement telemetry
+      telemetryService.track({
+        event_family: 'REACT',
+        event_type: isNowLiked ? 'REACTION_ADDED' : 'REACTION_REMOVED',
+        content_type: 'SERIES',
+        content_id: storyId,
+        series_id: storyId,
+        source: 'VIEWER_INTERACTION',
+        metadata: {
+          reaction_type: 'LIKE',
+          state: isNowLiked ? 'ADDED' : 'REMOVED'
+        }
+      });
+
       return next;
     });
     storyApi.likeStory(storyId).catch(() => {});

@@ -6,14 +6,14 @@ import { CreatorVerification } from './CreatorVerification';
 import { WeleleAdminStudio } from './WeleleAdminStudio';
 import { AuditChainInspector } from './AuditChainInspector';
 import { AdminIntakeQueue } from './AdminIntakeQueue';
-import { StoryForgeCockpit } from '../creator/forge/StoryForgeCockpit';
 import { ProvenanceBadge } from '../common/patterns/ProvenanceBadge';
-import { Shield, Users, Video, Coins, Activity, CheckCircle, AlertTriangle, Layers, Lock, Sparkles, FileText, Inbox } from 'lucide-react';
+import { Project40Evidence } from './Project40Evidence';
+import { Shield, Users, Video, Coins, Activity, CheckCircle, AlertTriangle, Layers, Lock, FileText, Inbox, BarChart2 } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
-  const { stories } = useApp();
+  const { stories, attemptModeChange } = useApp();
   const [metrics, setMetrics] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'intake' | 'forge' | 'studio' | 'moderation' | 'verification' | 'audit'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'evidence' | 'intake' | 'studio' | 'moderation' | 'verification' | 'audit'>('evidence');
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
@@ -61,6 +61,17 @@ export const AdminDashboard: React.FC = () => {
           Overview
         </button>
         <button
+          onClick={() => setActiveTab('evidence')}
+          className={`px-4 py-2 rounded-[7px] font-bold transition-all flex items-center gap-1.5 shrink-0 ${
+            activeTab === 'evidence'
+              ? 'bg-gradient-to-r from-emerald-500 to-teal-400 text-black shadow-lg font-black'
+              : 'text-emerald-400 hover:text-white hover:bg-white/5 border border-emerald-500/30'
+          }`}
+        >
+          <BarChart2 className="w-3.5 h-3.5" />
+          Audience Evidence
+        </button>
+        <button
           onClick={() => setActiveTab('intake')}
           className={`px-4 py-2 rounded-[7px] font-bold transition-all flex items-center gap-1.5 shrink-0 ${
             activeTab === 'intake'
@@ -70,17 +81,6 @@ export const AdminDashboard: React.FC = () => {
         >
           <Inbox className="w-3.5 h-3.5" />
           IP Intake & Submissions
-        </button>
-        <button
-          onClick={() => setActiveTab('forge')}
-          className={`px-4 py-2 rounded-[7px] font-bold transition-all flex items-center gap-1.5 shrink-0 ${
-            activeTab === 'forge'
-              ? 'bg-welele-gold text-black shadow-md'
-              : 'text-amber-400 hover:text-amber-300 hover:bg-white/5'
-          }`}
-        >
-          <Sparkles className="w-3.5 h-3.5" />
-          Story Forge™ (Studio Engine)
         </button>
         <button
           onClick={() => setActiveTab('studio')}
@@ -207,15 +207,11 @@ export const AdminDashboard: React.FC = () => {
       {activeTab === 'intake' && (
         <AdminIntakeQueue
           onSelectForForge={(sub) => {
-            setActiveTab('forge');
+            attemptModeChange('production');
           }}
         />
       )}
-      {activeTab === 'forge' && (
-        <div className="space-y-4">
-          <StoryForgeCockpit />
-        </div>
-      )}
+      {activeTab === 'evidence' && <Project40Evidence />}
       {activeTab === 'studio' && <WeleleAdminStudio stories={stories} />}
       {activeTab === 'moderation' && <ModerationQueue />}
       {activeTab === 'verification' && <CreatorVerification />}

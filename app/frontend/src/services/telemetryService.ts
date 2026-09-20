@@ -7,6 +7,8 @@
 export type EventSpineFamily = 'OPEN' | 'WATCH' | 'CONTINUE' | 'REACT' | 'RETURN' | 'PAY';
 
 export type ViewerEventType =
+  | 'APP_OPEN'
+  | 'FEED_IMPRESSION'
   | 'CONTENT_OPENED'
   | 'PLAYBACK_STARTED'
   | 'PLAYBACK_PROGRESS'
@@ -43,6 +45,8 @@ export interface ViewerTelemetryEventPayload {
   event_source?: 'CLIENT' | 'SERVER';
   event_version?: string;
   source?: string;
+  environment?: 'production' | 'staging' | 'test';
+  is_test?: boolean;
   metadata?: Record<string, any>;
 }
 
@@ -109,6 +113,21 @@ class TelemetryService {
     return newSession;
   }
 
+  public resolveEnvironment(): 'production' | 'staging' | 'test' {
+    try {
+      const host = window.location.hostname.toLowerCase();
+      if (host.includes('test') || window.location.search.includes('test=true') || window.location.search.includes('is_test=true')) {
+        return 'test';
+      }
+      if (host === 'localhost' || host === '127.0.0.1' || host.includes('staging')) {
+        return 'staging';
+      }
+      return 'production';
+    } catch {
+      return 'production';
+    }
+  }
+
   /**
    * Primary Telemetry Ingestion Interface
    * Strictly non-blocking: network/backend errors are completely isolated.
@@ -117,6 +136,8 @@ class TelemetryService {
     try {
       const sessionId = event.session_id || this.currentSessionId;
       const contentId = event.content_id;
+      const env = event.environment || this.resolveEnvironment();
+      const isTest = event.is_test ?? (env === 'test' || window.location.search.includes('test=true'));
 
       // Milestone Once-Per-Session Guard
       if (event.event_type === 'PLAYBACK_PROGRESS' && event.milestone_pct) {
@@ -145,6 +166,8 @@ class TelemetryService {
         event_source: event.event_source || 'CLIENT',
         event_version: event.event_version || '1.0',
         source: event.source || 'WELELE_VIEWER',
+        environment: env,
+        is_test: isTest,
         metadata: event.metadata || {}
       };
 
@@ -161,6 +184,29 @@ class TelemetryService {
       // Isolate unexpected runtime exceptions
       console.warn('[Welele Telemetry] Non-blocking track error caught:', err);
     }
+  }
+
+  /**
+   * Fires initial APP_OPEN once per browser session.
+   */
+  public trackAppOpen(metadata?: Record<string, any>): void {
+    try {
+      const hasTrackedOpen = sessionStorage.getItem('welele_app_open_tracked');
+      if (hasTrackedOpen) return;
+      sessionStorage.setItem('welele_app_open_tracked', 'true');
+      this.track({
+        event_family: 'OPEN',
+        event_type: 'APP_OPEN',
+        content_type: 'PLATFORM',
+        content_id: 'welele_pwa',
+        source: 'APP_INIT',
+        metadata: {
+          userAgent: navigator.userAgent,
+          screen: `${window.innerWidth}x${window.innerHeight}`,
+          ...metadata
+        }
+      });
+    } catch (e) {}
   }
 
   /**

@@ -4,6 +4,7 @@ import { Story, Episode } from '../../types';
 import { StoryDetailModal } from './StoryDetailModal';
 import { ExperiencePageRenderer } from '../experience/ExperiencePageRenderer';
 import { WeleleChatScreen } from './WeleleChatScreen';
+import { telemetryService } from '../../services/telemetryService';
 import {
   Clock,
   MessageCircle,
@@ -29,6 +30,23 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onOpenPlayer }) => {
   const [selectedStoryForDetail, setSelectedStoryForDetail] = useState<Story | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>('All');
   const [isChatOpen, setIsChatOpen] = useState<boolean>(false);
+
+  // Phase 3A: Feed impression telemetry
+  React.useEffect(() => {
+    if (stories.length > 0) {
+      telemetryService.track({
+        event_family: 'OPEN',
+        event_type: 'FEED_IMPRESSION',
+        content_type: 'CATALOG_FEED',
+        content_id: 'home_feed',
+        source: 'HOME_SCREEN',
+        metadata: {
+          storiesCount: stories.length,
+          activeCategory,
+        }
+      });
+    }
+  }, [activeCategory, stories.length > 0]);
 
   const categories = ['All', 'Drama', 'Romance', 'Crime', 'Comedy', 'Township', 'Action', 'Thriller'];
 

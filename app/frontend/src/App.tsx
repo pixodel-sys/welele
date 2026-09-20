@@ -16,6 +16,7 @@ import { Story, Episode } from './types';
 import { Bookmark, Play, Star, Lock } from 'lucide-react';
 import { useContentProtection } from './hooks/useContentProtection';
 import { useSeoHead } from './hooks/useSeoHead';
+import { telemetryService } from './services/telemetryService';
 
 // Route-level lazy loading for operational surfaces to optimize initial viewer bundle
 const CreatorStudioShell = React.lazy(() =>
@@ -80,6 +81,8 @@ export const App: React.FC = () => {
     };
     handleLocation();
     window.addEventListener('popstate', handleLocation);
+    // Phase 3A: Track initial APP_OPEN
+    telemetryService.trackAppOpen();
     return () => window.removeEventListener('popstate', handleLocation);
   }, [setMode]);
 

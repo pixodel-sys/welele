@@ -620,8 +620,26 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
           source: 'VERTICAL_PLAYER'
         });
       }
+
+      // Phase 3A: Authoritative Paywall Presentation Telemetry (Locked Episode)
+      if (currentStory && currentEpisode && !isUnlocked) {
+        telemetryService.track({
+          event_family: 'CONTINUE',
+          event_type: 'GATED_CONTENT_PRESENTED',
+          content_id: currentEpisode.id,
+          series_id: currentStory.id,
+          episode_id: currentEpisode.id,
+          source: 'PAYWALL_LOCK_SCREEN',
+          metadata: {
+            content_state: 'LOCKED',
+            is_available: true,
+            coin_price: currentEpisode.coin_price || 5,
+            reason: 'CLIFFHANGER_PAYWALL_ENCOUNTERED'
+          }
+        });
+      }
     }
-  }, [episodeId, currentStory, userId, brandConfig]);
+  }, [episodeId, currentStory, userId, brandConfig, isUnlocked]);
 
   // Telemetry: 15s periodic heartbeat during active playback
   useEffect(() => {
@@ -736,7 +754,21 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
   const handleNextEpisode = () => {
     if (!currentStory || !currentEpisode) return;
     if (currentIndex < currentStory.episodes.length - 1) {
-      setCurrentEpisode(currentStory.episodes[currentIndex + 1]);
+      const nextEp = currentStory.episodes[currentIndex + 1];
+      telemetryService.track({
+        event_family: 'CONTINUE',
+        event_type: 'NEXT_EPISODE_SELECTED',
+        content_id: nextEp.id,
+        series_id: currentStory.id,
+        episode_id: nextEp.id,
+        source: 'PLAYER_NAVIGATION',
+        metadata: {
+          from_episode_id: currentEpisode.id,
+          to_episode_id: nextEp.id,
+          to_episode_number: nextEp.episode_number
+        }
+      });
+      setCurrentEpisode(nextEp);
     }
   };
 
@@ -751,6 +783,21 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
     if (!currentStory || !currentEpisode) return;
     const cost = currentEpisode.coin_price || 5;
 
+    // Phase 3A: Payment initiation telemetry
+    telemetryService.track({
+      event_family: 'PAY',
+      event_type: 'PAYMENT_INITIATED',
+      content_id: currentEpisode.id,
+      series_id: currentStory.id,
+      episode_id: currentEpisode.id,
+      source: 'VERTICAL_PLAYER_COIN_UNLOCK',
+      metadata: {
+        method: 'COINS',
+        cost,
+        balance_available: coins
+      }
+    });
+
     if (coins < cost) {
       setIsCoinModalOpen(true);
       return;
@@ -761,6 +808,17 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
       // 1. Call canonical unlock endpoint with double-entry ledger verification
       await episodesApi.unlock(currentStory.id, currentEpisode.id, userId, 'COINS');
       unlockEpisodeLocal(currentEpisode.id, cost);
+
+      // Phase 3A: Authoritative Content Unlocked Telemetry
+      telemetryService.track({
+        event_family: 'PAY',
+        event_type: 'CONTENT_UNLOCKED',
+        content_id: currentEpisode.id,
+        series_id: currentStory.id,
+        episode_id: currentEpisode.id,
+        source: 'VERTICAL_PLAYER',
+        metadata: { method: 'COINS', cost }
+      });
 
       confetti({
         particleCount: 60,
@@ -839,11 +897,42 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
   // South African 1-Tap Direct Airtime Unlock
   const handleQuickAirtimeUnlock = async () => {
     if (!currentStory || !currentEpisode) return;
+
+    // Phase 3A: Payment initiation telemetry
+    telemetryService.track({
+      event_family: 'PAY',
+      event_type: 'PAYMENT_INITIATED',
+      content_id: currentEpisode.id,
+      series_id: currentStory.id,
+      episode_id: currentEpisode.id,
+      source: 'VERTICAL_PLAYER_AIRTIME_UNLOCK',
+      metadata: {
+        method: 'AIRTIME_DCB',
+        carrier: selectedCarrier,
+        cost_zar: 3.0
+      }
+    });
+
     setIsAirtimeUnlocking(true);
 
     try {
       // 1. Deduct airtime and establish entitlement
       await quickAirtimeUnlock(currentEpisode.id, currentStory.id, 3.0, 5);
+
+      // Phase 3A: Authoritative Content Unlocked Telemetry
+      telemetryService.track({
+        event_family: 'PAY',
+        event_type: 'CONTENT_UNLOCKED',
+        content_id: currentEpisode.id,
+        series_id: currentStory.id,
+        episode_id: currentEpisode.id,
+        source: 'VERTICAL_PLAYER',
+        metadata: {
+          method: 'AIRTIME_DCB',
+          carrier: selectedCarrier,
+          cost_zar: 3.0
+        }
+      });
 
       confetti({
         particleCount: 80,
@@ -917,12 +1006,25 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
   const handleSendComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCommentText.trim() || !currentEpisode) return;
+    const text = newCommentText;
     await addComment(
       currentEpisode.id,
-      newCommentText,
+      text,
       'Sipho Dlamini',
       'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80'
     );
+    // Phase 3A: Comment engagement telemetry
+    telemetryService.track({
+      event_family: 'REACT',
+      event_type: 'COMMENT_SUBMITTED',
+      content_id: currentEpisode.id,
+      series_id: currentStory.id,
+      episode_id: currentEpisode.id,
+      source: 'VERTICAL_PLAYER_COMMENTS',
+      metadata: {
+        comment_length: text.length
+      }
+    });
     setNewCommentText('');
   };
 

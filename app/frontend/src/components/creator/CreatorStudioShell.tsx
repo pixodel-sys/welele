@@ -6,8 +6,6 @@ import { SeriesCommandRoom } from './SeriesCommandRoom';
 import { EpisodePipelineModal } from './EpisodePipelineModal';
 import { CreateShowModal } from './CreateShowModal';
 import { StoryReviewWorkbench } from './review/StoryReviewWorkbench';
-import { StoryForgeCockpit } from './forge/StoryForgeCockpit';
-import { StoryForgeDoorway } from './StoryForgeDoorway';
 import { CreatorEarnings } from './CreatorEarnings';
 import { CreatorDashboard } from './CreatorDashboard';
 import { ReadinessBadge } from '../common/patterns/ReadinessBadge';
@@ -30,7 +28,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 
-export type SimpleCreatorTab = 'shows' | 'story_review' | 'story_forge' | 'insights' | 'earnings';
+export type SimpleCreatorTab = 'shows' | 'story_review' | 'insights' | 'earnings';
 
 export const CreatorStudioShell: React.FC = () => {
   const { stories, user, refreshStories, market, attemptModeChange } = useApp();
@@ -91,8 +89,13 @@ export const CreatorStudioShell: React.FC = () => {
     return 'Good evening';
   };
 
-  const creatorName = user?.name || 'Zola Dlamini';
-  const creatorHandle = '@zola_dlamini';
+  // Identity Resolution: Distinguish Showrunner (Zola Dlamini) from Admin/Platform Supervisor
+  const isActualCreator = user?.role === 'creator';
+  const isSupervisorEmulating = user?.role === 'admin';
+  const creatorName = isActualCreator ? (user?.name || 'Zola Dlamini') : 'Zola Dlamini';
+  const creatorHandle = isActualCreator
+    ? (user?.creator_id ? `@${user.creator_id.replace('creator_', '')}` : '@zola_dlamini')
+    : '@zola_dlamini';
 
   // Canonical 4-Dimensional Readiness Evaluation Contract
   const getShow4DContract = (story: any) => {
@@ -167,13 +170,19 @@ export const CreatorStudioShell: React.FC = () => {
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-extrabold text-base text-white">{creatorName}</span>
               <span className="text-xs font-mono text-welele-gold font-bold">{creatorHandle}</span>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[7px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold">
-                <ShieldCheck className="w-3 h-3" /> Verified Showrunner
-              </span>
+              {isSupervisorEmulating ? (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[7px] bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px] font-bold" title="Admin logged in as Platform Supervisor inspecting Showrunner Studio">
+                  <ShieldCheck className="w-3 h-3" /> Admin Studio Inspection (Showrunner Tenant)
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[7px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold">
+                  <ShieldCheck className="w-3 h-3" /> Verified Showrunner
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-2.5 mt-1 text-[11px] text-welele-muted">
               <span className="inline-flex items-center gap-1">
-                <Globe className="w-3 h-3 text-welele-gold" /> Market: <strong className="text-white">{market || 'ZA'}</strong> (South Africa)
+                <Globe className="w-3 h-3 text-welele-gold" /> Studio: <strong className="text-white">Mzansi Epic Films</strong>
               </span>
               <span>•</span>
               <span className="inline-flex items-center gap-1">
@@ -185,18 +194,6 @@ export const CreatorStudioShell: React.FC = () => {
 
         {/* Creator Command Actions */}
         <div className="flex items-center gap-2 flex-wrap shrink-0">
-          <button
-            onClick={() => setActiveNavTab('story_forge')}
-            className={`px-3.5 py-2 rounded-[7px] font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm cursor-pointer ${
-              activeNavTab === 'story_forge'
-                ? 'bg-gradient-to-r from-[#FF6500] to-[#FF8500] text-black shadow-md shadow-orange-500/20'
-                : 'bg-gradient-to-r from-orange-500/20 to-amber-500/20 hover:from-orange-500/30 hover:to-amber-500/30 border border-orange-500/40 text-amber-300'
-            }`}
-          >
-            <Flame className="w-3.5 h-3.5 text-[#FF6500]" />
-            <span>🔥 Story Forge™</span>
-          </button>
-
           <button
             onClick={() => setActiveNavTab('story_review')}
             className={`px-3.5 py-2 rounded-[7px] font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm cursor-pointer ${
@@ -210,15 +207,6 @@ export const CreatorStudioShell: React.FC = () => {
           </button>
 
           <button
-            onClick={() => attemptModeChange('production')}
-            className="px-3.5 py-2 rounded-[7px] bg-gradient-to-r from-[#FF6500]/20 to-[#FFA000]/20 hover:from-[#FF6500]/30 hover:to-[#FFA000]/30 border border-[#FF6500]/40 text-[#FFA000] font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
-            title="Enter deep Production Floor & Story Forge Cockpit"
-          >
-            <Flame className="w-3.5 h-3.5 text-[#FF6500]" />
-            <span>Production Room →</span>
-          </button>
-
-          <button
             onClick={() => setIsCreateShowOpen(true)}
             className="px-3.5 py-2 rounded-[7px] bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer"
           >
@@ -228,7 +216,7 @@ export const CreatorStudioShell: React.FC = () => {
 
           <button
             onClick={() => attemptModeChange('viewer')}
-            className="px-3 py-2 rounded-[7px] bg-white/5 hover:bg-white/10 border border-white/10 text-white hover:text-pink-400 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+            className="px-3.5 py-2 rounded-[7px] bg-white/5 hover:bg-white/10 border border-white/10 text-white hover:text-pink-400 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
             title="Switch to consumer mobile viewer view"
           >
             <Tv className="w-3.5 h-3.5 text-pink-400" />
@@ -245,13 +233,6 @@ export const CreatorStudioShell: React.FC = () => {
       {activeNavTab === 'story_review' && (
         <div className="space-y-4">
           <StoryReviewWorkbench />
-        </div>
-      )}
-
-      {/* VIEW: STORY FORGE™ WORKSPACE (STUDIO ENGINE) */}
-      {activeNavTab === 'story_forge' && (
-        <div className="space-y-4">
-          <StoryForgeCockpit />
         </div>
       )}
 

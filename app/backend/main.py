@@ -88,6 +88,7 @@ app.include_router(storage.router, prefix=settings.API_V1_STR)
 app.include_router(chat.router, prefix=settings.API_V1_STR)
 app.include_router(ai.router, prefix=settings.API_V1_STR)
 app.include_router(admin.router, prefix=settings.API_V1_STR)
+app.include_router(admin.router, prefix="/api/v1")
 app.include_router(experience.router, prefix=settings.API_V1_STR)
 app.include_router(telemetry.router, prefix=settings.API_V1_STR)
 app.include_router(telemetry.router, prefix="/api/v1")
@@ -111,8 +112,11 @@ app.include_router(production.router, prefix="/api/v1")
 # Backward-Compatible Legacy Aliases (Zero-Friction Client Migration)
 # -----------------------------------------------------------------------------
 app.include_router(legacy_stories.router, prefix=settings.API_V1_STR)
+app.include_router(legacy_stories.router, prefix="/api/v1")
 app.include_router(legacy_creators.router, prefix=settings.API_V1_STR)
+app.include_router(legacy_creators.router, prefix="/api/v1")
 app.include_router(legacy_monetization.router, prefix=settings.API_V1_STR)
+app.include_router(legacy_monetization.router, prefix="/api/v1")
 
 def run_runtime_startup_canary():
     """

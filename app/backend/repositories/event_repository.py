@@ -67,10 +67,16 @@ class EventRepository(BaseRepository):
         return [e for e in all_events if e.get("episode_id") == episode_id]
 
     def get_episode_retention(self, series_id: str, episode_id: str) -> EpisodeRetentionResponse:
-        all_events = self.local_get("telemetry_events")
-        ep_events = [e for e in all_events if e.get("episode_id") == episode_id]
+        legacy_events = self.local_get("telemetry_events") or []
+        phase6_events = self.local_get("viewer_telemetry_events") or []
+        
+        # Combine matching events for the episode
+        ep_events = [e for e in legacy_events if e.get("episode_id") == episode_id]
         if not ep_events and not episode_id:
-            ep_events = [e for e in all_events if e.get("series_id") == series_id]
+            ep_events = [e for e in legacy_events if e.get("series_id") == series_id]
+
+        # Also incorporate Phase 6 playback events if present
+        p6_ep_events = [e for e in phase6_events if e.get("episode_id") == episode_id or (not episode_id and e.get("series_id") == series_id)]
 
         # Calculate max playback second reached per unique session
         session_max_sec = defaultdict(int)
@@ -80,21 +86,37 @@ class EventRepository(BaseRepository):
             if sec > session_max_sec[sess]:
                 session_max_sec[sess] = sec
 
-        total_sessions = len(session_max_sec)
-        starts = total_sessions if total_sessions > 0 else 100
+        for e in p6_ep_events:
+            sess = e.get("session_id", "default")
+            sec = int(e.get("position_seconds", 0))
+            if sec > session_max_sec[sess]:
+                session_max_sec[sess] = sec
 
-        cliffhanger_hits = len([s for s, max_s in session_max_sec.items() if max_s >= 60]) or int(starts * 0.76)
-        unlock_hits = len([e for e in ep_events if e.get("event_name") == "unlock_completed"]) or int(cliffhanger_hits * 0.68)
+        total_sessions = len(session_max_sec)
+
+        # Phase 3A: Zero synthetic data policy. If zero real sessions exist, report zero.
+        if total_sessions == 0:
+            return EpisodeRetentionResponse(
+                series_id=series_id,
+                episode_id=episode_id,
+                total_starts=0,
+                completion_rate_pct=0.0,
+                cliffhanger_conversion_pct=0.0,
+                avg_watch_time_seconds=0.0,
+                retention_curve=[],
+                geo_distribution=[]
+            )
+
+        cliffhanger_hits = len([s for s, max_s in session_max_sec.items() if max_s >= 60])
+        unlock_hits = (
+            len([e for e in ep_events if e.get("event_name") == "unlock_completed"]) +
+            len([e for e in p6_ep_events if e.get("event_type") == "CONTENT_UNLOCKED"])
+        )
 
         curve_points: List[RetentionDataPoint] = []
         for sec in range(0, 95, 5):
-            if total_sessions > 0:
-                active_count = len([s for s, max_s in session_max_sec.items() if max_s >= sec])
-                retention_pct = round((active_count / float(total_sessions)) * 100.0, 1)
-            else:
-                active_count = int(starts * max(0.4, 1.0 - (sec * 0.006)))
-                retention_pct = round((active_count / starts) * 100.0, 1)
-
+            active_count = len([s for s, max_s in session_max_sec.items() if max_s >= sec])
+            retention_pct = round((active_count / float(total_sessions)) * 100.0, 1)
             curve_points.append(RetentionDataPoint(
                 second=sec,
                 retention_pct=retention_pct,
@@ -102,20 +124,37 @@ class EventRepository(BaseRepository):
                 is_cliffhanger=(sec >= 65)
             ))
 
+        # Real empirical geo distribution
+        region_counts = defaultdict(int)
+        for e in ep_events:
+            reg = e.get("region_code") or "ZA"
+            region_counts[reg] += 1
+        for e in p6_ep_events:
+            reg = (e.get("metadata") or {}).get("region_code") or "ZA"
+            region_counts[reg] += 1
+
+        total_geo_events = sum(region_counts.values()) or 1
+        flags = {"ZA": "🇿🇦", "NG": "🇳🇬", "KE": "🇰🇪", "GH": "🇬🇭"}
+        names = {"ZA": "South Africa", "NG": "Nigeria", "KE": "Kenya", "GH": "Ghana"}
+        geo_dist = [
+            {
+                "country": names.get(reg, reg),
+                "flag": flags.get(reg, "🌍"),
+                "share_pct": round((cnt / float(total_geo_events)) * 100, 1),
+                "views": cnt
+            }
+            for reg, cnt in region_counts.items()
+        ]
+
         return EpisodeRetentionResponse(
             series_id=series_id,
             episode_id=episode_id,
-            total_starts=starts,
-            completion_rate_pct=round((curve_points[-1].viewer_count / max(1, starts)) * 100.0, 1),
-            cliffhanger_conversion_pct=round((unlock_hits / max(1, cliffhanger_hits)) * 100.0, 1),
-            avg_watch_time_seconds=78.5,
+            total_starts=total_sessions,
+            completion_rate_pct=round((curve_points[-1].viewer_count / float(total_sessions)) * 100.0, 1),
+            cliffhanger_conversion_pct=round((unlock_hits / float(cliffhanger_hits)) * 100.0, 1) if cliffhanger_hits > 0 else 0.0,
+            avg_watch_time_seconds=round(sum(session_max_sec.values()) / float(total_sessions), 1),
             retention_curve=curve_points,
-            geo_distribution=[
-                {"country": "South Africa", "flag": "🇿🇦", "share_pct": 52, "views": int(starts * 0.52)},
-                {"country": "Nigeria", "flag": "🇳🇬", "share_pct": 24, "views": int(starts * 0.24)},
-                {"country": "Kenya", "flag": "🇰🇪", "share_pct": 14, "views": int(starts * 0.14)},
-                {"country": "Ghana", "flag": "🇬🇭", "share_pct": 10, "views": int(starts * 0.10)}
-            ]
+            geo_distribution=geo_dist
         )
 
 event_repository = EventRepository()

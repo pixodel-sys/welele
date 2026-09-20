@@ -22,6 +22,8 @@ class EventSpineFamily(str, Enum):
 class ViewerEventType(str, Enum):
     """Controlled implementation event taxonomy mapped strictly beneath the spine families."""
     # OPEN
+    APP_OPEN = "APP_OPEN"
+    FEED_IMPRESSION = "FEED_IMPRESSION"
     CONTENT_OPENED = "CONTENT_OPENED"
 
     # WATCH
@@ -109,6 +111,8 @@ class ViewerTelemetryEvent(BaseModel):
     event_source: EventSource = Field(default=EventSource.CLIENT, description="CLIENT or SERVER provenance")
     event_version: str = Field(default="1.0", description="Telemetry schema contract version")
     source: Optional[str] = Field(default=None, description="Referrer/entry context, e.g. DISCOVERY_FEED, VERTICAL_PLAYER")
+    environment: str = Field(default="production", description="Runtime environment: production, staging, test")
+    is_test: bool = Field(default=False, description="Flag indicating automated test, canary, or internal test session")
     metadata: Dict[str, Any] = Field(default_factory=dict, description="Bounded event-specific factual context")
     ingested_at: Optional[str] = Field(default=None, description="ISO 8601 UTC timestamp of backend ingestion")
 
