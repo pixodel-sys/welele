@@ -28,6 +28,9 @@ const CreatorStudioGate = React.lazy(() =>
 const ProductionRoom = React.lazy(() =>
   import('./components/production/ProductionRoom').then((m) => ({ default: m.ProductionRoom }))
 );
+const ProductionGate = React.lazy(() =>
+  import('./components/production/ProductionGate').then((m) => ({ default: m.ProductionGate }))
+);
 const AdminDashboard = React.lazy(() =>
   import('./components/admin/AdminDashboard').then((m) => ({ default: m.AdminDashboard }))
 );
@@ -318,7 +321,11 @@ export const App: React.FC = () => {
         {/* MODE: PRODUCTION ROOM (Story Forge & Narrative Packaging: /production) */}
         {mode === 'production' && (
           <React.Suspense fallback={<ModeLoadingFallback />}>
-            <ProductionRoom />
+            {user?.role === 'admin' ? (
+              <ProductionRoom />
+            ) : (
+              <ProductionGate />
+            )}
           </React.Suspense>
         )}
 

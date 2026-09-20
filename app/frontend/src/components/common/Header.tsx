@@ -2,7 +2,7 @@ import React from 'react';
 import { useApp } from '../../context/AppContext';
 import { AppMode, MarketRegion } from '../../types';
 import { WeleleLogo } from './WeleleLogo';
-import { Sparkles, Shield, Video, Smartphone, Globe, Signal, User, LogIn, LogOut } from 'lucide-react';
+import { Globe, Signal, LogIn, LogOut } from 'lucide-react';
 
 export const Header: React.FC = () => {
   const {
@@ -58,52 +58,6 @@ export const Header: React.FC = () => {
             )}
           </div>
 
-          {/* Top-Level Workspace Switcher */}
-          <div className="hidden md:flex items-center gap-1 bg-black/40 p-1 rounded-[7px] border border-white/10 text-xs">
-            <button
-              onClick={() => attemptModeChange('viewer')}
-              className={`px-2.5 py-1 rounded-[5px] font-bold transition-all ${
-                mode === 'viewer'
-                  ? 'bg-white/15 text-white shadow'
-                  : 'text-white/60 hover:text-white'
-              }`}
-            >
-              Viewer
-            </button>
-            <button
-              onClick={() => attemptModeChange('creator')}
-              className={`px-2.5 py-1 rounded-[5px] font-bold flex items-center gap-1 transition-all ${
-                mode === 'creator'
-                  ? 'bg-[#E6007A] text-white shadow'
-                  : 'text-white/60 hover:text-white'
-              }`}
-            >
-              <span>Creator</span>
-            </button>
-            <button
-              onClick={() => attemptModeChange('production')}
-              className={`px-2.5 py-1 rounded-[5px] font-bold flex items-center gap-1 transition-all ${
-                mode === 'production'
-                  ? 'bg-gradient-to-r from-[#FF6500] to-[#FFA000] text-black shadow font-black'
-                  : 'text-[#FF6500]/80 hover:text-[#FF6500]'
-              }`}
-            >
-              <Sparkles className="w-3 h-3" />
-              <span>Production</span>
-            </button>
-            {(user.role === 'admin' || mode === 'admin') && (
-              <button
-                onClick={() => attemptModeChange('admin')}
-                className={`px-2.5 py-1 rounded-[5px] font-bold transition-all ${
-                  mode === 'admin'
-                    ? 'bg-emerald-600 text-white shadow'
-                    : 'text-white/60 hover:text-white'
-                }`}
-              >
-                Admin
-              </button>
-            )}
-          </div>
         </div>
 
         {/* Right Section: Market Selector, Airtime Badge, Coin Pill, Auth */}
