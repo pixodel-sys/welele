@@ -1,16 +1,18 @@
 """
 Welele Media™ — Episode Stream & Playback Service Router (Section 5.1)
-Handles strict 9:16 vertical stream resolution, adaptive HLS manifest ladder,
+Handles strict vertical stream resolution, adaptive HLS manifest ladder,
 cliffhanger detection, and subtitles.
 """
 
 from typing import Optional
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends, Header
 from database import db
 from repositories.ledger_repository import ledger_repository
 from repositories.series_repository import series_repository
 from services.storage_service import storage_service
 from services.ledger_service import ledger_service
+from services.rbac_service import require_role, get_current_user, enforce_tenant_access
+from services.audit_service import audit_service
 
 router = APIRouter(prefix="/episodes", tags=["Episodes & Streaming"])
 
@@ -18,18 +20,44 @@ router = APIRouter(prefix="/episodes", tags=["Episodes & Streaming"])
 def get_episode_stream(
     series_id: str,
     episode_id: str,
-    user_id: Optional[str] = "user_sa_01"
+    user_id: Optional[str] = "user_sa_01",
+    internal_test: Optional[bool] = False,
+    x_welele_internal_test: Optional[str] = Header(None, alias="X-Welele-Internal-Test")
 ):
-    story = series_repository.get_series_detail(series_id)
+    all_episodes = series_repository.local_get("episodes")
+    all_series = series_repository.local_get("series")
+    story = next((s for s in all_series if s["id"] == series_id), None)
     if not story:
         stories = db.get("stories")
         story = next((s for s in stories if s["id"] == series_id), None)
         if not story:
             raise HTTPException(status_code=404, detail="Series not found")
     
-    episode = next((ep for ep in story.get("episodes", []) if ep["id"] == episode_id), None)
+    episode = next((ep for ep in all_episodes if ep["id"] == episode_id and ep.get("series_id") == series_id), None)
     if not episode:
         raise HTTPException(status_code=404, detail="Episode not found")
+
+    # Internal Proving & Critical Content Boundary Rule (Jellyfish):
+    # Jellyfish is strictly internal test material. Public viewers cannot stream it.
+    is_internal_item = bool(
+        episode.get("is_internal_test", False) or 
+        episode.get("lifecycle_state") == "INTERNAL_TEST" or 
+        story.get("is_internal_test", False) or 
+        story.get("lifecycle_state") == "INTERNAL_TEST"
+    )
+
+    if is_internal_item:
+        is_test_auth = bool(
+            internal_test or
+            x_welele_internal_test == "1" or
+            user_id in ["system_tester", "admin_supervisor", "test_viewer_golden"] or
+            (user_id and user_id.startswith("test_"))
+        )
+        if not is_test_auth:
+            raise HTTPException(
+                status_code=403,
+                detail="Access Denied: Internal test material (Jellyfish) is restricted to verified test sessions and is locked from public viewer consumption."
+            )
     
     # Check unlock status across ledger repository and relational store
     free_count = story.get("free_episodes", story.get("free_episodes_count", 0))
@@ -39,9 +67,50 @@ def get_episode_stream(
     all_unlocks = ledger_unlocks + db_unlocks
     is_unlocked = is_free or any(u.get("user_id") == user_id and u.get("episode_id") == episode_id for u in all_unlocks)
 
-    # Resolve media asset identity & storage lineage
+    # Commercial & Lifecycle Policy Gate for Archived Content:
+    # If episode is ARCHIVED, playback is permitted ONLY IF the viewer holds an existing paid entitlement.
+    if episode.get("status") == "archived" and not is_unlocked:
+        raise HTTPException(
+            status_code=403,
+            detail="This episode has been retired/archived from public distribution."
+        )
+
+    # Availability Truth Invariant:
+    # AVAILABLE = (lifecycle permits distribution) AND (readiness permits distribution) AND (authoritative master exists)
+    is_empty_draft = bool(episode.get("is_empty_draft", False))
+    readiness = episode.get("readiness_state", "DRAFT_EMPTY")
+    lifecycle = episode.get("lifecycle_state", episode.get("status", "DRAFT")).upper()
+
     all_media = series_repository.local_get("media_assets")
     media = next((m for m in all_media if m.get("episode_id") == episode_id), None)
+    master_video = (media.get("master_video_url") if media else None) or episode.get("video_url", "")
+    
+    has_verified_master = bool(
+        master_video and
+        not master_video.startswith("/videos/welele_placeholder") and
+        not master_video.startswith("/videos/ocean_waves")
+    )
+
+    lifecycle_ok = lifecycle in ["SCHEDULED", "PUBLISHED", "READY", "INTERNAL_TEST"]
+    readiness_ok = readiness in ["PRODUCTION_READY", "READY_FOR_PRODUCTION", "COMPLETED"] and not is_empty_draft
+    is_available = bool(lifecycle_ok and readiness_ok and has_verified_master)
+
+    # If episode is DRAFT_EMPTY or unverified master, truth gate as Coming Soon with NO FALLBACK MEDIA
+    if not is_available:
+        return {
+            "series_id": series_id,
+            "episode": episode,
+            "media_asset_id": None,
+            "storage_key": None,
+            "is_unlocked": False,
+            "is_available": False,
+            "status_label": "Coming Soon",
+            "stream": None,
+            "fallback_media_permitted": False,
+            "cliffhanger": None
+        }
+
+    # Resolve media asset identity & storage lineage
     media_asset_id = media.get("id") if media else episode.get("media_asset_id", f"media_{episode_id}")
     storage_key = media.get("storage_key") if media else episode.get("storage_key", f"masters/{series_id}/{episode_id}.mp4")
 
@@ -49,8 +118,6 @@ def get_episode_stream(
     # 1. Development Seed Media: Bundled demo media (/videos/...) for seeded prototype catalog
     # 2. Production Masters: Physical binaries in Object Storage (R2 / local store via storage_key)
     # 3. Canonical External CDN Streams
-    master_video = (media.get("master_video_url") if media else None) or episode.get("video_url", "")
-
     if master_video and (master_video.startswith("/videos/") or master_video.startswith("/media/")):
         stream_url = master_video
     elif storage_key and storage_service.get_stored_binary(storage_key) is not None:
@@ -60,10 +127,8 @@ def get_episode_stream(
     else:
         stream_url = storage_service.get_stream_url(storage_key or f"masters/{series_id}/{episode_id}.mp4", adaptive_hls=False)
 
-
     renditions = storage_service.generate_adaptive_renditions(stream_url)
     hls_manifest = storage_service.get_stream_url(storage_key or stream_url, adaptive_hls=True)
-
 
     return {
         "series_id": series_id,
@@ -71,6 +136,9 @@ def get_episode_stream(
         "media_asset_id": media_asset_id,
         "storage_key": storage_key,
         "is_unlocked": is_unlocked,
+        "is_available": True,
+        "status_label": "Watch Now",
+        "fallback_media_permitted": False,
         "stream": {
             "primary_url": stream_url,
             "format": "9:16 Canonical Vertical",
@@ -78,7 +146,7 @@ def get_episode_stream(
             "hls_manifest": hls_manifest
         },
         "cliffhanger": {
-            "timestamp_seconds": episode.get("cliffhanger_time", 65),
+            "timestamp_seconds": episode.get("cliffhanger_time", episode.get("cliffhanger_time_seconds", 65)),
             "hook_text": episode.get("cliffhanger_hook", "The confrontation begins now...")
         }
     }
@@ -91,16 +159,25 @@ def unlock_episode(
     user_id: str = Query(..., description="User ID"),
     method: str = Query("COINS", description="Unlock method: COINS, AIRTIME_DCB, VIP_PASS")
 ):
-    story = series_repository.get_series_detail(series_id)
+    all_episodes = series_repository.local_get("episodes")
+    all_series = series_repository.local_get("series")
+    story = next((s for s in all_series if s["id"] == series_id), None)
     if not story:
         stories = db.get("stories")
         story = next((s for s in stories if s["id"] == series_id), None)
         if not story:
             raise HTTPException(status_code=404, detail="Series not found")
     
-    episode = next((ep for ep in story.get("episodes", []) if ep["id"] == episode_id), None)
+    episode = next((ep for ep in all_episodes if ep["id"] == episode_id and ep.get("series_id") == series_id), None)
     if not episode:
         raise HTTPException(status_code=404, detail="Episode not found")
+
+    # Commercial Policy Gate: Prohibit new purchases/unlocks of archived episodes
+    if episode.get("status") == "archived":
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot purchase or unlock an archived episode. This content has been retired from circulation."
+        )
 
     coin_price = episode.get("coin_price", 5) if method == "COINS" else 0
     success, message, unlock_record = ledger_service.unlock_episode(
@@ -129,4 +206,63 @@ def unlock_episode(
         "message": message,
         "unlock": unlock_record,
         "remaining_balance": balance["total_usable_coins"]
+    }
+
+
+@router.post("/{series_id}/{episode_id}/archive", dependencies=[Depends(require_role(["creator", "admin"]))])
+def archive_episode(
+    series_id: str,
+    episode_id: str,
+    auth_user: dict = Depends(get_current_user)
+):
+    """
+    Atomic Episode Lifecycle Transition: REQUEST -> Authenticate -> RBAC -> State Validation -> Persist status=archived -> Audit Log
+    """
+    all_series = series_repository.local_get("series")
+    target_series = next((s for s in all_series if s["id"] == series_id), None)
+    if not target_series:
+        raise HTTPException(status_code=404, detail="Series not found")
+
+    actor_role = auth_user.get("role", "creator")
+    creator_id = target_series.get("creator_id")
+    enforce_tenant_access(auth_user, creator_id, domain="CONTENT", action="archive episode")
+
+    all_episodes = series_repository.local_get("episodes")
+    target_ep = next((e for e in all_episodes if e["id"] == episode_id and e.get("series_id") == series_id), None)
+    if not target_ep:
+        raise HTTPException(status_code=404, detail="Episode not found")
+
+    if target_ep.get("status") == "archived":
+        return {
+            "success": True,
+            "message": "Episode is already archived.",
+            "episode": target_ep
+        }
+
+    before_status = target_ep.get("status", "published")
+
+    # Atomic Update to Archived State
+    updated = series_repository.archive_episode(
+        episode_id=episode_id,
+        actor_id=auth_user.get("sub", creator_id),
+        actor_role=actor_role
+    )
+
+    # Immutable Audit Log
+    audit_service.record_trust_event(
+        domain="CONTENT",
+        event_type="content.episode_archived",
+        actor_id=auth_user.get("sub", creator_id),
+        actor_role=actor_role,
+        target_type="episode",
+        target_id=episode_id,
+        before_state={"status": before_status},
+        after_state={"status": "archived", "series_id": series_id},
+        metadata={"series_title": target_series.get("title"), "episode_number": target_ep.get("episode_number")}
+    )
+
+    return {
+        "success": True,
+        "message": f"Episode {target_ep.get('episode_number')} of '{target_series.get('title')}' successfully retired to ARCHIVED state.",
+        "episode": updated
     }

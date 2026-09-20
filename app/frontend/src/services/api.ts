@@ -413,6 +413,22 @@ export const creatorApi = {
       return { success: true, episode: payload };
     }
   },
+  getTransactions: async (creatorId: string) => {
+    const res = await API.get(`/creators/${creatorId}/transactions`);
+    return res.data;
+  },
+  requestPayout: async (payload: {
+    creator_id: string;
+    amount_coins: number;
+    amount_local: number;
+    currency: string;
+    payout_method: string;
+    account_details: string;
+    idempotency_key?: string;
+  }) => {
+    const res = await API.post('/monetization/payout', payload);
+    return res.data;
+  },
 };
 
 export const aiApi = {
@@ -477,6 +493,16 @@ export const adminApi = {
   },
   verifyAuditChain: async () => {
     const res = await API.post('/admin/audit-logs/verify-chain');
+    return res.data;
+  },
+  getProject40Funnel: async (params?: {
+    series_id?: string;
+    episode_id?: string;
+    environment?: string;
+    is_test?: boolean;
+    days?: number;
+  }) => {
+    const res = await API.get('/admin/project40-funnel', { params });
     return res.data;
   },
 };
@@ -629,43 +655,18 @@ export const retentionApi = {
       const res = await API.get('/creators/analytics/retention', { params: { series_id: seriesId, episode_number: episodeNumber } });
       return res.data;
     } catch {
-      // High fidelity telemetry mock
-      const points: DropoffDataPoint[] = [];
-      let current = 100;
-      for (let sec = 0; sec <= 90; sec += 5) {
-        if (sec === 0) current = 100;
-        else if (sec <= 15) current -= Math.random() * 2.5 + 1; // initial bounce
-        else if (sec <= 70) current -= Math.random() * 1.2 + 0.3; // steady engagement
-        else if (sec >= 85) current -= Math.random() * 0.5; // hooked until cliffhanger
-        points.push({
-          second: sec,
-          retention_pct: Math.max(45, Math.round(current * 10) / 10),
-          viewer_count: Math.round(14500 * (current / 100)),
-          is_cliffhanger: sec >= 85
-        });
-      }
-
+      // Phase 3A: Zero synthetic data policy. Never invent evidence.
       return {
         series_id: seriesId,
-        episode_id: 'ep_' + episodeNumber,
+        episode_id: `ep_${seriesId}_${episodeNumber}`,
         episode_number: episodeNumber,
-        total_starts: 14500,
-        completion_rate_pct: 78.4,
-        cliffhanger_conversion_pct: 64.2,
-        avg_watch_time_seconds: 79.5,
-        dropoff_curve: points,
-        geo_distribution: [
-          { country: 'South Africa', flag: '🇿🇦', share_pct: 44, views: 6380 },
-          { country: 'Nigeria', flag: '🇳🇬', share_pct: 28, views: 4060 },
-          { country: 'Kenya', flag: '🇰🇪', share_pct: 16, views: 2320 },
-          { country: 'Ghana', flag: '🇬🇭', share_pct: 12, views: 1740 }
-        ],
-        telco_payment_mix: [
-          { provider: 'MTN Airtime / MoMo', color: '#FFCC00', share_pct: 48 },
-          { provider: 'Vodacom / M-Pesa', color: '#E60000', share_pct: 31 },
-          { provider: 'Chipper Cash', color: '#7C3AED', share_pct: 14 },
-          { provider: 'Card & EFT', color: '#3B82F6', share_pct: 7 }
-        ]
+        total_starts: 0,
+        completion_rate_pct: 0,
+        cliffhanger_conversion_pct: 0,
+        avg_watch_time_seconds: 0,
+        dropoff_curve: [],
+        geo_distribution: [],
+        telco_payment_mix: []
       };
     }
   }
@@ -716,6 +717,33 @@ export const telemetryApi = {
   },
   getRetentionTelemetry: async (seriesId: string, episodeId: string) => {
     const res = await API.get(`/events/retention/${seriesId}/${episodeId}`);
+    return res.data;
+  }
+};
+
+export const productionApi = {
+  generateProductionBible: async (payload: { ip_id: string; story_package_id?: string; version?: string }) => {
+    const res = await API.post('/production/bibles/generate', payload);
+    return res.data;
+  },
+  getProductionBible: async (ipId: string) => {
+    const res = await API.get(`/production/bibles/${ipId}`);
+    return res.data;
+  },
+  listProductionBibles: async () => {
+    const res = await API.get('/production/bibles');
+    return res.data;
+  },
+  generateEpisodePack: async (payload: { ip_id: string; production_bible_id?: string; episode_number?: number }) => {
+    const res = await API.post('/production/packs/generate', payload);
+    return res.data;
+  },
+  getEpisodePack: async (ipId: string, episodeNumber: number) => {
+    const res = await API.get(`/production/packs/${ipId}/episodes/${episodeNumber}`);
+    return res.data;
+  },
+  listEpisodePacks: async (ipId: string) => {
+    const res = await API.get(`/production/packs/${ipId}`);
     return res.data;
   }
 };

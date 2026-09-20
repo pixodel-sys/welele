@@ -167,7 +167,7 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
       const h = tempVideo.videoHeight || 1920;
       const is916 = h >= w;
       setIsAspectRatioOk(is916);
-      setAspectRatioLabel(`${w} × ${h} (${is916 ? '9:16 Vertical' : 'Landscape'})`);
+      setAspectRatioLabel(`${w} × ${h} (${is916 ? 'Vertical' : 'Landscape'})`);
 
       // Attempt canvas thumbnail grab at 1s
       tempVideo.currentTime = Math.min(1.0, dur / 2);
@@ -482,6 +482,28 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
                 </select>
               </div>
 
+              {/* Canonical Story Forge Package Lineage Badge */}
+              {canonicalPackageId && (
+                <div className="p-3 rounded-[7px] bg-black/40 border border-pink-500/30 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <div>
+                      <span className="text-[11px] font-bold text-white block">
+                        Canonical Story Package Linked: <code className="text-pink-400 font-mono">{canonicalPackageId}</code>
+                      </span>
+                      {initialPackageData?.lineage_hash && (
+                        <span className="text-[10px] text-welele-muted font-mono block">
+                          SHA-256 Hash: {initialPackageData.lineage_hash.slice(0, 16)}...
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-[7px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold uppercase tracking-wider">
+                    Accepted State
+                  </span>
+                </div>
+              )}
+
               {/* Episode Number */}
               <div>
                 <label className="text-xs font-bold text-white block mb-1">Episode Number</label>
@@ -502,6 +524,7 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
+                  spellCheck={true}
                   placeholder="e.g. The Queen's Ultimatum, The Discovery at Midnight"
                   className="w-full bg-[#14151B] px-3.5 py-2.5 rounded-[7px] border border-white/10 text-xs text-white focus:outline-none focus:border-pink-500 placeholder:text-welele-muted"
                 />
@@ -516,6 +539,7 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
                   rows={3}
                   value={synopsis}
                   onChange={(e) => setSynopsis(e.target.value)}
+                  spellCheck={true}
                   placeholder="Short teaser logline describing the drama or turning point..."
                   className="w-full bg-[#14151B] px-3.5 py-2.5 rounded-[7px] border border-white/10 text-xs text-white focus:outline-none focus:border-pink-500 placeholder:text-welele-muted"
                 />
@@ -532,7 +556,7 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
                     2. Drop Your Video & Artwork
                   </h3>
                   <p className="text-xs text-welele-muted">
-                    Drag and drop your 9:16 episode video. Duration and dimensions are measured directly from the file.
+                    Drag and drop your episode video. Duration and dimensions are measured directly from the file.
                   </p>
                 </div>
                 <ProvenanceBadge tier="MEDIA_OBSERVED" size="sm" />
@@ -761,6 +785,7 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
                   type="text"
                   value={cliffhangerHook}
                   onChange={(e) => setCliffhangerHook(e.target.value)}
+                  spellCheck={true}
                   placeholder="e.g., Lerato opens the safe to find it completely empty..."
                   className="w-full bg-[#14151B] px-3.5 py-2.5 rounded-[7px] border border-white/10 text-xs text-white focus:outline-none focus:border-pink-500"
                 />

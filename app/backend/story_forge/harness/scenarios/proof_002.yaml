@@ -1,0 +1,13 @@
+test_id: proof_002
+story_id: proof-002-comedy
+title: "The Wrong Funeral"
+premise: >
+  A man arrives at a funeral expecting to mourn his uncle.
+  He quickly realises he is at the wrong funeral.
+  Before he can leave, the family mistakes him for someone they have been waiting for.
+creative_objective: >
+  South African supernatural comedy / family comedy, designed as a vertical microdrama.
+production_objective: >
+  Low-to-medium budget. Primarily one funeral venue and surrounding locations. Strong character comedy, escalating misunderstandings and episode-ending hooks.
+creator_mode: interactive
+adapter: LLMReasoningAdapter

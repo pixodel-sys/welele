@@ -1,0 +1,242 @@
+import { CurrentAction, StoryState, ForgeCompletionAssessment } from '../types/storyForge';
+
+export interface CreatorVocabularyEntry {
+  internalTerm: string;
+  creatorTerm: string;
+  definition: string;
+}
+
+export const CREATOR_VOCABULARY: Record<string, string> = {
+  'Dependency': 'Something still to be decided',
+  'Required state deficiency': 'Missing story detail',
+  'Counterforce': "What's standing in the way?",
+  'Knowledge state': 'What does this character know?',
+  'Validation': 'Story consistency check',
+  'Propagation': 'Checking what this changes',
+  'Canon': 'Established story',
+  'Production decision': 'Production choice',
+  'Mutations': 'Story updates',
+  'Invariants': 'Essential story requirements',
+};
+
+export interface CreatorStageInfo {
+  stageNumber: number;
+  totalStages: number;
+  name: string;
+  tagline: string;
+  description: string;
+  isCurrent: boolean;
+  isSatisfied: boolean;
+  milestoneCode: string;
+}
+
+/**
+ * Maps existing M0–M3 engine milestones onto the 5 creator-facing stages.
+ * This is strictly a presentation translation layer; it does not alter engine invariants.
+ */
+export function getCreatorStages(
+  assessment: ForgeCompletionAssessment | null,
+  currentAction: CurrentAction | null,
+  eventsCount: number = 0
+): { stages: CreatorStageInfo[]; currentStageNumber: number; progressPercent: number } {
+  const satisfied = assessment?.satisfied_milestones || [];
+  const currentM = assessment?.current_milestone;
+  const isComplete = assessment?.status === 'FORGE_COMPLETE' || currentM === 'FORGE_COMPLETE';
+
+  const isM0Satisfied = satisfied.includes('PREMISE_LOCK') || isComplete || currentM === 'DRAMATIC_ENGINE_LOCK' || currentM === 'EPISODIC_ARC_LOCK';
+  const isM1Satisfied = satisfied.includes('DRAMATIC_ENGINE_LOCK') || isComplete || currentM === 'EPISODIC_ARC_LOCK';
+  const isM2Satisfied = (satisfied.includes('EPISODIC_ARC_LOCK') || eventsCount >= 6) || isComplete;
+  const isM3Satisfied = isComplete;
+
+  let currentStageNumber = 1;
+  if (isM3Satisfied) {
+    currentStageNumber = 5;
+  } else if (isM2Satisfied) {
+    currentStageNumber = 4;
+  } else if (isM1Satisfied) {
+    currentStageNumber = 3;
+  } else if (isM0Satisfied) {
+    currentStageNumber = 2;
+  } else {
+    currentStageNumber = 1;
+  }
+
+  const stages: CreatorStageInfo[] = [
+    {
+      stageNumber: 1,
+      totalStages: 5,
+      name: 'Foundation',
+      tagline: "Let's establish your story.",
+      description: 'Establish the premise, protagonist, story objective and creative/production context.',
+      isCurrent: currentStageNumber === 1,
+      isSatisfied: isM0Satisfied,
+      milestoneCode: 'PREMISE_LOCK',
+    },
+    {
+      stageNumber: 2,
+      totalStages: 5,
+      name: 'Core Story',
+      tagline: "Let's understand the people and the conflict.",
+      description: 'Characters, motivations, counterforce, relationships, stakes and central dilemma.',
+      isCurrent: currentStageNumber === 2,
+      isSatisfied: isM1Satisfied,
+      milestoneCode: 'DRAMATIC_ENGINE_LOCK',
+    },
+    {
+      stageNumber: 3,
+      totalStages: 5,
+      name: 'Story Arc',
+      tagline: "Let's build the dramatic journey.",
+      description: 'Major turning points, revelations, escalation, climax, resolution and continuity.',
+      isCurrent: currentStageNumber === 3,
+      isSatisfied: isM2Satisfied,
+      milestoneCode: 'EPISODIC_ARC_LOCK',
+    },
+    {
+      stageNumber: 4,
+      totalStages: 5,
+      name: 'Episode Structure',
+      tagline: "Let's shape the story for the format.",
+      description: 'Translate the established story into high-tension microdrama episodes and cliffhangers.',
+      isCurrent: currentStageNumber === 4,
+      isSatisfied: isM3Satisfied,
+      milestoneCode: 'EPISODIC_SHAPING',
+    },
+    {
+      stageNumber: 5,
+      totalStages: 5,
+      name: 'Forge Complete',
+      tagline: 'Your story has been forged.',
+      description: 'Terminal creator-facing state: your certified Story Package is complete.',
+      isCurrent: currentStageNumber === 5,
+      isSatisfied: isM3Satisfied,
+      milestoneCode: 'FORGE_COMPLETE',
+    },
+  ];
+
+  // Calculate honest percentage based on milestone progression + spine depth
+  let progressPercent = 15;
+  if (isM3Satisfied) {
+    progressPercent = 100;
+  } else if (isM2Satisfied) {
+    progressPercent = 80;
+  } else if (isM1Satisfied) {
+    const anchorRatio = Math.min(eventsCount, 6) / 6;
+    progressPercent = Math.round(50 + anchorRatio * 25);
+  } else if (isM0Satisfied) {
+    progressPercent = 35;
+  }
+
+  return { stages, currentStageNumber, progressPercent };
+}
+
+export interface TranslatedQuestion {
+  headline: string;
+  context: string;
+  whyItMatters: string;
+  inputPlaceholder: string;
+  category: string;
+  behindTheScenes: {
+    craftElement: string;
+    narrativeAspect: string;
+    skill: string;
+  };
+}
+
+/**
+ * Story-First Creator UI Presenter:
+ * Renders genuine creator-facing questions generated by the Reasoning Adapter / Story Forge Engine.
+ * Does NOT maintain a dictionary translator (active_dependency_key -> hardcoded question).
+ * Completely eliminates machine ontology leakage.
+ */
+export function translateCreatorQuestion(
+  action: CurrentAction | null,
+  storyState: StoryState | null
+): TranslatedQuestion {
+  const rawKey = action?.active_dependency_key || '';
+  const rawQuestion = action?.question || '';
+  const rawProposal = action?.proposal || '';
+  const rawDesc = action?.active_dependency_description || '';
+  const skill = action?.skill || 'EXCAVATOR';
+
+  // Discover protagonist name from story state if available
+  const protagonist =
+    Object.values(storyState?.characters || {}).find(
+      (c) => c.role === 'PROTAGONIST' || (c.role as string) === 'protagonist'
+    )?.name || 'your lead character';
+
+  // Format a genuine, story-grounded question
+  let headline = rawQuestion;
+  if (!headline) {
+    const keyUpper = rawKey.toUpperCase();
+    if (keyUpper.includes('COUNTERFORCE') || keyUpper.includes('ANTAGONIST') || keyUpper.includes('OBSTACLE')) {
+      headline = `Who or what is standing in ${protagonist}'s way?`;
+    } else if (keyUpper.includes('PROTAGONIST') || keyUpper.includes('MOTIVATION')) {
+      headline = `What does ${protagonist} desperately want, and what happens if they fail?`;
+    } else if (keyUpper.includes('RELATIONSHIP') || keyUpper.includes('DYNAMIC') || keyUpper.includes('REL_')) {
+      headline = `What is the central tension between ${protagonist} and the people around them?`;
+    } else if (keyUpper.includes('EVENT') || keyUpper.includes('CHRONOLOGY')) {
+      headline = `What unexpected event disrupts ${protagonist}'s world and forces them into action?`;
+    } else if (rawDesc) {
+      headline = `Regarding ${rawDesc.replace(/\.$/, '')}: How does this develop for ${protagonist}?`;
+    } else if (storyState?.title) {
+      headline = `What is the primary dramatic challenge facing ${protagonist} in "${storyState.title}"?`;
+    } else {
+      headline = `Who is the central character, and what is their dramatic situation?`;
+    }
+  }
+
+  
+  // Dynamic contextual category and guidance based on narrative focus
+  let context = 'Help shape this creative turning point.';
+  let whyItMatters = 'Your decisions define character dynamics and emotional stakes.';
+  let inputPlaceholder = 'Describe what happens, who is involved, and what changes...';
+  let category = 'Story Development';
+
+  const keyUpper = rawKey.toUpperCase();
+  if (keyUpper.includes('COUNTERFORCE') || keyUpper.includes('ANTAGONIST') || keyUpper.includes('OBSTACLE')) {
+    category = 'Conflict & Obstacles';
+    context = 'Explore the forces and characters standing in the way of your protagonist.';
+    whyItMatters = 'Drama lives in resistance. Opposition gives your story its central tension and urgency.';
+    inputPlaceholder = 'e.g. A relentless rival, a corrupt official, an unforgiving family elder, or an unyielding system...';
+  } else if (keyUpper.includes('PROTAGONIST') || keyUpper.includes('MOTIVATION')) {
+    category = 'Character Drive';
+    context = 'Every compelling story is powered by a character who wants something specific and urgent.';
+    whyItMatters = 'When the audience knows what your lead character desperately wants or fears losing, every scene carries weight.';
+    inputPlaceholder = 'e.g. They need to protect their family, clear their name, or secure a life-changing opportunity...';
+  } else if (keyUpper.includes('RELATIONSHIP') || keyUpper.includes('DYNAMIC') || keyUpper.includes('REL_')) {
+    category = 'Relationships & Tension';
+    context = 'Explore the emotional friction, hidden secrets, or shared history connecting these people.';
+    whyItMatters = 'Dynamic relationships keep scenes unpredictable. Conflicting agendas turn simple conversations into battlegrounds.';
+    inputPlaceholder = 'e.g. They used to be close allies, but one holds leverage over the other regarding a past secret...';
+  } else if (keyUpper.includes('EVENT') || keyUpper.includes('CHRONOLOGY') || keyUpper.includes('CLIMAX') || keyUpper.includes('RESOLUTION')) {
+    category = 'Story Journey';
+    context = 'Advance the narrative journey with concrete events that force your characters to adapt.';
+    whyItMatters = 'Turning points drive the momentum, escalating the pressure until the final resolution.';
+    inputPlaceholder = 'Describe the event, the choices made, and the immediate consequences...';
+  } else if (keyUpper.includes('WORLD') || keyUpper.includes('RULE')) {
+    category = 'World & Setting';
+    context = 'Establish the unwritten rules, boundaries, or physical realities that govern your setting.';
+    whyItMatters = 'Clear rules keep the stakes grounded and believable, ensuring victories and failures feel earned.';
+    inputPlaceholder = 'e.g. Strict customary protocols forbid speaking out of turn, or law enforcement strictly regulates...';
+  } else if (keyUpper.includes('PLANT') || keyUpper.includes('SECRET')) {
+    category = 'Props & Secrets';
+    context = 'Anchor a tangible object, concealed truth, or ticking clock that will pay off later.';
+    whyItMatters = 'A physical seed planted early rewards viewer attention when it resurfaces in dramatic fashion.';
+    inputPlaceholder = 'e.g. An unopened letter, a misplaced set of keys, a recorded voice memo, or an altered contract...';
+  }
+
+  return {
+    headline,
+    context: rawProposal ? `Candidate direction: "${rawProposal}"` : context,
+    whyItMatters,
+    inputPlaceholder,
+    category,
+    behindTheScenes: {
+      craftElement: category,
+      narrativeAspect: rawDesc || 'Refining narrative completeness and emotional resonance.',
+      skill,
+    },
+  };
+}
+

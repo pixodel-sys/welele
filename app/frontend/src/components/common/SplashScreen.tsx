@@ -12,6 +12,24 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete, duration
   const [isFadingOut, setIsFadingOut] = useState<boolean>(false);
   const [hasPlayedSound, setHasPlayedSound] = useState<boolean>(false);
 
+  // Instrumentation Refs
+  const renderCount = React.useRef<number>(0);
+  renderCount.current += 1;
+  const effectMountCount = React.useRef<number>(0);
+  const effectCleanupCount = React.useRef<number>(0);
+  const lastOnCompleteRef = React.useRef<() => void>(onComplete);
+  const callbackChanged = lastOnCompleteRef.current !== onComplete;
+  if (callbackChanged) {
+    console.debug(
+      `[SplashScreen Instrumentation] ⚠️ onComplete callback reference changed! (Render #${renderCount.current})`
+    );
+    lastOnCompleteRef.current = onComplete;
+  }
+
+  console.debug(
+    `[SplashScreen Instrumentation] Render #${renderCount.current} | Progress: ${progress.toFixed(1)}% | isFadingOut: ${isFadingOut}`
+  );
+
   // Play warm storytelling acoustic harmonic chime
   const playSonicChime = () => {
     if (hasPlayedSound) return;
@@ -38,7 +56,18 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete, duration
     }
   };
 
+  // Ref to hold the latest onComplete callback to prevent callback identity churn from resetting the timer
+  const onCompleteRef = React.useRef<() => void>(onComplete);
   useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
+
+  useEffect(() => {
+    effectMountCount.current += 1;
+    const currentMount = effectMountCount.current;
+    console.debug(
+      `[SplashScreen Instrumentation] 🟢 Effect MOUNT #${currentMount} | durationMs=${durationMs}`
+    );
     playSonicChime();
 
     const interval = 25;
@@ -48,11 +77,17 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete, duration
       setProgress((prev) => {
         const next = prev + step;
         if (next >= 100) {
+          console.debug(
+            `[SplashScreen Instrumentation] 🏁 Progress reached 100% in Effect #${currentMount}. Starting fade-out & onComplete trigger.`
+          );
           clearInterval(timer);
           setTimeout(() => {
             setIsFadingOut(true);
             setTimeout(() => {
-              onComplete();
+              console.debug(
+                `[SplashScreen Instrumentation] 🚀 Calling onComplete() from Effect #${currentMount}.`
+              );
+              onCompleteRef.current();
             }, 650);
           }, 250);
           return 100;
@@ -61,8 +96,14 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete, duration
       });
     }, interval);
 
-    return () => clearInterval(timer);
-  }, [durationMs, onComplete]);
+    return () => {
+      effectCleanupCount.current += 1;
+      console.debug(
+        `[SplashScreen Instrumentation] 🔴 Effect CLEANUP #${effectCleanupCount.current} (Aborting timer for Effect #${currentMount})`
+      );
+      clearInterval(timer);
+    };
+  }, [durationMs]);
 
   return (
     <div

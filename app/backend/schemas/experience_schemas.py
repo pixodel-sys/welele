@@ -4,7 +4,7 @@ Defines the strict data structures for Sections, Slots, Overrides, and Layout Ma
 """
 
 from typing import List, Dict, Any, Optional, Literal
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 SectionType = Literal[
     "HERO_CAROUSEL",
@@ -76,6 +76,32 @@ class ExperienceSection(BaseModel):
     items: List[SlotItem] = Field(default_factory=list)
     start_at: Optional[str] = None
     end_at: Optional[str] = None
+
+    @model_validator(mode="after")
+    def validate_slot_and_content_uniqueness(self) -> "ExperienceSection":
+        # 1. Global section rule: slot_id must be unique within any section
+        seen_slot_ids = set()
+        for it in self.items:
+            if it.slot_id in seen_slot_ids:
+                raise ValueError(
+                    f"Duplicate slot_id '{it.slot_id}' detected in section '{self.section_id}'. "
+                    "Each slot in a layout must possess a globally unique slot_id."
+                )
+            seen_slot_ids.add(it.slot_id)
+
+        # 2. Hero Carousel specific rule: content_id must be unique across hero slides
+        if self.type == "HERO_CAROUSEL":
+            seen_content_ids = set()
+            for it in self.items:
+                if it.content_id:
+                    if it.content_id in seen_content_ids:
+                        raise ValueError(
+                            f"Duplicate content_id '{it.content_id}' in HERO_CAROUSEL section '{self.section_id}'. "
+                            "Hero carousel slides must feature distinct series/content."
+                        )
+                    seen_content_ids.add(it.content_id)
+
+        return self
 
 class BrandAsset(BaseModel):
     id: str = "welele-brand-ident-v2"

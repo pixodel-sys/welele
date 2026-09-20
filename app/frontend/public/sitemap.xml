@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">
+  <!-- Core Landing Routes -->
+  <url>
+    <loc>https://welele.tv/</loc>
+    <lastmod>2026-09-19</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://welele.tv/discover</loc>
+    <lastmod>2026-09-19</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://welele.tv/creator</loc>
+    <lastmod>2026-09-19</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Top Canonical African Micro-Drama Series -->
+  <url>
+    <loc>https://welele.tv/?series=series_qoj</loc>
+    <lastmod>2026-09-19</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <video:video>
+      <video:thumbnail_loc>https://welele.tv/posters/queen_of_jozi.jpg</video:thumbnail_loc>
+      <video:title>Queen of Jozi - African Micro-Drama</video:title>
+      <video:description>An ambitious young woman navigates the cutthroat luxury real estate underworld in Johannesburg.</video:description>
+      <video:content_loc>https://welele.tv/videos/queen_of_jozi_e1.mp4</video:content_loc>
+      <video:publication_date>2026-09-01</video:publication_date>
+      <video:family_friendly>yes</video:family_friendly>
+      <video:requires_subscription>no</video:requires_subscription>
+    </video:video>
+  </url>
+  <url>
+    <loc>https://welele.tv/?series=series_bt</loc>
+    <lastmod>2026-09-19</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <video:video>
+      <video:thumbnail_loc>https://welele.tv/posters/blood_ties.jpg</video:thumbnail_loc>
+      <video:title>Blood Ties - African Micro-Drama</video:title>
+      <video:description>Two brothers separated by rival taxi associations in Durban confront familial betrayal.</video:description>
+      <video:content_loc>https://welele.tv/videos/blood_ties_e1.mp4</video:content_loc>
+      <video:publication_date>2026-09-01</video:publication_date>
+      <video:family_friendly>yes</video:family_friendly>
+      <video:requires_subscription>no</video:requires_subscription>
+    </video:video>
+  </url>
+  <url>
+    <loc>https://welele.tv/?series=series_csw</loc>
+    <lastmod>2026-09-19</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <video:video>
+      <video:thumbnail_loc>https://welele.tv/posters/secret_wife.jpg</video:thumbnail_loc>
+      <video:title>The CEO's Secret Wife - African Micro-Drama</video:title>
+      <video:description>A corporate heiress conceals her marriage while climbing the executive ladder in Sandton.</video:description>
+      <video:content_loc>https://welele.tv/videos/secret_wife_e1.mp4</video:content_loc>
+      <video:publication_date>2026-09-01</video:publication_date>
+      <video:family_friendly>yes</video:family_friendly>
+      <video:requires_subscription>no</video:requires_subscription>
+    </video:video>
+  </url>
+  <url>
+    <loc>https://welele.tv/?series=series_hg</loc>
+    <lastmod>2026-09-19</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://welele.tv/?series=series_bb</loc>
+    <lastmod>2026-09-19</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+</urlset>

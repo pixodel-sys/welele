@@ -293,7 +293,18 @@ class IPRepository(BaseRepository):
         pkg_id = f"sfp_{uuid.uuid4().hex[:8]}"
         now_ts = datetime.now(timezone.utc).isoformat()
 
-        # Build canonical payload for deterministic cryptographic hashing (Amendment 2)
+        from .forge_configuration_repository import forge_config_repo
+        config_id = req.forge_configuration_id
+        if config_id:
+            cfg = forge_config_repo.get_configuration(config_id)
+            if not cfg:
+                active_cfg = forge_config_repo.get_active_configuration()
+                config_id = active_cfg.get("forge_configuration_id", "CFG-001")
+        else:
+            active_cfg = forge_config_repo.get_active_configuration()
+            config_id = active_cfg.get("forge_configuration_id", "CFG-001")
+
+        # Build canonical payload for deterministic cryptographic hashing (Amendment 2 & Forge Config Registry v1)
         canonical_dict = {
             "ip_id": req.ip_id,
             "creator_id": req.creator_id,
@@ -305,7 +316,8 @@ class IPRepository(BaseRepository):
             "target_duration_seconds": req.target_duration_seconds,
             "beats": req.beats,
             "dialogues": req.dialogues,
-            "cliffhanger_prompt": req.cliffhanger_prompt
+            "cliffhanger_prompt": req.cliffhanger_prompt,
+            "forge_configuration_id": config_id
         }
         canonical_json = json.dumps(canonical_dict, sort_keys=True, separators=(',', ':'))
         computed_hash = hashlib.sha256(canonical_json.encode('utf-8')).hexdigest()
@@ -324,6 +336,7 @@ class IPRepository(BaseRepository):
             "dialogues_json": req.dialogues,
             "cliffhanger_prompt": req.cliffhanger_prompt,
             "ai_model_used": req.ai_model_used,
+            "forge_configuration_id": config_id,
             "human_approved": req.human_approved,
             "lineage_hash": computed_hash,
             "created_at": now_ts

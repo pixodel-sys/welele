@@ -78,5 +78,6 @@ class StoryForgePackageCreateRequest(BaseModel):
     dialogues: List[Dict[str, Any]]
     cliffhanger_prompt: str
     ai_model_used: Optional[str] = "gemini-1.5-flash"
+    forge_configuration_id: Optional[str] = None
     human_approved: bool = True
     lineage_hash: Optional[str] = None

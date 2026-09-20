@@ -196,13 +196,44 @@ def send_gift(req: SendGiftRequest):
 
 @router.post("/payout")
 def request_payout(req: PayoutRequest):
+    from datetime import datetime, timezone
+    from services.audit_service import audit_service
+
+    # 1. Idempotency Check
+    if req.idempotency_key:
+        existing_txs = db.get("transactions")
+        match = next((tx for tx in existing_txs if tx.get("idempotency_key") == req.idempotency_key), None)
+        if match:
+            return {
+                "success": True,
+                "payout_id": match["id"],
+                "is_idempotent_replay": True,
+                "transaction": match,
+                "message": f"Idempotent replay: Payout of {match.get('amount_local')} {match.get('currency')} is currently {match.get('status')}."
+            }
+
     creators = db.get("creators")
     creator = next((c for c in creators if c["id"] == req.creator_id), None)
     if not creator:
         raise HTTPException(status_code=404, detail="Creator not found")
-        
+
+    available_coins = creator.get("coin_earnings", 0)
+    if req.amount_coins <= 0:
+        raise HTTPException(status_code=400, detail="Payout amount must be greater than zero.")
+    if req.amount_coins > available_coins:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Insufficient coin balance: Requested {req.amount_coins} coins, but creator only has {available_coins} coins available."
+        )
+
+    # 2. Atomically lock / deduct creator coins
+    new_balance = available_coins - req.amount_coins
+    db.update("creators", req.creator_id, {"coin_earnings": new_balance})
+
     payout_id = f"payout_{uuid.uuid4().hex[:8]}"
-    db.insert("transactions", {
+    now_ts = datetime.now(timezone.utc).isoformat()
+
+    tx_record = {
         "id": payout_id,
         "type": "payout",
         "creator_id": req.creator_id,
@@ -211,11 +242,31 @@ def request_payout(req: PayoutRequest):
         "currency": req.currency,
         "method": req.payout_method,
         "account": req.account_details,
-        "status": "processing"
-    })
-    
+        "status": "processing",
+        "settlement_status": "Settlement Pending (External Rails Unproven)",
+        "idempotency_key": req.idempotency_key or f"idemp_{uuid.uuid4().hex[:12]}",
+        "created_at": now_ts,
+        "updated_at": now_ts
+    }
+    db.insert("transactions", tx_record)
+
+    # 3. Emit immutable COMMERCE audit event
+    audit_service.record_trust_event(
+        domain="COMMERCE",
+        event_type="commerce.payout_requested",
+        actor_id=req.creator_id,
+        actor_role="creator",
+        target_type="payout_transaction",
+        target_id=payout_id,
+        before_state={"coin_earnings_before": available_coins},
+        after_state={"coin_earnings_after": new_balance, "payout_amount_coins": req.amount_coins, "amount_local": req.amount_local, "currency": req.currency},
+        metadata={"payout_method": req.payout_method, "idempotency_key": tx_record["idempotency_key"]}
+    )
+
     return {
         "success": True,
         "payout_id": payout_id,
-        "message": f"Payout of {req.amount_local} {req.currency} requested to {req.payout_method}. Funds will arrive within 24 hours."
+        "transaction": tx_record,
+        "remaining_coin_balance": new_balance,
+        "message": f"Payout of {req.amount_local} {req.currency} requested to {req.payout_method}. Settlement status: Pending External Proof."
     }

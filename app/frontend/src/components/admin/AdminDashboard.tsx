@@ -5,13 +5,15 @@ import { ModerationQueue } from './ModerationQueue';
 import { CreatorVerification } from './CreatorVerification';
 import { WeleleAdminStudio } from './WeleleAdminStudio';
 import { AuditChainInspector } from './AuditChainInspector';
+import { AdminIntakeQueue } from './AdminIntakeQueue';
 import { ProvenanceBadge } from '../common/patterns/ProvenanceBadge';
-import { Shield, Users, Video, Coins, Activity, CheckCircle, AlertTriangle, Layers, Lock } from 'lucide-react';
+import { Project40Evidence } from './Project40Evidence';
+import { Shield, Users, Video, Coins, Activity, CheckCircle, AlertTriangle, Layers, Lock, FileText, Inbox, BarChart2 } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
-  const { stories } = useApp();
+  const { stories, attemptModeChange } = useApp();
   const [metrics, setMetrics] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'studio' | 'moderation' | 'verification' | 'audit'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'evidence' | 'intake' | 'studio' | 'moderation' | 'verification' | 'audit'>('evidence');
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
@@ -28,9 +30,9 @@ export const AdminDashboard: React.FC = () => {
   return (
     <div className="space-y-6 pb-20 max-w-[1440px] w-full mx-auto px-3 sm:px-6">
       {/* Header */}
-      <div className="p-6 rounded-[7px] bg-gradient-to-r from-emerald-950/40 via-welele-surface-2 to-welele-surface border border-emerald-500/20 shadow-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-[7px] bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-black shadow-lg">
+      <div className="p-5 sm:p-6 rounded-[7px] bg-gradient-to-r from-emerald-950/40 via-welele-surface-2 to-welele-surface border border-emerald-500/20 shadow-2xl flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="w-12 h-12 rounded-[7px] bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-black shadow-lg shrink-0">
             <Shield className="w-6 h-6 font-bold" />
           </div>
           <div>
@@ -41,65 +43,87 @@ export const AdminDashboard: React.FC = () => {
               </span>
               <ProvenanceBadge tier="ADMIN_CONTROLLED" size="sm" />
             </div>
-            <p className="text-xs text-welele-muted">Platform rights, AI safety moderation, Experience Engine & African payment volume</p>
+            <p className="text-xs text-welele-muted mt-0.5">Platform rights, AI safety moderation, Experience Engine & African payment volume</p>
           </div>
         </div>
+      </div>
 
-        {/* Tab switcher */}
-        <div className="flex flex-wrap gap-1.5 bg-welele-surface-2 p-1.5 rounded-[7px] border border-white/5 text-xs">
-          <button
-            onClick={() => setActiveTab('overview')}
-            className={`px-3 py-1.5 rounded-[7px] font-semibold transition-all ${
-              activeTab === 'overview'
-                ? 'bg-emerald-500 text-black font-bold'
-                : 'text-welele-muted hover:text-white'
-            }`}
-          >
-            Overview
-          </button>
-          <button
-            onClick={() => setActiveTab('studio')}
-            className={`px-3 py-1.5 rounded-[7px] font-semibold transition-all flex items-center gap-1.5 ${
-              activeTab === 'studio'
-                ? 'bg-welele-orange text-black font-bold'
-                : 'text-welele-orange/80 hover:text-welele-orange'
-            }`}
-          >
-            <Layers className="w-3.5 h-3.5" />
-            Admin Studio (WEE)
-          </button>
-          <button
-            onClick={() => setActiveTab('moderation')}
-            className={`px-3 py-1.5 rounded-[7px] font-semibold transition-all ${
-              activeTab === 'moderation'
-                ? 'bg-emerald-500 text-black font-bold'
-                : 'text-welele-muted hover:text-white'
-            }`}
-          >
-            AI Moderation Queue
-          </button>
-          <button
-            onClick={() => setActiveTab('verification')}
-            className={`px-3 py-1.5 rounded-[7px] font-semibold transition-all ${
-              activeTab === 'verification'
-                ? 'bg-emerald-500 text-black font-bold'
-                : 'text-welele-muted hover:text-white'
-            }`}
-          >
-            Creator KYC
-          </button>
-          <button
-            onClick={() => setActiveTab('audit')}
-            className={`px-3 py-1.5 rounded-[7px] font-semibold transition-all flex items-center gap-1.5 ${
-              activeTab === 'audit'
-                ? 'bg-emerald-500 text-black font-bold'
-                : 'text-welele-muted hover:text-white'
-            }`}
-          >
-            <Lock className="w-3.5 h-3.5" />
-            Audit Ledger (SHA-256)
-          </button>
-        </div>
+      {/* Navigation Tab Bar */}
+      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar p-1.5 rounded-[7px] bg-welele-surface-2 border border-white/5 text-xs">
+        <button
+          onClick={() => setActiveTab('overview')}
+          className={`px-4 py-2 rounded-[7px] font-bold transition-all shrink-0 ${
+            activeTab === 'overview'
+              ? 'bg-emerald-500 text-black shadow-md'
+              : 'text-welele-muted hover:text-white hover:bg-white/5'
+          }`}
+        >
+          Overview
+        </button>
+        <button
+          onClick={() => setActiveTab('evidence')}
+          className={`px-4 py-2 rounded-[7px] font-bold transition-all flex items-center gap-1.5 shrink-0 ${
+            activeTab === 'evidence'
+              ? 'bg-gradient-to-r from-emerald-500 to-teal-400 text-black shadow-lg font-black'
+              : 'text-emerald-400 hover:text-white hover:bg-white/5 border border-emerald-500/30'
+          }`}
+        >
+          <BarChart2 className="w-3.5 h-3.5" />
+          Audience Evidence
+        </button>
+        <button
+          onClick={() => setActiveTab('intake')}
+          className={`px-4 py-2 rounded-[7px] font-bold transition-all flex items-center gap-1.5 shrink-0 ${
+            activeTab === 'intake'
+              ? 'bg-emerald-500 text-black shadow-md'
+              : 'text-emerald-400 hover:text-white hover:bg-white/5'
+          }`}
+        >
+          <Inbox className="w-3.5 h-3.5" />
+          IP Intake & Submissions
+        </button>
+        <button
+          onClick={() => setActiveTab('studio')}
+          className={`px-4 py-2 rounded-[7px] font-bold transition-all flex items-center gap-1.5 shrink-0 ${
+            activeTab === 'studio'
+              ? 'bg-welele-orange text-black shadow-md'
+              : 'text-welele-orange/80 hover:text-welele-orange hover:bg-white/5'
+          }`}
+        >
+          <Layers className="w-3.5 h-3.5" />
+          Admin Studio (WEE)
+        </button>
+        <button
+          onClick={() => setActiveTab('moderation')}
+          className={`px-4 py-2 rounded-[7px] font-bold transition-all shrink-0 ${
+            activeTab === 'moderation'
+              ? 'bg-emerald-500 text-black shadow-md'
+              : 'text-welele-muted hover:text-white hover:bg-white/5'
+          }`}
+        >
+          AI Moderation Queue
+        </button>
+        <button
+          onClick={() => setActiveTab('verification')}
+          className={`px-4 py-2 rounded-[7px] font-bold transition-all shrink-0 ${
+            activeTab === 'verification'
+              ? 'bg-emerald-500 text-black shadow-md'
+              : 'text-welele-muted hover:text-white hover:bg-white/5'
+          }`}
+        >
+          Creator KYC
+        </button>
+        <button
+          onClick={() => setActiveTab('audit')}
+          className={`px-4 py-2 rounded-[7px] font-bold transition-all flex items-center gap-1.5 shrink-0 ${
+            activeTab === 'audit'
+              ? 'bg-emerald-500 text-black shadow-md'
+              : 'text-welele-muted hover:text-white hover:bg-white/5'
+          }`}
+        >
+          <Lock className="w-3.5 h-3.5" />
+          Audit Ledger (SHA-256)
+        </button>
       </div>
 
       {activeTab === 'overview' && (
@@ -127,7 +151,7 @@ export const AdminDashboard: React.FC = () => {
               <div className="text-2xl font-black text-white font-cinematic">
                 {metrics?.metrics?.total_views?.toLocaleString() || '4.2M'}
               </div>
-              <span className="text-[10px] text-welele-gold">9:16 Canonical Vertical</span>
+              <span className="text-[10px] text-welele-gold">Canonical Vertical</span>
             </div>
 
             <div className="p-4 rounded-[7px] bg-welele-surface-2 border border-white/5 space-y-1">
@@ -180,6 +204,14 @@ export const AdminDashboard: React.FC = () => {
         </>
       )}
 
+      {activeTab === 'intake' && (
+        <AdminIntakeQueue
+          onSelectForForge={(sub) => {
+            attemptModeChange('production');
+          }}
+        />
+      )}
+      {activeTab === 'evidence' && <Project40Evidence />}
       {activeTab === 'studio' && <WeleleAdminStudio stories={stories} />}
       {activeTab === 'moderation' && <ModerationQueue />}
       {activeTab === 'verification' && <CreatorVerification />}

@@ -5,7 +5,7 @@ import { AIStatus } from '../../types';
 import { SeriesCommandRoom } from './SeriesCommandRoom';
 import { EpisodePipelineModal } from './EpisodePipelineModal';
 import { CreateShowModal } from './CreateShowModal';
-import { StoryForgeDoorway } from './StoryForgeDoorway';
+import { StoryReviewWorkbench } from './review/StoryReviewWorkbench';
 import { CreatorEarnings } from './CreatorEarnings';
 import { CreatorDashboard } from './CreatorDashboard';
 import { ReadinessBadge } from '../common/patterns/ReadinessBadge';
@@ -28,7 +28,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 
-export type SimpleCreatorTab = 'shows' | 'story_forge' | 'insights' | 'earnings';
+export type SimpleCreatorTab = 'shows' | 'story_review' | 'insights' | 'earnings';
 
 export const CreatorStudioShell: React.FC = () => {
   const { stories, user, refreshStories, market, attemptModeChange } = useApp();
@@ -89,46 +89,100 @@ export const CreatorStudioShell: React.FC = () => {
     return 'Good evening';
   };
 
-  const creatorName = user?.name?.split(' ')[0] || 'Zola';
-  const creatorHandle = `@${(user?.name || 'Zola Mthembu').toLowerCase().replace(/\s+/g, '_')}`;
+  // Identity Resolution: Distinguish Showrunner (Zola Dlamini) from Admin/Platform Supervisor
+  const isActualCreator = user?.role === 'creator';
+  const isSupervisorEmulating = user?.role === 'admin';
+  const creatorName = isActualCreator ? (user?.name || 'Zola Dlamini') : 'Zola Dlamini';
+  const creatorHandle = isActualCreator
+    ? (user?.creator_id ? `@${user.creator_id.replace('creator_', '')}` : '@zola_dlamini')
+    : '@zola_dlamini';
 
-  // Helper to derive 4-dimensional readiness state
-  const getShowReadiness = (story: any): 'READY' | 'READY_WITH_WARNINGS' | 'NEEDS_INPUT' | 'BLOCKED' => {
+  // Canonical 4-Dimensional Readiness Evaluation Contract
+  const getShow4DContract = (story: any) => {
     const epCount = story.episodes?.length || story.total_episodes || 0;
-    if (epCount === 0) return 'NEEDS_INPUT';
-    if (!story.vertical_poster || !story.synopsis) return 'NEEDS_INPUT';
-    if (story.under_review_episodes_count > 0) return 'READY_WITH_WARNINGS';
-    return 'READY';
-  };
-
-  // Helper to derive audience state deterministically
-  const getAudienceState = (story: any): string => {
+    const underReviewCount = story.under_review_episodes_count || (story.episodes?.filter((e: any) => e.status === 'under_review').length || 0);
+    const hasStory = Boolean(story.synopsis && story.title);
+    const hasMedia = epCount > 0;
+    const hasRights = Boolean(story.creator_id || story.ip_id);
     const views = story.total_views || story.views || 0;
-    if (views === 0) return 'NO AUDIENCE DATA YET';
-    if (views < 1000) return 'COLLECTING EVIDENCE';
-    if (views < 10000) return 'EARLY SIGNAL';
-    return 'MEASURED';
+
+    // Overall Readiness
+    let readiness: 'READY' | 'READY_WITH_WARNINGS' | 'NEEDS_INPUT' | 'BLOCKED' = 'READY';
+    if (!hasStory) {
+      readiness = 'BLOCKED';
+    } else if (!hasMedia) {
+      readiness = 'NEEDS_INPUT';
+    } else if (underReviewCount > 0) {
+      readiness = 'READY_WITH_WARNINGS';
+    }
+
+    // Audience Evidence State
+    let audienceState = 'NO AUDIENCE DATA YET';
+    let audienceColor = 'bg-zinc-500';
+    if (views > 0 && views < 1000) {
+      audienceState = 'COLLECTING EVIDENCE';
+      audienceColor = 'bg-amber-400';
+    } else if (views >= 1000 && views < 10000) {
+      audienceState = 'EARLY SIGNAL';
+      audienceColor = 'bg-emerald-400';
+    } else if (views >= 10000) {
+      audienceState = 'MEASURED';
+      audienceColor = 'bg-sky-400';
+    }
+
+    return {
+      readiness,
+      storyDimension: {
+        state: hasStory ? 'READY' : 'NEEDS_INPUT',
+        label: hasStory ? 'Story: Ready' : 'Story: Incomplete',
+        dotColor: hasStory ? 'bg-emerald-400' : 'bg-red-400'
+      },
+      mediaDimension: {
+        state: epCount === 0 ? 'NEEDS_INPUT' : (underReviewCount > 0 ? 'WARNINGS' : 'READY'),
+        label: epCount === 0 ? 'Media: Empty' : (underReviewCount > 0 ? `Media: ${underReviewCount} in review` : 'Media: 9:16 HD'),
+        dotColor: epCount === 0 ? 'bg-amber-400' : (underReviewCount > 0 ? 'bg-amber-300' : 'bg-emerald-400')
+      },
+      rightsDimension: {
+        state: hasRights ? 'READY' : 'NEEDS_INPUT',
+        label: hasRights ? 'Rights: Declared' : 'Rights: Unset',
+        dotColor: hasRights ? 'bg-emerald-400' : 'bg-amber-400'
+      },
+      audienceDimension: {
+        state: audienceState,
+        label: audienceState,
+        dotColor: audienceColor
+      }
+    };
   };
 
   return (
     <div className="space-y-6 pb-24 text-white animate-fade-in max-w-7xl mx-auto px-4">
-      {/* Creator Top Identity & Operational Context Bar */}
-      <div className="p-3.5 rounded-[7px] bg-[#101116] border border-white/10 flex flex-wrap items-center justify-between gap-3 shadow-md">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-[7px] bg-gradient-to-tr from-[#E6007A] to-[#FF2A6D] flex items-center justify-center text-white font-bold text-base shadow">
+      {/* ========================================================================= */}
+      {/* LAYER 1: WHO AM I? + CREATOR COMMAND BAR (GLOBAL CONTEXT & TOOLS) */}
+      {/* ========================================================================= */}
+      <div className="p-4 rounded-[7px] bg-[#101116] border border-white/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-md">
+        {/* Creator Identity Context */}
+        <div className="flex items-center gap-3.5">
+          <div className="w-11 h-11 rounded-[7px] bg-gradient-to-tr from-[#E6007A] to-[#FF2A6D] flex items-center justify-center text-white font-black text-lg shadow-md shrink-0">
             {creatorName.charAt(0)}
           </div>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-bold text-sm text-white">{user?.name || 'Zola Mthembu'}</span>
+              <span className="font-extrabold text-base text-white">{creatorName}</span>
               <span className="text-xs font-mono text-welele-gold font-bold">{creatorHandle}</span>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[7px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold">
-                <ShieldCheck className="w-3 h-3" /> Verified Showrunner
-              </span>
+              {isSupervisorEmulating ? (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[7px] bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px] font-bold" title="Admin logged in as Platform Supervisor inspecting Showrunner Studio">
+                  <ShieldCheck className="w-3 h-3" /> Admin Studio Inspection (Showrunner Tenant)
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[7px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold">
+                  <ShieldCheck className="w-3 h-3" /> Verified Showrunner
+                </span>
+              )}
             </div>
-            <div className="flex items-center gap-3 mt-1 text-[11px] text-welele-muted">
+            <div className="flex items-center gap-2.5 mt-1 text-[11px] text-welele-muted">
               <span className="inline-flex items-center gap-1">
-                <Globe className="w-3 h-3 text-welele-gold" /> Market: <strong className="text-white">{market || 'ZA'}</strong> (South Africa)
+                <Globe className="w-3 h-3 text-welele-gold" /> Studio: <strong className="text-white">Mzansi Epic Films</strong>
               </span>
               <span>•</span>
               <span className="inline-flex items-center gap-1">
@@ -138,118 +192,86 @@ export const CreatorStudioShell: React.FC = () => {
           </div>
         </div>
 
-        {/* Consumer Switch & Mode Indicator */}
-        <div className="flex items-center gap-2">
+        {/* Creator Command Actions */}
+        <div className="flex items-center gap-2 flex-wrap shrink-0">
+          <button
+            onClick={() => setActiveNavTab('story_review')}
+            className={`px-3.5 py-2 rounded-[7px] font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm cursor-pointer ${
+              activeNavTab === 'story_review'
+                ? 'bg-welele-orange text-black shadow-md shadow-orange-500/20'
+                : 'bg-gradient-to-r from-orange-500/20 to-amber-500/20 hover:from-orange-500/30 hover:to-amber-500/30 border border-orange-500/40 text-amber-300'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5 text-welele-orange" />
+            <span>✨ Story Review™</span>
+          </button>
+
+          <button
+            onClick={() => setIsCreateShowOpen(true)}
+            className="px-3.5 py-2 rounded-[7px] bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+          >
+            <PlusCircle className="w-3.5 h-3.5 text-pink-400" />
+            <span>+ Create Show</span>
+          </button>
+
           <button
             onClick={() => attemptModeChange('viewer')}
-            className="px-3 py-1.5 rounded-[7px] bg-white/5 hover:bg-white/10 border border-white/10 text-white hover:text-pink-400 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+            className="px-3.5 py-2 rounded-[7px] bg-white/5 hover:bg-white/10 border border-white/10 text-white hover:text-pink-400 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
             title="Switch to consumer mobile viewer view"
           >
             <Tv className="w-3.5 h-3.5 text-pink-400" />
-            <span>Switch to Viewer App</span>
+            <span className="hidden sm:inline">Switch to Viewer App</span>
           </button>
         </div>
       </div>
 
-      {/* Top Level Creator Studio Navigation Bar */}
-      <div className="p-3 rounded-[7px] bg-[#14151B] border border-white/5 flex items-center justify-between gap-4 overflow-x-auto">
-        <div className="flex items-center gap-1.5 shrink-0">
-          {[
-            { id: 'shows', label: 'My Shows', icon: Video },
-            { id: 'story_forge', label: 'Story Forge™', icon: Sparkles, badge: 'AI' },
-            { id: 'insights', label: 'Insights', icon: BarChart3 },
-            { id: 'earnings', label: 'Earnings', icon: Coins },
-          ].map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeNavTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => {
-                  setActiveNavTab(tab.id as SimpleCreatorTab);
-                  if (tab.id !== 'shows') {
-                    setSelectedSeriesId(null);
-                  }
-                }}
-                className={`px-3.5 py-2 rounded-[7px] text-xs font-bold flex items-center gap-2 transition-all whitespace-nowrap ${
-                  isActive
-                    ? 'bg-gradient-to-r from-[#E6007A] to-[#FF2A6D] text-white shadow-lg shadow-pink-500/20'
-                    : 'bg-black/30 text-welele-muted hover:text-white border border-white/5 hover:border-white/10'
-                }`}
-              >
-                <Icon className="w-3.5 h-3.5" />
-                <span>{tab.label}</span>
-                {tab.badge && (
-                  <span className="px-1.5 py-0.2 rounded-[7px] text-[9px] font-extrabold bg-welele-gold text-black">
-                    {tab.badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+      {/* ========================================================================= */}
+      {/* LAYER 2 & 3: WHAT AM I WORKING ON? & WHAT CAN I DO WITH IT? */}
+      {/* ========================================================================= */}
+
+      {/* VIEW: STORY REVIEW™ WORKSPACE (CREATOR ASSISTANT & IP PIPELINE) */}
+      {activeNavTab === 'story_review' && (
+        <div className="space-y-4">
+          <StoryReviewWorkbench />
         </div>
+      )}
 
-        <div className="flex items-center gap-2.5 shrink-0">
-          <button
-            onClick={() => setIsCreateShowOpen(true)}
-            className="px-3 py-2 rounded-[7px] bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold text-xs flex items-center gap-1.5 transition-all"
-          >
-            <PlusCircle className="w-3.5 h-3.5 text-pink-400" />
-            <span className="hidden sm:inline">+ Create Show</span>
-          </button>
-
-          <button
-            onClick={() => handleOpenPipeline()}
-            className="px-4 py-2 rounded-[7px] bg-gradient-to-r from-[#E6007A] to-[#FF2A6D] text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-pink-500/20 hover:opacity-95 transition-all"
-          >
-            <PlusCircle className="w-4 h-4" />
-            <span>+ Add Episode</span>
-          </button>
-        </div>
-      </div>
-
-      {/* SUB-VIEW: MY SHOWS */}
+      {/* VIEW: SHOWS WORKSPACE */}
       {activeNavTab === 'shows' && (
         <div>
           {selectedSeriesId ? (
+            /* LAYER 2 + 3: ACTIVE SHOW WORKSPACE (Command Room with Embedded Tabs) */
             <SeriesCommandRoom
               seriesId={selectedSeriesId}
               onBack={() => setSelectedSeriesId(null)}
               onOpenEpisodePipeline={(sId, epNum) => handleOpenPipeline(sId, epNum)}
             />
           ) : (
+            /* ALL SHOWS ROSTER (Overview & 4D Readiness Matrix) */
             <div className="space-y-6">
               {/* Creator Greeting & Section Header */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div>
                   <h1 className="text-2xl font-black text-white font-cinematic uppercase tracking-tight">
-                    {getGreeting()}, {creatorName} 👋
+                    {getGreeting()}, {creatorName.split(' ')[0]} 👋
                   </h1>
                   <p className="text-xs text-welele-muted mt-0.5">
-                    Your Shows • Select a show to add episodes, review performance, or update scripts.
+                    Your Shows • Select a show to manage episodes, review audience performance, and track earnings.
                   </p>
                 </div>
-
-                <button
-                  onClick={() => setIsCreateShowOpen(true)}
-                  className="px-4 py-2 rounded-[7px] bg-gradient-to-r from-[#E6007A] to-[#FF2A6D] text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-pink-500/20 hover:opacity-95 transition-all"
-                >
-                  <PlusCircle className="w-4 h-4" />
-                  <span>+ Create Show</span>
-                </button>
               </div>
 
               {/* Show Cards Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
                 {(creatorShows.length > 0 ? creatorShows : stories).map((story) => {
-                  const readiness = getShowReadiness(story);
+                  const contract4d = getShow4DContract(story);
                   const franchiseCode = story.franchise_code || `IP-WEL-${story.id.replace(/[^a-zA-Z0-9]/g, '').slice(-4).toUpperCase()}`;
-                  const audienceState = getAudienceState(story);
 
                   return (
                     <div
                       key={story.id}
-                      className="p-4 rounded-[7px] bg-[#14151B] border border-white/10 hover:border-[#E6007A]/50 transition-all group flex flex-col justify-between"
+                      onClick={() => handleOpenShow(story.id)}
+                      className="p-4 rounded-[7px] bg-[#14151B] border border-white/10 hover:border-[#E6007A]/50 transition-all group flex flex-col justify-between cursor-pointer hover:shadow-xl hover:shadow-pink-500/10"
                     >
                       <div className="space-y-3">
                         <div className="aspect-[9/16] w-full max-h-56 rounded-[7px] overflow-hidden relative">
@@ -264,7 +286,7 @@ export const CreatorStudioShell: React.FC = () => {
                             </span>
                           </div>
                           <div className="absolute top-2 right-2">
-                            <ReadinessBadge level={readiness} size="sm" />
+                            <ReadinessBadge level={contract4d.readiness} size="sm" />
                           </div>
                         </div>
 
@@ -273,8 +295,8 @@ export const CreatorStudioShell: React.FC = () => {
                             <span className="text-[10px] font-mono text-welele-muted uppercase">
                               {story.genre}
                             </span>
-                            <span className="text-[10px] font-mono text-emerald-400/90 font-semibold">
-                              {audienceState}
+                            <span className="text-[10px] font-mono text-welele-gold font-semibold">
+                              {contract4d.audienceDimension.label}
                             </span>
                           </div>
                           <h3 className="text-base font-black text-white group-hover:text-[#FF2A6D] truncate uppercase tracking-tight">
@@ -289,35 +311,32 @@ export const CreatorStudioShell: React.FC = () => {
                           </p>
                         </div>
 
-                        {/* 4-Dimensional Readiness Snapshot */}
+                        {/* Canonical 4-Dimensional Readiness Snapshot */}
                         <div className="p-2.5 rounded-[7px] bg-black/40 border border-white/5 grid grid-cols-2 gap-1.5 text-[10px]">
-                          <div className="flex items-center gap-1 text-white/70">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                            <span>Story: Ready</span>
+                          <div className="flex items-center gap-1.5 text-white/80">
+                            <span className={`w-1.5 h-1.5 rounded-full ${contract4d.storyDimension.dotColor}`} />
+                            <span className="truncate">{contract4d.storyDimension.label}</span>
                           </div>
-                          <div className="flex items-center gap-1 text-white/70">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                            <span>Media: 9:16 HD</span>
+                          <div className="flex items-center gap-1.5 text-white/80">
+                            <span className={`w-1.5 h-1.5 rounded-full ${contract4d.mediaDimension.dotColor}`} />
+                            <span className="truncate">{contract4d.mediaDimension.label}</span>
                           </div>
-                          <div className="flex items-center gap-1 text-white/70">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                            <span>Rights: Declared</span>
+                          <div className="flex items-center gap-1.5 text-white/80">
+                            <span className={`w-1.5 h-1.5 rounded-full ${contract4d.rightsDimension.dotColor}`} />
+                            <span className="truncate">{contract4d.rightsDimension.label}</span>
                           </div>
-                          <div className="flex items-center gap-1 text-white/70">
-                            <span className="w-1.5 h-1.5 rounded-full bg-welele-gold" />
-                            <span className="truncate">{audienceState}</span>
+                          <div className="flex items-center gap-1.5 text-white/80">
+                            <span className={`w-1.5 h-1.5 rounded-full ${contract4d.audienceDimension.dotColor}`} />
+                            <span className="truncate">{contract4d.audienceDimension.label}</span>
                           </div>
                         </div>
                       </div>
 
                       <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between">
-                        <button
-                          onClick={() => handleOpenShow(story.id)}
-                          className="w-full py-2 rounded-[7px] bg-white/5 hover:bg-gradient-to-r hover:from-[#E6007A] hover:to-[#FF2A6D] text-white text-xs font-bold border border-white/10 hover:border-transparent transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                        >
-                          <span>Command Room</span>
+                        <div className="w-full py-2 rounded-[7px] bg-white/5 group-hover:bg-gradient-to-r group-hover:from-[#E6007A] group-hover:to-[#FF2A6D] text-white text-xs font-bold border border-white/10 group-hover:border-transparent transition-all flex items-center justify-center gap-1.5">
+                          <span>Open Show Workspace</span>
                           <ArrowRight className="w-3.5 h-3.5" />
-                        </button>
+                        </div>
                       </div>
                     </div>
                   );
@@ -345,26 +364,6 @@ export const CreatorStudioShell: React.FC = () => {
           )}
         </div>
       )}
-
-      {/* SUB-VIEW: STORY FORGE */}
-      {activeNavTab === 'story_forge' && (
-        <StoryForgeDoorway onSendToProduction={handleForgeHandoff} />
-      )}
-
-      {/* SUB-VIEW: INSIGHTS */}
-      {activeNavTab === 'insights' && (
-        <CreatorDashboard
-          onNavigateToUpload={() => handleOpenPipeline()}
-          onNavigateToSeries={() => {
-            setSelectedSeriesId(null);
-            setActiveNavTab('shows');
-          }}
-          onNavigateToEarnings={() => setActiveNavTab('earnings')}
-        />
-      )}
-
-      {/* SUB-VIEW: EARNINGS */}
-      {activeNavTab === 'earnings' && <CreatorEarnings />}
 
       {/* Add Episode 5-Step Pipeline Modal */}
       <EpisodePipelineModal

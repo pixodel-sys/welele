@@ -159,10 +159,10 @@ export const CreatorDashboard: React.FC<CreatorDashboardProps> = ({
             <Zap className="w-4 h-4 text-welele-gold" />
           </div>
           <div className="text-2xl font-black text-welele-gold font-cinematic">
-            {telemetry?.completion_rate_pct ? `${telemetry.completion_rate_pct}%` : '86.4%'}
+            {telemetry && telemetry.total_starts > 0 ? `${telemetry.completion_rate_pct}%` : '0.0%'}
           </div>
           <div className="text-[10px] text-emerald-400 font-bold">
-            {telemetry?.cliffhanger_conversion_pct || '64.2'}% coin paywall conversion
+            {telemetry && telemetry.total_starts > 0 ? `${telemetry.cliffhanger_conversion_pct}%` : '0.0%'} coin paywall conversion
           </div>
         </div>
 
@@ -239,110 +239,123 @@ export const CreatorDashboard: React.FC<CreatorDashboardProps> = ({
 
         {/* Interactive SVG Chart */}
         <div className="relative bg-[#0B0C10] p-4 rounded-[7px] border border-white/5 overflow-hidden">
-          <div className="flex items-center justify-between text-[11px] text-welele-muted mb-2 font-mono">
-            <span>100% Retention</span>
-            <div className="flex items-center gap-3">
-              <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-welele-gold inline-block" /> Active Viewers
-              </span>
-              <span className="flex items-center gap-1.5 text-red-400 font-bold">
-                <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping inline-block" /> T+88s Cliffhanger
-              </span>
+          {points.length === 0 ? (
+            <div className="h-44 flex flex-col items-center justify-center text-center p-4">
+              <div className="text-welele-muted text-xs font-mono mb-1 tracking-wider uppercase">
+                No Retention Telemetry Recorded
+              </div>
+              <p className="text-[11px] text-welele-muted/60 max-w-sm">
+                Zero synthetic evidence is displayed. When authentic viewer sessions are recorded for this episode, the retention curve will render here.
+              </p>
             </div>
-          </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-between text-[11px] text-welele-muted mb-2 font-mono">
+                <span>100% Retention</span>
+                <div className="flex items-center gap-3">
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-welele-gold inline-block" /> Active Viewers
+                  </span>
+                  <span className="flex items-center gap-1.5 text-red-400 font-bold">
+                    <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping inline-block" /> T+88s Cliffhanger
+                  </span>
+                </div>
+              </div>
 
-          <div className="w-full overflow-x-auto">
-            <svg
-              viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-              className="w-full h-44 text-welele-gold overflow-visible"
-            >
-              <defs>
-                <linearGradient id="retentionGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#FFB800" stopOpacity="0.35" />
-                  <stop offset="100%" stopColor="#FFB800" stopOpacity="0.0" />
-                </linearGradient>
-              </defs>
+              <div className="w-full overflow-x-auto">
+                <svg
+                  viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+                  className="w-full h-44 text-welele-gold overflow-visible"
+                >
+                  <defs>
+                    <linearGradient id="retentionGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#FFB800" stopOpacity="0.35" />
+                      <stop offset="100%" stopColor="#FFB800" stopOpacity="0.0" />
+                    </linearGradient>
+                  </defs>
 
-              {/* Grid lines */}
-              <line x1={paddingX} y1={paddingY} x2={svgWidth - paddingX} y2={paddingY} stroke="rgba(255,255,255,0.08)" strokeDasharray="3 3" />
-              <line x1={paddingX} y1={svgHeight / 2} x2={svgWidth - paddingX} y2={svgHeight / 2} stroke="rgba(255,255,255,0.08)" strokeDasharray="3 3" />
-              <line x1={paddingX} y1={svgHeight - paddingY} x2={svgWidth - paddingX} y2={svgHeight - paddingY} stroke="rgba(255,255,255,0.15)" />
+                  {/* Grid lines */}
+                  <line x1={paddingX} y1={paddingY} x2={svgWidth - paddingX} y2={paddingY} stroke="rgba(255,255,255,0.08)" strokeDasharray="3 3" />
+                  <line x1={paddingX} y1={svgHeight / 2} x2={svgWidth - paddingX} y2={svgHeight / 2} stroke="rgba(255,255,255,0.08)" strokeDasharray="3 3" />
+                  <line x1={paddingX} y1={svgHeight - paddingY} x2={svgWidth - paddingX} y2={svgHeight - paddingY} stroke="rgba(255,255,255,0.15)" />
 
-              {/* Cliffhanger Marker Line */}
-              {(() => {
-                const cliffPos = getSvgCoordinates(88, 100);
-                return (
-                  <g>
-                    <line
-                      x1={cliffPos.x}
-                      y1={paddingY}
-                      x2={cliffPos.x}
-                      y2={svgHeight - paddingY}
-                      stroke="#EF4444"
-                      strokeWidth="2"
-                      strokeDasharray="4 4"
-                    />
-                    <text
-                      x={cliffPos.x - 45}
-                      y={paddingY + 12}
-                      fill="#EF4444"
-                      fontSize="9"
-                      fontWeight="bold"
-                    >
-                      PAYWALL LOCK
-                    </text>
-                  </g>
-                );
-              })()}
+                  {/* Cliffhanger Marker Line */}
+                  {(() => {
+                    const cliffPos = getSvgCoordinates(88, 100);
+                    return (
+                      <g>
+                        <line
+                          x1={cliffPos.x}
+                          y1={paddingY}
+                          x2={cliffPos.x}
+                          y2={svgHeight - paddingY}
+                          stroke="#EF4444"
+                          strokeWidth="2"
+                          strokeDasharray="4 4"
+                        />
+                        <text
+                          x={cliffPos.x - 45}
+                          y={paddingY + 12}
+                          fill="#EF4444"
+                          fontSize="9"
+                          fontWeight="bold"
+                        >
+                          PAYWALL LOCK
+                        </text>
+                      </g>
+                    );
+                  })()}
 
-              {/* Area & Line */}
-              <path d={areaD} fill="url(#retentionGrad)" />
-              <path d={pathD} fill="none" stroke="#FFB800" strokeWidth="2.5" strokeLinecap="round" />
+                  {/* Area & Line */}
+                  <path d={areaD} fill="url(#retentionGrad)" />
+                  <path d={pathD} fill="none" stroke="#FFB800" strokeWidth="2.5" strokeLinecap="round" />
 
-              {/* Interactive Dots */}
-              {points.map((pt, idx) => {
-                const { x, y } = getSvgCoordinates(pt.second, pt.retention_pct);
-                const isHovered = hoveredPoint?.second === pt.second;
-                return (
-                  <circle
-                    key={idx}
-                    cx={x}
-                    cy={y}
-                    r={isHovered ? 6 : pt.is_cliffhanger ? 4.5 : 3}
-                    fill={pt.is_cliffhanger ? '#EF4444' : '#FFB800'}
-                    stroke="#0B0C10"
-                    strokeWidth="1.5"
-                    className="cursor-pointer transition-all hover:scale-150"
-                    onMouseEnter={() => setHoveredPoint(pt)}
-                    onMouseLeave={() => setHoveredPoint(null)}
-                  />
-                );
-              })}
-            </svg>
-          </div>
+                  {/* Interactive Dots */}
+                  {points.map((pt, idx) => {
+                    const { x, y } = getSvgCoordinates(pt.second, pt.retention_pct);
+                    const isHovered = hoveredPoint?.second === pt.second;
+                    return (
+                      <circle
+                        key={idx}
+                        cx={x}
+                        cy={y}
+                        r={isHovered ? 6 : pt.is_cliffhanger ? 4.5 : 3}
+                        fill={pt.is_cliffhanger ? '#EF4444' : '#FFB800'}
+                        stroke="#0B0C10"
+                        strokeWidth="1.5"
+                        className="cursor-pointer transition-all hover:scale-150"
+                        onMouseEnter={() => setHoveredPoint(pt)}
+                        onMouseLeave={() => setHoveredPoint(null)}
+                      />
+                    );
+                  })}
+                </svg>
+              </div>
 
-          {/* Bottom X-axis labels */}
-          <div className="flex justify-between text-[10px] text-welele-muted font-mono mt-1 px-4">
-            <span>00:00 (Hook)</span>
-            <span>00:30 (Inciting Incident)</span>
-            <span>00:60 (Reversal)</span>
-            <span className="text-red-400 font-bold">00:88 (Paywall)</span>
-            <span>00:90</span>
-          </div>
+              {/* Bottom X-axis labels */}
+              <div className="flex justify-between text-[10px] text-welele-muted font-mono mt-1 px-4">
+                <span>00:00 (Hook)</span>
+                <span>00:30 (Inciting Incident)</span>
+                <span>00:60 (Reversal)</span>
+                <span className="text-red-400 font-bold">00:88 (Paywall)</span>
+                <span>00:90</span>
+              </div>
 
-          {/* Hover Telemetry Card */}
-          {hoveredPoint && (
-            <div className="mt-3 p-2.5 rounded-[7px] bg-[#14151B] border border-welele-gold/40 text-xs flex items-center justify-between">
-              <span className="text-white">
-                Timestamp: <strong className="font-mono text-welele-gold">00:{hoveredPoint.second < 10 ? '0' + hoveredPoint.second : hoveredPoint.second}</strong>
-              </span>
-              <span className="text-white">
-                Retention: <strong className="text-emerald-400">{hoveredPoint.retention_pct}%</strong>
-              </span>
-              <span className="text-welele-muted">
-                Active Viewers: <strong className="text-white font-mono">{(hoveredPoint.viewer_count || 0).toLocaleString()}</strong>
-              </span>
-            </div>
+              {/* Hover Telemetry Card */}
+              {hoveredPoint && (
+                <div className="mt-3 p-2.5 rounded-[7px] bg-[#14151B] border border-welele-gold/40 text-xs flex items-center justify-between">
+                  <span className="text-white">
+                    Timestamp: <strong className="font-mono text-welele-gold">00:{hoveredPoint.second < 10 ? '0' + hoveredPoint.second : hoveredPoint.second}</strong>
+                  </span>
+                  <span className="text-white">
+                    Retention: <strong className="text-emerald-400">{hoveredPoint.retention_pct}%</strong>
+                  </span>
+                  <span className="text-welele-muted">
+                    Active Viewers: <strong className="text-white font-mono">{(hoveredPoint.viewer_count || 0).toLocaleString()}</strong>
+                  </span>
+                </div>
+              )}
+            </>
           )}
         </div>
 
@@ -358,19 +371,25 @@ export const CreatorDashboard: React.FC<CreatorDashboardProps> = ({
               <ProvenanceBadge tier="EXTERNAL_DATA" size="sm" />
             </div>
             <div className="space-y-2">
-              {(telemetry?.geo_distribution || []).map((geo) => (
-                <div key={geo.country} className="space-y-1">
-                  <div className="flex justify-between text-xs text-white">
-                    <span>
-                      {geo.flag} {geo.country}
-                    </span>
-                    <span className="text-welele-muted font-mono">{geo.share_pct}% ({(geo.views || 0).toLocaleString()} views)</span>
-                  </div>
-                  <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                    <div className="h-full bg-welele-gold rounded-full" style={{ width: `${geo.share_pct}%` }} />
-                  </div>
+              {(telemetry?.geo_distribution || []).length === 0 ? (
+                <div className="py-4 text-center text-xs text-welele-muted">
+                  No geographic telemetry recorded yet.
                 </div>
-              ))}
+              ) : (
+                (telemetry?.geo_distribution || []).map((geo) => (
+                  <div key={geo.country} className="space-y-1">
+                    <div className="flex justify-between text-xs text-white">
+                      <span>
+                        {geo.flag} {geo.country}
+                      </span>
+                      <span className="text-welele-muted font-mono">{geo.share_pct}% ({(geo.views || 0).toLocaleString()} views)</span>
+                    </div>
+                    <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                      <div className="h-full bg-welele-gold rounded-full" style={{ width: `${geo.share_pct}%` }} />
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
@@ -384,20 +403,26 @@ export const CreatorDashboard: React.FC<CreatorDashboardProps> = ({
               <ProvenanceBadge tier="EXTERNAL_DATA" size="sm" />
             </div>
             <div className="space-y-2">
-              {(telemetry?.telco_payment_mix || []).map((t) => (
-                <div key={t.provider} className="space-y-1">
-                  <div className="flex justify-between text-xs text-white">
-                    <span className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: t.color }} />
-                      {t.provider}
-                    </span>
-                    <span className="text-welele-gold font-mono font-bold">{t.share_pct}%</span>
-                  </div>
-                  <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                    <div className="h-full rounded-full" style={{ width: `${t.share_pct}%`, backgroundColor: t.color }} />
-                  </div>
+              {(telemetry?.telco_payment_mix || []).length === 0 ? (
+                <div className="py-4 text-center text-xs text-welele-muted">
+                  No telco payment transactions recorded yet.
                 </div>
-              ))}
+              ) : (
+                (telemetry?.telco_payment_mix || []).map((t) => (
+                  <div key={t.provider} className="space-y-1">
+                    <div className="flex justify-between text-xs text-white">
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: t.color }} />
+                        {t.provider}
+                      </span>
+                      <span className="text-welele-gold font-mono font-bold">{t.share_pct}%</span>
+                    </div>
+                    <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                      <div className="h-full rounded-full" style={{ width: `${t.share_pct}%`, backgroundColor: t.color }} />
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>

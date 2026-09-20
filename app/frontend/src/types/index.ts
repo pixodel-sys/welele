@@ -1,4 +1,4 @@
-export type AppMode = 'viewer' | 'creator' | 'admin';
+export type AppMode = 'viewer' | 'creator' | 'production' | 'admin';
 
 export type MarketRegion = 'ZA' | 'NG' | 'KE' | 'GHS' | 'GLOBAL';
 
@@ -11,7 +11,8 @@ export type EpisodeStatus =
   | 'scheduled'
   | 'published'
   | 'changes_requested'
-  | 'rejected';
+  | 'rejected'
+  | 'archived';
 
 export interface PreflightHealth {
   aspect_ratio_ok: boolean;

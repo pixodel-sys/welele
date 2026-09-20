@@ -1,7 +1,13 @@
 # Environment variables
 .env
 .env.local
-.env.*.local
+.env.staging
+.env.production
+.env.*
+!.env.example
+!.env.staging.example
+!.env.production.example
+
 
 # Node / Frontend
 node_modules/
@@ -36,12 +42,20 @@ htmlcov/
 backend/media_storage/
 media_storage/
 
+# Scratch & Debug artifacts
+scratch/
+backend/scratch/
+*.log
+*.tmp
+*.bat
+
 # IDE / OS
 .DS_Store
 Thumbs.db
 .idea/
 .vscode/
 *.swp
+*.lnk
 
 # Documentation & Design Archives (Local Only)
 docs/

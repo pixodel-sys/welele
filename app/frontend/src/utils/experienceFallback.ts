@@ -272,7 +272,7 @@ export function getDefaultExperienceManifest(
     meta: {
       title: 'Welele™ | Short African Dramas',
       theme: 'dark_gold_glow',
-      description: 'Stream high-octane 9:16 vertical micro-dramas produced across South Africa, Nigeria, and Ghana.',
+      description: 'Stream high-octane vertical micro-dramas produced across South Africa, Nigeria, and Ghana.',
     },
     brand_config: DEFAULT_BRAND_IDENT_CONFIG,
     sections: [

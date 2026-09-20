@@ -163,7 +163,7 @@ CREATE TABLE IF NOT EXISTS public.episodes (
     coin_price INT NOT NULL DEFAULT 5,
     cliffhanger_time_seconds INT NOT NULL DEFAULT 65,
     cliffhanger_hook TEXT NOT NULL,
-    status VARCHAR(32) NOT NULL DEFAULT 'published' CHECK (status IN ('draft', 'under_review', 'approved', 'published', 'changes_requested', 'rejected')),
+    status VARCHAR(32) NOT NULL DEFAULT 'published' CHECK (status IN ('draft', 'under_review', 'approved', 'published', 'changes_requested', 'rejected', 'archived')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT unique_series_episode UNIQUE (series_id, episode_number)
 );

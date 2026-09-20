@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Story, Episode } from '../../types';
+import { telemetryService } from '../../services/telemetryService';
+import { useSeoHead } from '../../hooks/useSeoHead';
 import {
   X,
   Play,
@@ -14,6 +16,7 @@ import {
   Check,
   Languages,
   Film,
+  Clock,
 } from 'lucide-react';
 
 interface StoryDetailModalProps {
@@ -36,6 +39,45 @@ export const StoryDetailModal: React.FC<StoryDetailModalProps> = ({
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'episodes' | 'about' | 'more'>('episodes');
+
+  useSeoHead({
+    title: story ? `${story.title} - African Micro-Drama` : undefined,
+    description: story ? story.synopsis || story.tagline : undefined,
+    image: story ? story.vertical_poster || story.cover_image : undefined,
+    url: story ? `/?series=${story.id}` : undefined,
+    type: 'video.tv_show',
+    jsonLd: story
+      ? {
+          '@context': 'https://schema.org',
+          '@type': 'TVSeries',
+          name: story.title,
+          description: story.synopsis || story.tagline,
+          image: story.vertical_poster || story.cover_image,
+          genre: story.genre,
+          numberOfEpisodes: story.total_episodes || story.episodes?.length || 1,
+          publisher: {
+            '@type': 'Organization',
+            name: 'Welele Media',
+            url: 'https://welele.tv',
+          },
+        }
+      : undefined,
+  });
+
+  useEffect(() => {
+    if (story) {
+      telemetryService.track({
+        event_family: 'OPEN',
+        event_type: 'CONTENT_OPENED',
+        content_type: 'SERIES',
+        content_id: story.id,
+        series_id: story.id,
+        source: 'DISCOVERY_FEED',
+        metadata: { title: story.title }
+      });
+      telemetryService.checkAndEmitReturn(story.id);
+    }
+  }, [story?.id]);
 
   if (!story) return null;
 
@@ -211,7 +253,8 @@ export const StoryDetailModal: React.FC<StoryDetailModalProps> = ({
               </div>
 
               {story.episodes.map((ep) => {
-                const isUnlocked = ep.is_free || unlockedEpisodes.has(ep.id);
+                const isDraftEmpty = (ep as any).is_empty_draft || (ep as any).readiness_state === 'DRAFT_EMPTY' || (ep as any).is_available === false;
+                const isUnlocked = !isDraftEmpty && (ep.is_free || unlockedEpisodes.has(ep.id));
                 return (
                   <div
                     key={ep.id}
@@ -219,7 +262,9 @@ export const StoryDetailModal: React.FC<StoryDetailModalProps> = ({
                       onPlayEpisode(story, ep);
                       onClose();
                     }}
-                    className="p-2.5 rounded-[7px] bg-[#15161A] hover:bg-welele-surface-2 border border-white/5 flex items-center justify-between cursor-pointer transition-all group hover:border-welele-orange/30"
+                    className={`p-2.5 rounded-[7px] bg-[#15161A] hover:bg-welele-surface-2 border border-white/5 flex items-center justify-between cursor-pointer transition-all group hover:border-welele-orange/30 ${
+                      isDraftEmpty ? 'opacity-80' : ''
+                    }`}
                   >
                     <div className="flex items-center gap-3">
                       <div className="relative w-14 h-16 rounded-[7px] overflow-hidden shrink-0">
@@ -229,7 +274,9 @@ export const StoryDetailModal: React.FC<StoryDetailModalProps> = ({
                           className="w-full h-full object-cover"
                         />
                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                          {isUnlocked ? (
+                          {isDraftEmpty ? (
+                            <Clock className="w-4 h-4 text-amber-400" />
+                          ) : isUnlocked ? (
                             <Play className="w-4 h-4 text-white fill-current group-hover:scale-110 transition-transform" />
                           ) : (
                             <Lock className="w-4 h-4 text-welele-gold" />
@@ -242,7 +289,11 @@ export const StoryDetailModal: React.FC<StoryDetailModalProps> = ({
                           <h4 className="text-xs font-bold text-white group-hover:text-welele-orange transition-colors">
                             {ep.episode_number}. {ep.title}
                           </h4>
-                          {ep.is_free ? (
+                          {isDraftEmpty ? (
+                            <span className="text-[8px] font-black text-amber-400 px-1.5 py-0.2 rounded-[7px] bg-amber-500/15 uppercase tracking-wider">
+                              COMING SOON
+                            </span>
+                          ) : ep.is_free ? (
                             <span className="text-[8px] font-black text-emerald-400 px-1.5 py-0.2 rounded-[7px] bg-emerald-500/15">
                               FREE
                             </span>
@@ -260,9 +311,11 @@ export const StoryDetailModal: React.FC<StoryDetailModalProps> = ({
 
                     <div className="flex items-center gap-2 shrink-0">
                       <span className="text-[11px] text-welele-muted font-mono font-medium">
-                        {formatDuration(ep.duration_seconds)}
+                        {isDraftEmpty ? '--:--' : formatDuration(ep.duration_seconds)}
                       </span>
-                      <Download className="w-3.5 h-3.5 text-welele-muted hover:text-white transition-colors" />
+                      {!isDraftEmpty && (
+                        <Download className="w-3.5 h-3.5 text-welele-muted hover:text-white transition-colors" />
+                      )}
                     </div>
                   </div>
                 );

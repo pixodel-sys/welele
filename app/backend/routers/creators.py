@@ -107,19 +107,35 @@ def get_creator_episodes(creator_id: str, status: str = Query(None), auth_user: 
 
     return {"episodes": filtered, "total": len(filtered)}
 
+@router.get("/{creator_id}/transactions", dependencies=[Depends(require_role(["creator", "admin"]))])
+def get_creator_transactions(creator_id: str, auth_user: dict = Depends(get_current_user)):
+    """
+    Projects canonical persisted payment_transactions for the creator without creating a second store.
+    """
+    enforce_tenant_access(auth_user, creator_id, domain="COMMERCE", action="view transactions")
+    from database import db
+    all_txs = db.get("transactions")
+    creator_txs = [tx for tx in all_txs if tx.get("creator_id") == creator_id]
+    creator_txs.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+    return {
+        "creator_id": creator_id,
+        "total": len(creator_txs),
+        "transactions": creator_txs
+    }
+
 @router.get("/series/{series_id}/workspace", dependencies=[Depends(require_role(["creator", "admin"]))])
 def get_series_workspace(series_id: str, auth_user: dict = Depends(get_current_user)):
     """Series Command Room workspace data with retention & coin metrics."""
-    series = series_repository.get_creator_series_detail(series_id)
+    all_series = series_repository.local_get("series")
+    series = next((s for s in all_series if s["id"] == series_id), None)
     if not series:
-        all_series = series_repository.local_get("series")
-        series = next((s for s in all_series if s["id"] == series_id), None)
-        if not series:
-            raise HTTPException(status_code=404, detail="Series not found")
+        raise HTTPException(status_code=404, detail="Series not found")
 
     enforce_tenant_access(auth_user, series.get("creator_id"), domain="CONTENT", action="access series workspace")
 
-    series_episodes = series.get("episodes", [])
+    all_episodes = series_repository.local_get("episodes")
+    series_episodes = [e for e in all_episodes if e.get("series_id") == series_id]
+    series_episodes.sort(key=lambda x: x.get("episode_number", 1))
 
     published_count = len([e for e in series_episodes if e.get("status") == "published"])
     under_review_count = len([e for e in series_episodes if e.get("status") in ["under_review", "submitted", "pending_review"]])
@@ -320,13 +336,64 @@ def get_retention_telemetry(
     episode_number: int = Query(1),
     auth_user: dict = Depends(get_current_user)
 ):
-    """Routes retention telemetry through EventRepository with tenant isolation."""
+    """Routes retention telemetry through EventRepository with tenant isolation and authentic episode resolution."""
     series = series_repository.get_series_detail(series_id)
     if series:
         enforce_tenant_access(auth_user, series.get("creator_id"), domain="CONTENT", action="view telemetry")
 
-    ep_id = f"ep_bt_{episode_number}"
+    # Phase 3A: Resolve real episode ID for the specified series and episode_number
+    ep_id = None
+    if series and series.get("episodes"):
+        matching_ep = next((e for e in series["episodes"] if e.get("episode_number") == episode_number), None)
+        if matching_ep:
+            ep_id = matching_ep.get("id")
+
+    if not ep_id:
+        all_eps = series_repository.local_get("episodes") or []
+        matching_ep = next((e for e in all_eps if e.get("series_id") == series_id and e.get("episode_number") == episode_number), None)
+        if matching_ep:
+            ep_id = matching_ep.get("id")
+        else:
+            ep_id = f"ep_{series_id}_{episode_number}"
+
     res = event_repository.get_episode_retention(series_id, ep_id)
+
+    # Phase 3A: Empirical telco payment mix from actual recorded events
+    legacy_events = event_repository.local_get("telemetry_events") or []
+    phase6_events = event_repository.local_get("viewer_telemetry_events") or []
+    carrier_counts = {}
+
+    for e in legacy_events:
+        if (e.get("episode_id") == ep_id or e.get("series_id") == series_id) and e.get("event_name") == "unlock_completed":
+            meta = e.get("metadata") or {}
+            carrier = meta.get("carrier") or meta.get("method") or "AIRTIME"
+            carrier_counts[carrier] = carrier_counts.get(carrier, 0) + 1
+
+    for e in phase6_events:
+        if (e.get("episode_id") == ep_id or e.get("series_id") == series_id) and e.get("event_type") == "CONTENT_UNLOCKED":
+            meta = e.get("metadata") or {}
+            carrier = meta.get("carrier") or meta.get("method") or "AIRTIME"
+            carrier_counts[carrier] = carrier_counts.get(carrier, 0) + 1
+
+    total_unlocks = sum(carrier_counts.values())
+    telco_colors = {
+        "MTN": "#FFCC00",
+        "vodacom": "#E60000",
+        "airtel": "#FF0000",
+        "COINS": "#FF9D00",
+        "AIRTIME_DCB": "#00E676"
+    }
+
+    telco_mix = [
+        {
+            "provider": carrier.replace("_", " ").upper(),
+            "color": telco_colors.get(carrier, "#3B82F6"),
+            "share_pct": round((cnt / float(total_unlocks)) * 100, 1),
+            "count": cnt
+        }
+        for carrier, cnt in carrier_counts.items()
+    ] if total_unlocks > 0 else []
+
     return {
         "series_id": res.series_id,
         "episode_id": res.episode_id,
@@ -337,10 +404,5 @@ def get_retention_telemetry(
         "avg_watch_time_seconds": res.avg_watch_time_seconds,
         "dropoff_curve": [p.model_dump() for p in res.retention_curve],
         "geo_distribution": res.geo_distribution,
-        "telco_payment_mix": [
-            {"provider": "MTN Airtime / MoMo", "color": "#FFCC00", "share_pct": 48},
-            {"provider": "Vodacom / M-Pesa", "color": "#E60000", "share_pct": 31},
-            {"provider": "Chipper Cash", "color": "#7C3AED", "share_pct": 14},
-            {"provider": "Card & EFT", "color": "#3B82F6", "share_pct": 7}
-        ]
+        "telco_payment_mix": telco_mix
     }

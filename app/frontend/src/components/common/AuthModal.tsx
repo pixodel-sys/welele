@@ -85,11 +85,9 @@ export const AuthModal: React.FC = () => {
       await authApi.sendOtp(phoneInput, market);
       setIsLoading(false);
       setStep('otp');
-      setOtpCode('5542');
     } catch (err: any) {
       setIsLoading(false);
-      setStep('otp');
-      setOtpCode('5542');
+      setErrorMessage('SMS service unavailable. Please try again later.');
     }
   };
 
@@ -111,14 +109,7 @@ export const AuthModal: React.FC = () => {
       triggerSuccess('viewer');
     } catch (err: any) {
       setIsLoading(false);
-      login({
-        id: 'usr_viewer_01',
-        name: market === 'ZA' ? 'Sipho Dlamini' : 'Temi Adebayo',
-        phone: phoneInput,
-        role: 'viewer',
-        city: market === 'ZA' ? 'Johannesburg, South Africa' : 'Lagos, Nigeria',
-      });
-      triggerSuccess('viewer');
+      setErrorMessage(err?.response?.data?.detail || 'Verification failed. Please check your code and try again.');
     }
   };
 
@@ -341,27 +332,27 @@ export const AuthModal: React.FC = () => {
                   )}
                 </button>
 
-                {/* Quick Demo Viewers */}
+                {/* Quick Demo — DEV / TEST ONLY. Bypasses real auth. Remove or hide before public launch. */}
                 <div className="pt-2 border-t border-white/10 space-y-1.5">
-                  <span className="text-[10px] text-welele-muted block text-center uppercase font-bold tracking-wider">
-                    Instant Quick Sign-In
+                  <span className="text-[10px] text-amber-500/80 block text-center uppercase font-bold tracking-wider">
+                    ⚠ Dev / Demo Only — Bypasses Auth
                   </span>
                   <button
                     type="button"
                     onClick={() => handleQuickDemoViewer('joburg')}
-                    className="w-full py-2 px-3 rounded-[7px] bg-welele-surface-2 hover:bg-white/10 text-left border border-white/5 text-xs font-semibold flex items-center justify-between transition-colors"
+                    className="w-full py-2 px-3 rounded-[7px] bg-amber-950/40 hover:bg-amber-900/40 text-left border border-amber-500/20 text-xs font-semibold flex items-center justify-between transition-colors"
                   >
-                    <span>🇿🇦 Sipho Dlamini (Joburg VIP)</span>
-                    <span className="text-[10px] text-emerald-400 font-bold">1-Tap</span>
+                    <span className="text-white/70">🇿🇦 Sipho Dlamini (Joburg — Demo)</span>
+                    <span className="text-[10px] text-amber-400 font-bold">DEMO</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => handleQuickDemoViewer('lagos')}
-                    className="w-full py-2 px-3 rounded-[7px] bg-welele-surface-2 hover:bg-white/10 text-left border border-white/5 text-xs font-semibold flex items-center justify-between transition-colors"
+                    className="w-full py-2 px-3 rounded-[7px] bg-amber-950/40 hover:bg-amber-900/40 text-left border border-amber-500/20 text-xs font-semibold flex items-center justify-between transition-colors"
                   >
-                    <span>🇳🇬 Temi Adebayo (Lagos VIP)</span>
-                    <span className="text-[10px] text-welele-orange font-bold">1-Tap</span>
+                    <span className="text-white/70">🇳🇬 Temi Adebayo (Lagos — Demo)</span>
+                    <span className="text-[10px] text-amber-400 font-bold">DEMO</span>
                   </button>
                 </div>
               </form>

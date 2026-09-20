@@ -2,7 +2,7 @@ import React from 'react';
 import { useApp } from '../../context/AppContext';
 import { AppMode, MarketRegion } from '../../types';
 import { WeleleLogo } from './WeleleLogo';
-import { Sparkles, Shield, Video, Smartphone, Globe, Signal, User, LogIn, LogOut } from 'lucide-react';
+import { Globe, Signal, LogIn, LogOut } from 'lucide-react';
 
 export const Header: React.FC = () => {
   const {
@@ -45,18 +45,19 @@ export const Header: React.FC = () => {
     <header className="sticky top-0 z-40 w-full glass-panel border-b border-white/10 px-3 sm:px-4 py-2.5 transition-all">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
         {/* Canonical Welele Brand Lockup */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <div
             className="cursor-pointer flex items-center group transition-transform active:scale-95"
             onClick={() => attemptModeChange('viewer')}
             title="Welele - Stories That Move You"
           >
-            {mode === 'creator' || mode === 'admin' ? (
+            {mode === 'creator' || mode === 'production' || mode === 'admin' ? (
               <WeleleLogo variant="corporate" size="sm" />
             ) : (
               <WeleleLogo variant="horizontal" size="md" />
             )}
           </div>
+
         </div>
 
         {/* Right Section: Market Selector, Airtime Badge, Coin Pill, Auth */}

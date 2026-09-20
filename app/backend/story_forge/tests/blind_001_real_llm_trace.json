@@ -1,0 +1,123 @@
+{
+  "story_id": "blind-001-real",
+  "model_identifier": "gemini-3.5-flash-lite",
+  "provider": "gemini",
+  "forge_kernel_version": "0.2.0",
+  "forge_judge_version": "0.2.0",
+  "total_cycles": 8,
+  "final_state_version": 6,
+  "judge_status": "PREMISE_LOCK",
+  "assessment_notes": "M0 certified. Missing M1 dramatic engine invariants: ['M1_PROTAGONIST_MOTIVATION_REQUIRED'].",
+  "transitions": [
+    {
+      "sequence": 1,
+      "authority_mode": "PROPOSE",
+      "skill": "EXCAVATOR",
+      "question": "What is the name of the young woman returning to her rural hometown, and what was her professional background before her father's death?",
+      "interpretation": "The active dependency requires defining the protagonist. The logline introduces a young woman returning home, but her name and specific character attributes must be established. Proposing Thandeka Dlamini as an archivist provides a strong narrative justification for why she investigates the locked study.",
+      "latency_ms": 3675.63,
+      "confidence": 0.85,
+      "mutations": [
+        {
+          "path": "characters.Thandeka_Dlamini",
+          "type": "CREATE",
+          "rationale": "Establishes the core protagonist needed to resolve the PREMISE_PROTAGONIST_DEFINITION dependency based on the initial creator logline."
+        }
+      ]
+    },
+    {
+      "sequence": 2,
+      "authority_mode": "INFER",
+      "skill": "EXCAVATOR",
+      "question": null,
+      "interpretation": "The creator successfully provided the protagonist's core identity details. Based on instructions, resolving the character identity allows us to infer and commit this state update.",
+      "latency_ms": 2793.53,
+      "confidence": 0.95,
+      "mutations": [
+        {
+          "path": "characters.Zodwa_Khumalo",
+          "type": "CREATE",
+          "rationale": "The creator specified the protagonist's name, age, and occupation, shifting the character identity from the placeholder Thandeka Dlamini to Zodwa Khumalo."
+        }
+      ]
+    },
+    {
+      "sequence": 3,
+      "authority_mode": "ASK",
+      "skill": "CONNECTOR",
+      "question": "What is the name and historical standing of the rival clan that holds the ancestral debt against the Dlamini family?",
+      "interpretation": "The active dependency requires defining the opposing creditor clan referenced in the logline. Since no specific rival entity exists in the canonical state yet, a direct question to the creator is needed to establish this core narrative element.",
+      "latency_ms": 3142.96,
+      "confidence": 0.95,
+      "mutations": []
+    },
+    {
+      "sequence": 4,
+      "authority_mode": "INFER",
+      "skill": "CONNECTOR",
+      "question": null,
+      "interpretation": "The creator response directly defines the rival clan and its leader, allowing safe inference and state mutation for the counterforce dependency.",
+      "latency_ms": 6876.1,
+      "confidence": 0.95,
+      "mutations": [
+        {
+          "path": "characters.Bheki_Ndlovu",
+          "type": "CREATE",
+          "rationale": "The creator has defined the opposing force as Bheki Ndlovu and the Ndlovu family, fulfilling the counterforce dependency."
+        }
+      ]
+    },
+    {
+      "sequence": 5,
+      "authority_mode": "ASK",
+      "skill": "EXCAVATOR",
+      "question": "What is Zodwa Khumalo's primary dramatic motivation and driving goal regarding the ancestral debt?",
+      "interpretation": "The active dependency requires defining Zodwa Khumalo's core motivation and driving goal. As this is missing from the canonical state, creator input must be solicited.",
+      "latency_ms": 2485.06,
+      "confidence": 0.95,
+      "mutations": []
+    },
+    {
+      "sequence": 6,
+      "authority_mode": "INFER",
+      "skill": "EXCAVATOR",
+      "question": null,
+      "interpretation": "The creator response directly provides the core motivation for Zodwa Khumalo, allowing us to safely infer and commit the state mutation.",
+      "latency_ms": 2668.42,
+      "confidence": 0.98,
+      "mutations": [
+        {
+          "path": "characters.Zodwa_Khumalo",
+          "type": "UPDATE",
+          "rationale": "The creator explicitly defined Zodwa's core motivation and professional background, resolving the active dependency for character Zodwa Khumalo."
+        }
+      ]
+    },
+    {
+      "sequence": 7,
+      "authority_mode": "ASK",
+      "skill": "EXCAVATOR",
+      "question": "What is Bheki Ndlovu's primary motivation regarding the ancestral debt between the rival clans?",
+      "interpretation": "The core motivation and driving dramatic goal for supporting character Bheki Ndlovu remains undefined in the canonical state, requiring direct creator input via ASK.",
+      "latency_ms": 2478.01,
+      "confidence": 0.95,
+      "mutations": []
+    },
+    {
+      "sequence": 8,
+      "authority_mode": "INFER",
+      "skill": "EXCAVATOR",
+      "question": null,
+      "interpretation": "The creator response directly provides the core motivation and dramatic goal for Bheki Ndlovu, allowing safe inference and state commitment without needing further creator questions.",
+      "latency_ms": 2859.54,
+      "confidence": 0.95,
+      "mutations": [
+        {
+          "path": "characters.Bheki_Ndlovu",
+          "type": "UPDATE",
+          "rationale": "The creator response identifies Bheki Ndlovu as an imposing warlord who claims the firstborn was bound to seal their wealth, directly defining his core motivation."
+        }
+      ]
+    }
+  ]
+}

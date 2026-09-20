@@ -3,11 +3,15 @@ import { useApp } from '../../context/AppContext';
 import { Story, Episode } from '../../types';
 import { StoryDetailModal } from './StoryDetailModal';
 import { ExperiencePageRenderer } from '../experience/ExperiencePageRenderer';
+import { WeleleChatScreen } from './WeleleChatScreen';
+import { telemetryService } from '../../services/telemetryService';
 import {
   Clock,
   MessageCircle,
   Sparkles,
   Smartphone,
+  Play,
+  X,
 } from 'lucide-react';
 
 interface HomeScreenProps {
@@ -15,9 +19,34 @@ interface HomeScreenProps {
 }
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({ onOpenPlayer }) => {
+  const homeRenderCount = React.useRef<number>(0);
+  homeRenderCount.current += 1;
+
   const { stories, loadingStories, bookmarks, toggleBookmark, setMode, setIsCoinModalOpen } = useApp();
+
+  console.debug(
+    `[HomeScreen Instrumentation] HomeScreen Render #${homeRenderCount.current} (Mounted in DOM under viewport) | storiesCount=${stories.length}`
+  );
   const [selectedStoryForDetail, setSelectedStoryForDetail] = useState<Story | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>('All');
+  const [isChatOpen, setIsChatOpen] = useState<boolean>(false);
+
+  // Phase 3A: Feed impression telemetry
+  React.useEffect(() => {
+    if (stories.length > 0) {
+      telemetryService.track({
+        event_family: 'OPEN',
+        event_type: 'FEED_IMPRESSION',
+        content_type: 'CATALOG_FEED',
+        content_id: 'home_feed',
+        source: 'HOME_SCREEN',
+        metadata: {
+          storiesCount: stories.length,
+          activeCategory,
+        }
+      });
+    }
+  }, [activeCategory, stories.length > 0]);
 
   const categories = ['All', 'Drama', 'Romance', 'Crime', 'Comedy', 'Township', 'Action', 'Thriller'];
 
@@ -81,8 +110,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onOpenPlayer }) => {
                 <div className="aspect-[9/16] w-full relative">
                   <img
                     src={story.vertical_poster}
-                    alt={story.title}
+                    alt={`${story.title} - African micro-drama vertical poster`}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 filter brightness-90"
+                    loading="lazy"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-welele-black via-transparent to-transparent opacity-95" />
                   <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded-[7px] bg-black/60 backdrop-blur-md text-[9px] font-bold text-welele-gold">
@@ -116,71 +146,70 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onOpenPlayer }) => {
       )}
 
       {/* ========================================================================= */}
-      {/* 4. Continue Watching (With Progress Bars) */}
+      {/* 4. Quick Jump / Continue Watching */}
       {/* ========================================================================= */}
-      <section>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm sm:text-base font-extrabold text-[#FFF8F0] tracking-tight flex items-center gap-1.5">
-            <Clock className="w-4 h-4 text-welele-orange" />
-            Continue Watching
-          </h2>
-          <span className="text-xs text-welele-orange font-bold cursor-pointer hover:underline">
-            History
-          </span>
-        </div>
+      {continueWatching.length > 0 && (
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm sm:text-base font-extrabold text-[#FFF8F0] tracking-tight flex items-center gap-1.5">
+              <Clock className="w-4 h-4 text-welele-orange" />
+              Quick Catch Up
+            </h2>
+          </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {continueWatching.map((story, i) => (
-            <div
-              key={story.id}
-              onClick={() => {
-                if (story.episodes.length > 0) {
-                  onOpenPlayer(story, story.episodes[0]);
-                }
-              }}
-              className="p-3 rounded-[7px] bg-welele-surface-2 border border-white/5 hover:border-white/20 transition-all cursor-pointer group"
-            >
-              <div className="flex items-center gap-3">
-                <img
-                  src={story.vertical_poster}
-                  alt={story.title}
-                  className="w-14 h-18 rounded-[7px] object-cover"
-                />
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-xs font-bold text-white truncate group-hover:text-welele-orange">
-                    {story.title}
-                  </h4>
-                  <span className="text-[10px] text-welele-muted">
-                    S1 • E{i + 1}
-                  </span>
-                  {/* Progress Bar */}
-                  <div className="w-full h-1 bg-white/10 rounded-[7px] mt-2.5 overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-welele rounded-[7px]"
-                      style={{ width: `${60 - i * 15}%` }}
-                    />
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {continueWatching.map((story, i) => (
+              <div
+                key={story.id}
+                onClick={() => {
+                  if (story.episodes && story.episodes.length > 0) {
+                    onOpenPlayer(story, story.episodes[0]);
+                  }
+                }}
+                className="p-3 rounded-[7px] bg-welele-surface-2 border border-white/5 hover:border-white/20 transition-all cursor-pointer group"
+              >
+                <div className="flex items-center gap-3">
+                  <img
+                    src={story.vertical_poster}
+                    alt={`${story.title} Episode ${i + 1} poster`}
+                    className="w-14 h-18 rounded-[7px] object-cover"
+                    loading="lazy"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-xs font-bold text-white truncate group-hover:text-welele-orange">
+                      {story.title}
+                    </h4>
+                    <span className="text-[10px] text-welele-muted block mb-2">
+                      S1 • E{i + 1}
+                    </span>
+                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-welele-orange bg-welele-orange/10 px-2 py-0.5 rounded-[5px] w-fit">
+                      <Play className="w-3 h-3 fill-current" /> Resume
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
-      </section>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* ========================================================================= */}
       {/* 5. Brand Showcase Feature Banners (Bottom Grid from Official Identity) */}
       {/* ========================================================================= */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 pt-4 border-t border-white/10">
         {/* Welele Chat */}
-        <div className="p-4 rounded-[7px] bg-gradient-to-br from-welele-surface-2 to-black border border-white/10 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-[7px] bg-orange-500/10 border border-orange-500/30 flex items-center justify-center text-welele-orange shrink-0">
+        <div
+          onClick={() => setIsChatOpen(true)}
+          className="p-4 rounded-[7px] bg-gradient-to-br from-welele-surface-2 to-black border border-white/10 flex items-center gap-3 cursor-pointer hover:border-welele-orange/50 transition-colors group"
+        >
+          <div className="w-10 h-10 rounded-[7px] bg-orange-500/10 border border-orange-500/30 flex items-center justify-center text-welele-orange shrink-0 group-hover:scale-105 transition-transform">
             <MessageCircle className="w-5 h-5" />
           </div>
           <div>
-            <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
+            <h4 className="text-xs font-bold text-white flex items-center gap-1.5 group-hover:text-welele-orange transition-colors">
               Welele Chat
               <span className="text-[9px] px-1.5 py-0.2 rounded-[7px] bg-orange-500/20 text-welele-orange font-bold">
-                +3.2K
+                Live
               </span>
             </h4>
             <p className="text-[11px] text-welele-muted">
@@ -192,13 +221,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onOpenPlayer }) => {
         {/* Create. Share. Earn. */}
         <div
           onClick={() => setMode('creator')}
-          className="p-4 rounded-[7px] bg-gradient-to-br from-welele-surface-2 to-black border border-white/10 flex items-center gap-3 cursor-pointer hover:border-welele-orange/50 transition-colors"
+          className="p-4 rounded-[7px] bg-gradient-to-br from-welele-surface-2 to-black border border-white/10 flex items-center gap-3 cursor-pointer hover:border-welele-orange/50 transition-colors group"
         >
-          <div className="w-10 h-10 rounded-[7px] bg-pink-500/10 border border-pink-500/30 flex items-center justify-center text-welele-pink shrink-0">
+          <div className="w-10 h-10 rounded-[7px] bg-pink-500/10 border border-pink-500/30 flex items-center justify-center text-welele-pink shrink-0 group-hover:scale-105 transition-transform">
             <Sparkles className="w-5 h-5" />
           </div>
           <div>
-            <h4 className="text-xs font-bold text-white">Create. Share. Earn.</h4>
+            <h4 className="text-xs font-bold text-white group-hover:text-welele-pink transition-colors">
+              Create. Share. Earn.
+            </h4>
             <p className="text-[11px] text-welele-muted">
               Monetize your stories with Welele Creator Hub.
             </p>
@@ -213,11 +244,34 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onOpenPlayer }) => {
           <div>
             <h4 className="text-xs font-bold text-white">Watch Anywhere</h4>
             <p className="text-[11px] text-welele-muted">
-              On your phone, tablet, or smart TV.
+              Optimized for mobile micro-dramas across Africa.
             </p>
           </div>
         </div>
       </div>
+
+      {/* Welele Chat Modal Drawer */}
+      {isChatOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="bg-[#121114] border border-white/10 rounded-xl w-full max-w-lg max-h-[85vh] overflow-hidden flex flex-col shadow-2xl">
+            <div className="flex items-center justify-between p-4 border-b border-white/10">
+              <div className="flex items-center gap-2">
+                <MessageCircle className="w-5 h-5 text-welele-orange" />
+                <h3 className="font-extrabold text-white text-sm">Welele Story Chat</h3>
+              </div>
+              <button
+                onClick={() => setIsChatOpen(false)}
+                className="p-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-4 overflow-y-auto flex-1">
+              <WeleleChatScreen />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Story Details Modal */}
       <StoryDetailModal

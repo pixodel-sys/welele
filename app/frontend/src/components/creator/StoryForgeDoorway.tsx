@@ -198,14 +198,17 @@ export const StoryForgeDoorway: React.FC<StoryForgeDoorwayProps> = ({ onSendToPr
 
   const [isPersistingPackage, setIsPersistingPackage] = useState(false);
   const [persistedPackageId, setPersistedPackageId] = useState<string | null>(null);
+  const [persistError, setPersistError] = useState<string | null>(null);
 
   const handleAcceptAndHandoff = async () => {
     setIsPersistingPackage(true);
+    setPersistError(null);
     try {
       const matchingStory = stories.find((s) => s.title.toLowerCase().includes(storyPackage.series_title.toLowerCase())) || stories[0];
-      const ipId = matchingStory?.id || 'ip_queen_of_jozi';
+      const ipId = matchingStory?.ip_id || 'ip_blood_ties';
 
       const payload = {
+        ip_id: ipId,
         package_title: storyPackage.series_title,
         version: '1.0.0',
         creator_id: 'creator_zola',
@@ -213,28 +216,29 @@ export const StoryForgeDoorway: React.FC<StoryForgeDoorwayProps> = ({ onSendToPr
         beats: storyPackage.beats,
         dialogues: storyPackage.dialogue || [],
         cliffhanger_prompt: storyPackage.cliffhanger_prompt,
-        ai_model_used: aiStatus.model
+        ai_model_used: aiStatus.model,
+        human_approved: true
       };
 
       const res = await ipApi.saveStoryPackage(ipId, payload);
       const pkg = res?.package;
-      const canonicalPackageId = pkg?.id || `sfp_${Date.now().toString(36)}`;
-      setPersistedPackageId(canonicalPackageId);
+      if (!pkg || !pkg.id) {
+        throw new Error('Failed to obtain canonical persisted package ID from backend.');
+      }
+
+      setPersistedPackageId(pkg.id);
 
       onSendToProduction({
         ...storyPackage,
-        package_id: canonicalPackageId,
+        package_id: pkg.id,
+        lineage_hash: pkg.lineage_hash,
         ip_id: ipId,
         series_id: matchingStory?.id,
         status: 'accepted'
       });
-    } catch (err) {
-      console.warn('Persisting story package fallback:', err);
-      onSendToProduction({
-        ...storyPackage,
-        package_id: `sfp_${Date.now().toString(36)}`,
-        status: 'accepted'
-      });
+    } catch (err: any) {
+      console.error('[StoryForge] Failed to persist canonical package:', err);
+      setPersistError(err?.message || 'Failed to persist Story Forge package to canonical database.');
     } finally {
       setIsPersistingPackage(false);
     }
@@ -296,25 +300,35 @@ export const StoryForgeDoorway: React.FC<StoryForgeDoorwayProps> = ({ onSendToPr
                   ? 'Live Gemini™ AI (Online)'
                   : 'Local Offline Engine (Fallback Active)'}
               </span>
-              <Info className="w-3 h-3 ml-0.5 opacity-70" />
+              <span className="text-[10px] font-mono text-white/50 bg-black/40 border border-white/10 px-2 py-0.5 rounded">
+                Forge Configuration: CFG-001
+              </span>
             </button>
           </div>
 
           <h1 className="text-2xl font-black text-white font-cinematic uppercase tracking-tight">
-            Script, Character & Cliffhanger Forge
-          </h1>
+              Script, Character & Cliffhanger Forge
+            </h1>
           <p className="text-xs text-welele-muted mt-1">
             Generate tight 60–90 second vertical episodic beats, African dialect dialogue, and character bibles with zero downtime.
           </p>
         </div>
 
-        <button
-          onClick={() => onSendToProduction(storyPackage)}
-          className="px-5 py-2.5 rounded-[7px] bg-gradient-to-r from-[#E6007A] to-[#FF2A6D] text-white font-bold text-xs shadow-lg shadow-pink-500/20 flex items-center gap-2 hover:brightness-110 active:scale-95 transition-all shrink-0"
-        >
-          <Send className="w-4 h-4" />
-          <span>EXPORT TO EPISODE PIPELINE</span>
-        </button>
+        <div className="flex flex-col items-end gap-1">
+          <button
+            onClick={handleAcceptAndHandoff}
+            disabled={isPersistingPackage}
+            className="px-5 py-2.5 rounded-[7px] bg-gradient-to-r from-[#E6007A] to-[#FF2A6D] text-white font-bold text-xs shadow-lg shadow-pink-500/20 flex items-center gap-2 hover:brightness-110 active:scale-95 transition-all shrink-0 disabled:opacity-50"
+          >
+            <Send className="w-4 h-4" />
+            <span>{isPersistingPackage ? 'PERSISTING & ACCEPTING...' : 'EXPORT TO EPISODE PIPELINE'}</span>
+          </button>
+          {persistError && (
+            <span className="text-[10px] text-red-400 font-medium">
+              {persistError}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Generation Engine Top Bar */}
@@ -374,6 +388,7 @@ export const StoryForgeDoorway: React.FC<StoryForgeDoorwayProps> = ({ onSendToPr
             type="text"
             value={promptHook}
             onChange={(e) => setPromptHook(e.target.value)}
+            spellCheck={true}
             placeholder="E.g. A young chef uncovers a counterfeit coin ring in her restaurant..."
             className="w-full bg-[#0B0C10] px-3.5 py-2.5 rounded-[7px] border border-white/10 text-xs text-white placeholder-white/20 focus:outline-none focus:border-[#E6007A]"
           />
@@ -580,6 +595,7 @@ export const StoryForgeDoorway: React.FC<StoryForgeDoorwayProps> = ({ onSendToPr
                 rows={4}
                 value={dialogueInput}
                 onChange={(e) => setDialogueInput(e.target.value)}
+                spellCheck={true}
                 placeholder="Enter character line to localize..."
                 className="w-full bg-[#0B0C10] p-3 rounded-[7px] border border-white/10 text-xs text-white focus:outline-none focus:border-welele-gold"
               />

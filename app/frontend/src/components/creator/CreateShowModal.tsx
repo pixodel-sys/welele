@@ -23,7 +23,7 @@ export const CreateShowModal: React.FC<CreateShowModalProps> = ({
   const [genre, setGenre] = useState<string>('Crime & Dynasty');
   const [language, setLanguage] = useState<string>('English / isiZulu');
   
-  // 9:16 Vertical Poster
+  // Poster
   const [verticalPoster, setVerticalPoster] = useState<string>(
     'https://images.unsplash.com/photo-1509967419530-da38b4704bc6?auto=format&fit=crop&w=600&q=80'
   );
@@ -128,7 +128,7 @@ export const CreateShowModal: React.FC<CreateShowModalProps> = ({
                 Create New Show
               </h2>
               <p className="text-xs text-welele-muted">
-                Set title, story premise, and upload your custom 9:16 vertical poster & 16:9 hero banner.
+                Set title, story premise, and upload your custom poster & 16:9 hero banner.
               </p>
             </div>
           </div>
@@ -154,6 +154,7 @@ export const CreateShowModal: React.FC<CreateShowModalProps> = ({
               required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              spellCheck={true}
               placeholder="e.g., Crown of Kumasi, Lagos Nights, Blood Ties"
               className="w-full bg-[#14151B] px-3.5 py-2.5 rounded-[7px] border border-white/10 text-xs text-white placeholder:text-welele-muted focus:outline-none focus:border-pink-500 transition-colors"
             />
@@ -168,6 +169,7 @@ export const CreateShowModal: React.FC<CreateShowModalProps> = ({
               type="text"
               value={tagline}
               onChange={(e) => setTagline(e.target.value)}
+              spellCheck={true}
               placeholder="e.g., In this kingdom, loyalty is paid in blood."
               className="w-full bg-[#14151B] px-3.5 py-2.5 rounded-[7px] border border-white/10 text-xs text-white placeholder:text-welele-muted focus:outline-none focus:border-pink-500 transition-colors"
             />
@@ -182,6 +184,7 @@ export const CreateShowModal: React.FC<CreateShowModalProps> = ({
               rows={2}
               value={synopsis}
               onChange={(e) => setSynopsis(e.target.value)}
+              spellCheck={true}
               placeholder="What is the central conflict and world of this show?"
               className="w-full bg-[#14151B] px-3.5 py-2 rounded-[7px] border border-white/10 text-xs text-white placeholder:text-welele-muted focus:outline-none focus:border-pink-500 transition-colors"
             />
@@ -222,10 +225,10 @@ export const CreateShowModal: React.FC<CreateShowModalProps> = ({
 
           {/* DUAL ARTWORK UPLOAD ZONES */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-white/10">
-            {/* 1. 9:16 Vertical Key Art Dropzone */}
+            {/* 1. Poster Key Art Dropzone */}
             <div className="space-y-2">
               <label className="text-xs font-bold text-white flex items-center justify-between">
-                <span>9:16 Vertical Poster (Cover)</span>
+                <span>Poster (Cover)</span>
                 <span className="text-[10px] text-pink-400 font-mono">1080 × 1920</span>
               </label>
 

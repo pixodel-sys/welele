@@ -5,6 +5,7 @@ import { useChat } from '../../context/ChatContext';
 import { EpisodeDrawer } from './EpisodeDrawer';
 import { FloatingReactions } from './FloatingReactions';
 import { episodesApi, monetizationApi, telemetryApi } from '../../services/api';
+import { telemetryService } from '../../services/telemetryService';
 import confetti from 'canvas-confetti';
 import {
   Heart,
@@ -29,6 +30,8 @@ import {
   Maximize,
   Minimize,
   ChevronRight,
+  Film,
+  RotateCcw,
 } from 'lucide-react';
 import { useContentProtection } from '../../hooks/useContentProtection';
 import { mediaStore } from '../../services/mediaStore';
@@ -102,10 +105,16 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
   const [activeSubtitleText, setActiveSubtitleText] = useState<string>('');
   const [airtimeToast, setAirtimeToast] = useState<string | null>(null);
   const [resolvedVideoUrl, setResolvedVideoUrl] = useState<string>(currentEpisode?.video_url || '');
+  const [isEpisodeAvailable, setIsEpisodeAvailable] = useState<boolean>(true);
+  const [availabilityStatusLabel, setAvailabilityStatusLabel] = useState<string>('Watch Now');
   const [mediaError, setMediaError] = useState<string | null>(null);
   const [storedDbKeys, setStoredDbKeys] = useState<string[]>([]);
   const [resolvedSourceKey, setResolvedSourceKey] = useState<string>('');
   const [showDebugHud, setShowDebugHud] = useState<boolean>(true);
+
+  // Workstream 4: Playback Resumption State & Persistence Ref
+  const lastResumeSaveRef = useRef<number>(0);
+  const [resumeNotice, setResumeNotice] = useState<string | null>(null);
 
   // Welele Immersive Viewing Law: 5-second auto-hide timer for unencumbered story watching
   const [showControls, setShowControls] = useState<boolean>(true);
@@ -192,6 +201,20 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
         if (isPlaying) {
           videoRef.current.pause();
           setIsPlaying(false);
+          // Workstream 4: Immediately persist progress on pause
+          if (currentStory && currentEpisode && currentTime > 1) {
+            try {
+              localStorage.setItem(
+                `welele_resume_${currentStory.id}`,
+                JSON.stringify({
+                  seriesId: currentStory.id,
+                  episodeId: currentEpisode.id,
+                  progressTime: Math.round(currentTime),
+                  timestamp: Date.now(),
+                })
+              );
+            } catch (e) {}
+          }
         } else {
           videoRef.current.play().catch(() => {});
           setIsPlaying(true);
@@ -312,7 +335,17 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
         // ==========================================
         try {
           const streamData = await episodesApi.getStream(sId, epId, userId);
-          if (streamData && streamData.stream) {
+          if (streamData && streamData.is_available === false) {
+            setIsEpisodeAvailable(false);
+            setAvailabilityStatusLabel(streamData.status_label || 'Coming Soon');
+            finalUrl = '';
+            setResolvedVideoUrl('');
+            streamType = 'GATED_COMING_SOON';
+            mediaSource = 'episodesApi.getStream (Gated Availability)';
+            decisionReason = 'Episode is not available / in production (DRAFT_EMPTY). Gated truthfully without fallback media.';
+            setMediaError(null);
+          } else if (streamData && streamData.stream) {
+            setIsEpisodeAvailable(true);
             const streamObj = streamData.stream;
             mediaAssetId = streamData.media_asset_id || mediaAssetId;
             storageKey = streamData.storage_key || storageKey;
@@ -335,60 +368,70 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
               mediaSource = 'episodesApi.getStream (HLS)';
               decisionReason = 'Authorised canonical HLS manifest resolved from backend';
             } else {
-              finalUrl = primaryUrl || currentEpisode.video_url || '/videos/ocean_waves.mp4';
-              streamType = 'DEFAULT_CATALOG_ASSET';
-              mediaSource = 'episodesApi.getStream';
-              decisionReason = 'Canonical backend stream returned default catalog asset';
+              // Only use currentEpisode.video_url if it is an authentic verified master
+              const cand = currentEpisode.video_url;
+              if (cand && !cand.includes('placeholder') && !cand.includes('ocean_waves')) {
+                finalUrl = cand;
+                streamType = 'VERIFIED_MASTER_STREAM';
+                mediaSource = 'currentEpisode.video_url';
+                decisionReason = 'Authorised verified master stream';
+                setMediaError(null);
+              } else {
+                setIsEpisodeAvailable(false);
+                setAvailabilityStatusLabel('Coming Soon');
+                finalUrl = '';
+                streamType = 'UNVERIFIED_MASTER_GATED';
+                mediaSource = 'episodesApi.getStream';
+                decisionReason = 'Unverified / placeholder master gated truthfully without fallback media';
+                setMediaError(null);
+              }
             }
-          } else if (currentEpisode.video_url) {
+          } else if (currentEpisode.video_url && !currentEpisode.video_url.includes('placeholder') && !currentEpisode.video_url.includes('ocean_waves')) {
+            setIsEpisodeAvailable(true);
             finalUrl = currentEpisode.video_url;
-            streamType = 'CATALOG_FALLBACK_STREAM';
+            streamType = 'CATALOG_VERIFIED_STREAM';
             mediaSource = 'currentEpisode.video_url (Catalog Seed)';
-            decisionReason = 'Backend stream endpoint returned empty payload; falling back to catalog seed media';
+            decisionReason = 'Backend stream endpoint returned empty payload; using verified catalog media';
             setMediaError(null);
           } else {
-            setMediaError('Media resolution failed: Backend stream endpoint returned empty payload.');
-            decisionReason = 'Backend stream endpoint returned no stream object';
+            setIsEpisodeAvailable(false);
+            setAvailabilityStatusLabel('Coming Soon');
+            finalUrl = '';
+            streamType = 'DRAFT_EMPTY_GATED';
+            mediaSource = 'episodesApi.getStream';
+            decisionReason = 'Episode has no verified master; gated truthfully without fallback media';
+            setMediaError(null);
+            telemetryService.track({
+              event_family: 'CONTINUE',
+              event_type: 'GATED_CONTENT_PRESENTED',
+              content_id: currentEpisode.id,
+              series_id: currentStory?.id,
+              episode_id: currentEpisode.id,
+              metadata: {
+                content_state: 'UNAVAILABLE',
+                is_available: false,
+                playback_started: false,
+                reason: 'In Production • Coming Soon'
+              }
+            });
           }
         } catch (apiErr: any) {
           console.warn('[VerticalPlayer] Backend stream API unavailable (Network/Staging):', apiErr);
-          // Graceful fallback to catalog media URL or seed video asset
-          if (currentEpisode.video_url) {
+          if (currentEpisode.video_url && !currentEpisode.video_url.includes('placeholder') && !currentEpisode.video_url.includes('ocean_waves')) {
+            setIsEpisodeAvailable(true);
             finalUrl = currentEpisode.video_url;
-            streamType = 'CATALOG_FALLBACK_STREAM';
+            streamType = 'CATALOG_VERIFIED_STREAM';
             mediaSource = 'currentEpisode.video_url (Catalog Seed)';
-            decisionReason = 'Backend stream API unavailable (Network/Staging). Falling back gracefully to catalog media.';
+            decisionReason = 'Backend stream API unavailable; using verified catalog media.';
             setMediaError(null);
           } else {
-            try {
-              const cached = await mediaStore.findEpisodeMedia({
-                seriesId: sId,
-                seriesTitle: currentStory?.title,
-                episodeNumber: epNum,
-                episodeId: epId,
-                title: currentEpisode.title,
-                videoUrl: currentEpisode.video_url,
-              });
-              if (cached) {
-                finalUrl = cached;
-                streamType = 'LOCAL_INDEXED_DB_BLOB';
-                mediaSource = 'mediaStore.findEpisodeMedia';
-                decisionReason = 'Backend unavailable; resolved from local IndexedDB';
-                setMediaError(null);
-              } else {
-                finalUrl = '/videos/ocean_waves.mp4';
-                streamType = 'SEED_FALLBACK_STREAM';
-                mediaSource = 'Default Seed Video';
-                decisionReason = 'Backend unavailable; using default seed video fallback';
-                setMediaError(null);
-              }
-            } catch {
-              finalUrl = '/videos/ocean_waves.mp4';
-              streamType = 'SEED_FALLBACK_STREAM';
-              mediaSource = 'Default Seed Video';
-              decisionReason = 'Backend unavailable; using default seed video fallback';
-              setMediaError(null);
-            }
+            setIsEpisodeAvailable(false);
+            setAvailabilityStatusLabel('Coming Soon');
+            finalUrl = '';
+            streamType = 'UNAVAILABLE_GATED';
+            mediaSource = 'Network Fallback Gate';
+            decisionReason = 'Backend unavailable and no verified master exists; gated truthfully';
+            setMediaError(null);
           }
         }
       }
@@ -563,8 +606,40 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
           region_code: 'ZA',
         });
       }
+
+      // Phase 6 Authoritative Telemetry: PLAYBACK_STARTED
+      if (currentStory && currentEpisode) {
+        telemetryService.track({
+          event_family: 'WATCH',
+          event_type: 'PLAYBACK_STARTED',
+          content_id: currentEpisode.id,
+          series_id: currentStory.id,
+          episode_id: currentEpisode.id,
+          duration_seconds: currentEpisode.duration_seconds || 90.0,
+          position_seconds: 0.0,
+          source: 'VERTICAL_PLAYER'
+        });
+      }
+
+      // Phase 3A: Authoritative Paywall Presentation Telemetry (Locked Episode)
+      if (currentStory && currentEpisode && !isUnlocked) {
+        telemetryService.track({
+          event_family: 'CONTINUE',
+          event_type: 'GATED_CONTENT_PRESENTED',
+          content_id: currentEpisode.id,
+          series_id: currentStory.id,
+          episode_id: currentEpisode.id,
+          source: 'PAYWALL_LOCK_SCREEN',
+          metadata: {
+            content_state: 'LOCKED',
+            is_available: true,
+            coin_price: currentEpisode.coin_price || 5,
+            reason: 'CLIFFHANGER_PAYWALL_ENCOUNTERED'
+          }
+        });
+      }
     }
-  }, [episodeId, currentStory, userId, brandConfig]);
+  }, [episodeId, currentStory, userId, brandConfig, isUnlocked]);
 
   // Telemetry: 15s periodic heartbeat during active playback
   useEffect(() => {
@@ -591,6 +666,40 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
     const dur = videoRef.current.duration || duration;
     setCurrentTime(curr);
     setProgress((curr / dur) * 100);
+
+    // Phase 6 Bounded Milestone Telemetry (25%, 50%, 75%, 90%) with once-per-session guard
+    const pct = dur > 0 ? (curr / dur) * 100 : 0;
+    if (currentStory && currentEpisode) {
+      if (pct >= 25 && pct < 50) {
+        telemetryService.track({ event_family: 'WATCH', event_type: 'PLAYBACK_PROGRESS', content_id: currentEpisode.id, series_id: currentStory.id, episode_id: currentEpisode.id, position_seconds: curr, duration_seconds: dur, milestone_pct: 25 });
+      } else if (pct >= 50 && pct < 75) {
+        telemetryService.track({ event_family: 'WATCH', event_type: 'PLAYBACK_PROGRESS', content_id: currentEpisode.id, series_id: currentStory.id, episode_id: currentEpisode.id, position_seconds: curr, duration_seconds: dur, milestone_pct: 50 });
+      } else if (pct >= 75 && pct < 90) {
+        telemetryService.track({ event_family: 'WATCH', event_type: 'PLAYBACK_PROGRESS', content_id: currentEpisode.id, series_id: currentStory.id, episode_id: currentEpisode.id, position_seconds: curr, duration_seconds: dur, milestone_pct: 75 });
+      } else if (pct >= 90 && pct < 99) {
+        telemetryService.track({ event_family: 'WATCH', event_type: 'PLAYBACK_PROGRESS', content_id: currentEpisode.id, series_id: currentStory.id, episode_id: currentEpisode.id, position_seconds: curr, duration_seconds: dur, milestone_pct: 90 });
+      }
+
+      // Workstream 4: Throttled Playback Resumption Persistence (Every 2 seconds)
+      if (curr > 1) {
+        const now = Date.now();
+        if (!lastResumeSaveRef.current || now - lastResumeSaveRef.current > 2000) {
+          lastResumeSaveRef.current = now;
+          try {
+            localStorage.setItem(
+              `welele_resume_${currentStory.id}`,
+              JSON.stringify({
+                seriesId: currentStory.id,
+                episodeId: currentEpisode.id,
+                progressTime: Math.round(curr),
+                duration: Math.round(dur),
+                timestamp: now,
+              })
+            );
+          } catch (e) {}
+        }
+      }
+    }
 
     // Dynamic subtitle lines localized to South Africa & Pan-African languages
     if (curr < 6) {
@@ -645,7 +754,21 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
   const handleNextEpisode = () => {
     if (!currentStory || !currentEpisode) return;
     if (currentIndex < currentStory.episodes.length - 1) {
-      setCurrentEpisode(currentStory.episodes[currentIndex + 1]);
+      const nextEp = currentStory.episodes[currentIndex + 1];
+      telemetryService.track({
+        event_family: 'CONTINUE',
+        event_type: 'NEXT_EPISODE_SELECTED',
+        content_id: nextEp.id,
+        series_id: currentStory.id,
+        episode_id: nextEp.id,
+        source: 'PLAYER_NAVIGATION',
+        metadata: {
+          from_episode_id: currentEpisode.id,
+          to_episode_id: nextEp.id,
+          to_episode_number: nextEp.episode_number
+        }
+      });
+      setCurrentEpisode(nextEp);
     }
   };
 
@@ -660,6 +783,21 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
     if (!currentStory || !currentEpisode) return;
     const cost = currentEpisode.coin_price || 5;
 
+    // Phase 3A: Payment initiation telemetry
+    telemetryService.track({
+      event_family: 'PAY',
+      event_type: 'PAYMENT_INITIATED',
+      content_id: currentEpisode.id,
+      series_id: currentStory.id,
+      episode_id: currentEpisode.id,
+      source: 'VERTICAL_PLAYER_COIN_UNLOCK',
+      metadata: {
+        method: 'COINS',
+        cost,
+        balance_available: coins
+      }
+    });
+
     if (coins < cost) {
       setIsCoinModalOpen(true);
       return;
@@ -670,6 +808,17 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
       // 1. Call canonical unlock endpoint with double-entry ledger verification
       await episodesApi.unlock(currentStory.id, currentEpisode.id, userId, 'COINS');
       unlockEpisodeLocal(currentEpisode.id, cost);
+
+      // Phase 3A: Authoritative Content Unlocked Telemetry
+      telemetryService.track({
+        event_family: 'PAY',
+        event_type: 'CONTENT_UNLOCKED',
+        content_id: currentEpisode.id,
+        series_id: currentStory.id,
+        episode_id: currentEpisode.id,
+        source: 'VERTICAL_PLAYER',
+        metadata: { method: 'COINS', cost }
+      });
 
       confetti({
         particleCount: 60,
@@ -748,11 +897,42 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
   // South African 1-Tap Direct Airtime Unlock
   const handleQuickAirtimeUnlock = async () => {
     if (!currentStory || !currentEpisode) return;
+
+    // Phase 3A: Payment initiation telemetry
+    telemetryService.track({
+      event_family: 'PAY',
+      event_type: 'PAYMENT_INITIATED',
+      content_id: currentEpisode.id,
+      series_id: currentStory.id,
+      episode_id: currentEpisode.id,
+      source: 'VERTICAL_PLAYER_AIRTIME_UNLOCK',
+      metadata: {
+        method: 'AIRTIME_DCB',
+        carrier: selectedCarrier,
+        cost_zar: 3.0
+      }
+    });
+
     setIsAirtimeUnlocking(true);
 
     try {
       // 1. Deduct airtime and establish entitlement
       await quickAirtimeUnlock(currentEpisode.id, currentStory.id, 3.0, 5);
+
+      // Phase 3A: Authoritative Content Unlocked Telemetry
+      telemetryService.track({
+        event_family: 'PAY',
+        event_type: 'CONTENT_UNLOCKED',
+        content_id: currentEpisode.id,
+        series_id: currentStory.id,
+        episode_id: currentEpisode.id,
+        source: 'VERTICAL_PLAYER',
+        metadata: {
+          method: 'AIRTIME_DCB',
+          carrier: selectedCarrier,
+          cost_zar: 3.0
+        }
+      });
 
       confetti({
         particleCount: 80,
@@ -826,12 +1006,25 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
   const handleSendComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCommentText.trim() || !currentEpisode) return;
+    const text = newCommentText;
     await addComment(
       currentEpisode.id,
-      newCommentText,
+      text,
       'Sipho Dlamini',
       'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80'
     );
+    // Phase 3A: Comment engagement telemetry
+    telemetryService.track({
+      event_family: 'REACT',
+      event_type: 'COMMENT_SUBMITTED',
+      content_id: currentEpisode.id,
+      series_id: currentStory.id,
+      episode_id: currentEpisode.id,
+      source: 'VERTICAL_PLAYER_COMMENTS',
+      metadata: {
+        comment_length: text.length
+      }
+    });
     setNewCommentText('');
   };
 
@@ -893,8 +1086,38 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
         </div>
       )}
 
-      {/* Video Element & DRM Transparent Protective Shield */}
-      {isUnlocked ? (
+      {/* Video Element & DRM Transparent Protective Shield OR Truthful Gated Card */}
+      {!isEpisodeAvailable ? (
+        <div className="relative w-full h-full bg-[#0E0F12] flex flex-col items-center justify-center p-6 text-center select-none">
+          <img
+            src={currentEpisode.thumbnail_url || currentStory.cover_image}
+            alt={currentEpisode.title}
+            className="absolute inset-0 w-full h-full object-cover filter blur-md brightness-30"
+          />
+          <div className="relative z-10 max-w-xs space-y-3">
+            <div className="w-14 h-14 rounded-full bg-welele-surface border border-white/15 flex items-center justify-center mx-auto text-welele-orange shadow-xl shadow-orange-500/10">
+              <Film className="w-7 h-7" />
+            </div>
+            <span className="inline-block text-[10px] font-black uppercase tracking-widest text-welele-gold bg-amber-500/15 border border-amber-500/30 px-3 py-1 rounded-[7px]">
+              {availabilityStatusLabel} • In Production
+            </span>
+            <h3 className="text-lg font-black text-white font-cinematic">
+              Episode {currentEpisode.episode_number}: {currentEpisode.title}
+            </h3>
+            {currentEpisode.synopsis && currentEpisode.synopsis !== 'NOT_SPECIFIED' && (
+              <p className="text-xs text-welele-muted line-clamp-3">
+                {currentEpisode.synopsis}
+              </p>
+            )}
+            <button
+              onClick={() => setIsDrawerOpen(true)}
+              className="mt-4 px-4 py-2.5 rounded-[7px] bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/15 transition-all cursor-pointer"
+            >
+              Browse Episodes Index
+            </button>
+          </div>
+        </div>
+      ) : isUnlocked ? (
         <div className="relative w-full h-full bg-black overflow-hidden">
           {/* Welele Brand Ident Overlay (GAP-002 Brand Identity) */}
           {isIdentPlaying && (
@@ -961,6 +1184,30 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
             onContextMenu={(e) => e.preventDefault()}
             onDragStart={(e) => e.preventDefault()}
             onTimeUpdate={handleTimeUpdate}
+            onLoadedMetadata={() => {
+              // Workstream 4: Restore playback position on load if saved
+              if (currentStory && currentEpisode) {
+                try {
+                  const saved = localStorage.getItem(`welele_resume_${currentStory.id}`);
+                  if (saved) {
+                    const parsed = JSON.parse(saved);
+                    if (
+                      parsed.episodeId === currentEpisode.id &&
+                      parsed.progressTime > 3 &&
+                      videoRef.current &&
+                      parsed.progressTime < (videoRef.current.duration || 80) - 5
+                    ) {
+                      videoRef.current.currentTime = parsed.progressTime;
+                      setCurrentTime(parsed.progressTime);
+                      const mins = Math.floor(parsed.progressTime / 60);
+                      const secs = (parsed.progressTime % 60).toString().padStart(2, '0');
+                      setResumeNotice(`Resumed at ${mins}:${secs}`);
+                      setTimeout(() => setResumeNotice(null), 3000);
+                    }
+                  }
+                } catch (e) {}
+              }
+            }}
             onPlay={() => setMediaError(null)}
             onError={(e) => {
               const err = e.currentTarget.error;
@@ -1065,6 +1312,14 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
               <span>DRM ENCRYPTED</span>
             </div>
           )}
+
+          {/* Workstream 4: Playback Resumed HUD Notice */}
+          {resumeNotice && (
+            <div className="absolute top-14 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/85 backdrop-blur-md border border-[#FF6500]/60 text-white text-[11px] font-bold shadow-2xl animate-fade-in pointer-events-none">
+              <RotateCcw className="w-3.5 h-3.5 text-[#FF6500] animate-spin-reverse" />
+              <span>{resumeNotice}</span>
+            </div>
+          )}
         </div>
       ) : (
         /* Locked Episode Paywall Overlay with South African Airtime Customisation */
@@ -1162,11 +1417,8 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
               className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-welele-orange object-cover shrink-0"
             />
             <div className="min-w-0">
-              <h4 className="text-xs font-bold text-white leading-tight flex items-center gap-1.5 truncate">
-                <span className="truncate">{currentStory.title}</span>
-                <span className="text-[9px] px-1.5 py-0.2 rounded bg-welele-orange/20 text-welele-orange border border-welele-orange/30 shrink-0">
-                  EP {currentEpisode.episode_number}/{currentStory.episodes?.length || currentStory.total_episodes || 1}
-                </span>
+              <h4 className="text-xs font-bold text-white leading-tight truncate">
+                {currentStory.title}
               </h4>
               <p className="text-[10px] text-welele-muted truncate max-w-[130px] sm:max-w-[150px]">
                 by {currentStory.creator_name}
@@ -1279,10 +1531,16 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
         </div>
       )}
 
-      {/* Subtitles Overlay (Cinematic Bottom-Center with Comfortable Padding above Progress Bar) */}
+      {/* Subtitles Overlay (Cinematic Bottom-Center, shown during clean immersive viewing) */}
       {!isIdentPlaying && isUnlocked && activeSubtitleText && (
-        <div className="absolute bottom-5 left-4 right-4 z-20 pointer-events-none flex justify-center text-center">
-          <span className="inline-block max-w-[92%] px-3.5 py-1.5 rounded-[7px] bg-black/85 backdrop-blur-md text-white text-xs font-medium leading-relaxed border border-white/10 shadow-2xl drop-shadow-md">
+        <div
+          className={`absolute bottom-5 left-4 right-4 z-20 pointer-events-none flex justify-center text-center transition-all duration-500 ease-in-out ${
+            !showControls
+              ? 'opacity-100 translate-y-0'
+              : 'opacity-0 translate-y-2 pointer-events-none'
+          }`}
+        >
+          <span className="inline-block max-w-[92%] px-3.5 py-1.5 rounded-[7px] bg-black/90 backdrop-blur-md text-white text-xs font-medium leading-relaxed border border-white/10 shadow-2xl drop-shadow-md">
             {activeSubtitleText}
           </span>
         </div>
@@ -1391,11 +1649,11 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
         </div>
       )}
 
-      {/* Up/Down Episode Switchers (Immersive 5s Auto-Fade) */}
+      {/* Up/Down Episode Switchers (Shown during clean immersive viewing when other controls auto-fade) */}
       {!isIdentPlaying && (
         <div
           className={`absolute right-3 top-18 z-20 flex flex-col gap-2 pointer-events-auto transition-all duration-500 ease-in-out ${
-            showControls
+            !showControls
               ? 'opacity-100 pointer-events-auto translate-x-0'
               : 'opacity-0 pointer-events-none translate-x-3'
           }`}

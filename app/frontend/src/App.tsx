@@ -12,15 +12,43 @@ import { HomeScreen } from './components/viewer/HomeScreen';
 import { DiscoverScreen } from './components/viewer/DiscoverScreen';
 import { VerticalPlayer } from './components/viewer/VerticalPlayer';
 import { ProfileScreen } from './components/viewer/ProfileScreen';
-import { CreatorStudioShell } from './components/creator/CreatorStudioShell';
-import { CreatorStudioGate } from './components/creator/CreatorStudioGate';
-import { AdminDashboard } from './components/admin/AdminDashboard';
-import { AdminGate } from './components/admin/AdminGate';
 import { Story, Episode } from './types';
 import { Bookmark, Play, Star, Lock } from 'lucide-react';
 import { useContentProtection } from './hooks/useContentProtection';
+import { useSeoHead } from './hooks/useSeoHead';
+import { telemetryService } from './services/telemetryService';
+
+// Route-level lazy loading for operational surfaces to optimize initial viewer bundle
+const CreatorStudioShell = React.lazy(() =>
+  import('./components/creator/CreatorStudioShell').then((m) => ({ default: m.CreatorStudioShell }))
+);
+const CreatorStudioGate = React.lazy(() =>
+  import('./components/creator/CreatorStudioGate').then((m) => ({ default: m.CreatorStudioGate }))
+);
+const ProductionRoom = React.lazy(() =>
+  import('./components/production/ProductionRoom').then((m) => ({ default: m.ProductionRoom }))
+);
+const ProductionGate = React.lazy(() =>
+  import('./components/production/ProductionGate').then((m) => ({ default: m.ProductionGate }))
+);
+const AdminDashboard = React.lazy(() =>
+  import('./components/admin/AdminDashboard').then((m) => ({ default: m.AdminDashboard }))
+);
+const AdminGate = React.lazy(() =>
+  import('./components/admin/AdminGate').then((m) => ({ default: m.AdminGate }))
+);
+
+const ModeLoadingFallback: React.FC = () => (
+  <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-3">
+    <div className="w-8 h-8 border-2 border-welele-orange border-t-transparent rounded-full animate-spin" />
+    <span className="text-xs text-welele-muted font-bold tracking-wider uppercase">Loading Workspace...</span>
+  </div>
+);
 
 export const App: React.FC = () => {
+  const appRenderCount = React.useRef<number>(0);
+  appRenderCount.current += 1;
+
   const {
     mode,
     setMode,
@@ -34,13 +62,19 @@ export const App: React.FC = () => {
     userId,
   } = useApp();
 
+  console.debug(
+    `[App Instrumentation] Render #${appRenderCount.current} | showSplash=${showSplash} | mode='${mode}' | stories=${stories.length}`
+  );
+
   // Sync URL Path with Operational Surface
   useEffect(() => {
     const handleLocation = () => {
       const path = window.location.pathname.toLowerCase();
       const params = new URLSearchParams(window.location.search);
       const portal = params.get('portal');
-      if (path === '/creator' || path.startsWith('/creator/') || portal === 'creator') {
+      if (path === '/production' || path.startsWith('/production/') || portal === 'production') {
+        setMode('production');
+      } else if (path === '/creator' || path.startsWith('/creator/') || portal === 'creator') {
         setMode('creator');
       } else if (path === '/admin' || path.startsWith('/admin/') || portal === 'admin') {
         setMode('admin');
@@ -50,22 +84,119 @@ export const App: React.FC = () => {
     };
     handleLocation();
     window.addEventListener('popstate', handleLocation);
+    // Phase 3A: Track initial APP_OPEN
+    telemetryService.trackAppOpen();
     return () => window.removeEventListener('popstate', handleLocation);
   }, [setMode]);
 
+  // Right-click / DRM protection is strictly scoped to the Viewer section.
+  // Admin and Production (and Creator) sections have standard browser context menus enabled for workflow & spellcheck.
+  const isViewerMode = mode === 'viewer';
+
   const { isSecurityAlertActive, securityMessage } = useContentProtection({
-    enabled: true,
+    enabled: isViewerMode,
     watermarkText: `Welele DRM • ${userId || 'ZA_STREAM'}`,
   });
+
+  // Enable native browser spell-checking across all creator/admin text inputs and textareas
+  useEffect(() => {
+    if (mode === 'viewer') return;
+
+    const enableSpellCheck = () => {
+      const editableFields = document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
+        'input[type="text"], input:not([type]), textarea'
+      );
+      editableFields.forEach((field) => {
+        if (!field.hasAttribute('spellcheck') || field.getAttribute('spellcheck') === 'false') {
+          field.setAttribute('spellcheck', 'true');
+        }
+      });
+    };
+
+    enableSpellCheck();
+    const observer = new MutationObserver(() => {
+      enableSpellCheck();
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, [mode]);
 
   const [activeViewerTab, setActiveViewerTab] = useState<'home' | 'discover' | 'foryou' | 'mylist' | 'profile'>('home');
   const [isWatchingFullscreen, setIsWatchingFullscreen] = useState<boolean>(false);
 
-  const handleOpenPlayer = (story: Story, episode: Episode) => {
+  const handleOpenPlayer = (story: Story, episode?: Episode) => {
     setCurrentStory(story);
-    setCurrentEpisode(episode);
+    let targetEpisode = episode;
+    if (!targetEpisode && story.episodes && story.episodes.length > 0) {
+      try {
+        const saved = localStorage.getItem(`welele_resume_${story.id}`);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          const found = story.episodes.find((e) => e.id === parsed.episodeId);
+          if (found) targetEpisode = found;
+        }
+      } catch (e) {}
+      if (!targetEpisode) targetEpisode = story.episodes[0];
+    }
+    setCurrentEpisode(targetEpisode || null);
     setIsWatchingFullscreen(true);
   };
+
+  const handleSplashComplete = React.useCallback(() => {
+    setShowSplash(false);
+  }, [setShowSplash]);
+
+  // Dynamic SEO metadata based on current operating surface & viewer tab
+  const getSeoMetadata = () => {
+    if (mode === 'creator') {
+      return {
+        title: 'Creator Studio | Welele™ Creator OS',
+        description: 'Publish, script, and monetize high-impact African micro-dramas with the Welele Creator Studio.',
+        url: '/creator',
+      };
+    }
+    if (mode === 'production') {
+      return {
+        title: 'Production Room & Story Forge | Welele™',
+        description: 'AI-augmented African narrative engineering and story packaging workflow.',
+        url: '/production',
+      };
+    }
+    if (mode === 'admin') {
+      return {
+        title: 'Enterprise Control Plane | Welele™ Admin',
+        description: 'Operations, catalog governance, and creator payout management.',
+        url: '/admin',
+      };
+    }
+    if (activeViewerTab === 'discover') {
+      return {
+        title: 'Discover African Micro-Dramas | Welele™',
+        description: 'Explore trending South African dramas, Nollywood romances, township thrillers, and comedies in 1-minute episodes.',
+        url: '/discover',
+      };
+    }
+    if (activeViewerTab === 'mylist') {
+      return {
+        title: 'My Saved Stories | Welele™',
+        description: 'Your personal bookmarked African micro-drama watchlist on Welele.',
+        url: '/mylist',
+      };
+    }
+    return {
+      title: 'Welele™ | Stories That Move You',
+      description: "Africa's premier vertical micro-drama storytelling platform. Binge 1-minute African drama series anytime, anywhere.",
+      url: '/',
+    };
+  };
+
+  const seoMeta = getSeoMetadata();
+  useSeoHead({
+    title: seoMeta.title,
+    description: seoMeta.description,
+    url: seoMeta.url,
+  });
 
   const bookmarkedStories = stories.filter((s) => bookmarks.has(s.id));
 
@@ -84,7 +215,7 @@ export const App: React.FC = () => {
       </div>
 
       {/* Animated Brand Splash Screen on Initial App Load */}
-      {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} durationMs={2400} />}
+      {showSplash && <SplashScreen onComplete={handleSplashComplete} durationMs={2400} />}
 
       {/* Content Protection Padlock Indicator */}
       {isSecurityAlertActive && (
@@ -178,20 +309,35 @@ export const App: React.FC = () => {
 
         {/* MODE: CREATOR STUDIO (Creator Operating System: /creator) */}
         {mode === 'creator' && (
-          user?.role === 'creator' || user?.role === 'admin' ? (
-            <CreatorStudioShell />
-          ) : (
-            <CreatorStudioGate />
-          )
+          <React.Suspense fallback={<ModeLoadingFallback />}>
+            {user?.role === 'creator' || user?.role === 'admin' ? (
+              <CreatorStudioShell />
+            ) : (
+              <CreatorStudioGate />
+            )}
+          </React.Suspense>
+        )}
+
+        {/* MODE: PRODUCTION ROOM (Story Forge & Narrative Packaging: /production) */}
+        {mode === 'production' && (
+          <React.Suspense fallback={<ModeLoadingFallback />}>
+            {user?.role === 'admin' ? (
+              <ProductionRoom />
+            ) : (
+              <ProductionGate />
+            )}
+          </React.Suspense>
         )}
 
         {/* MODE: ADMIN CONSOLE (Enterprise Control Plane: /admin) */}
         {mode === 'admin' && (
-          user?.role === 'admin' ? (
-            <AdminDashboard />
-          ) : (
-            <AdminGate />
-          )
+          <React.Suspense fallback={<ModeLoadingFallback />}>
+            {user?.role === 'admin' ? (
+              <AdminDashboard />
+            ) : (
+              <AdminGate />
+            )}
+          </React.Suspense>
         )}
       </main>
 

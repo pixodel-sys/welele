@@ -1,6 +1,6 @@
 """
 Welele Media™ — Live Supabase PostgreSQL Seeding Script
-Populates Users, Creators, 9:16 Vertical Series, Episodes, and Wallets directly to Supabase with valid PostgreSQL UUIDs.
+Populates Users, Creators, Vertical Series, Episodes, and Wallets directly to Supabase with valid PostgreSQL UUIDs.
 """
 
 import os

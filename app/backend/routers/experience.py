@@ -57,6 +57,10 @@ def preview_page_experience(
             raise HTTPException(status_code=400, detail="Invalid ISO 8601 simulated_time format.")
 
     manifest = ExperienceEngine.resolve_manifest(page_id=page_id, state=state, eval_time=eval_dt)
+    if not manifest:
+        manifest = ExperienceEngine.resolve_manifest(page_id=page_id, state="published", eval_time=eval_dt)
+    if not manifest:
+        manifest = ExperienceEngine.get_default_home_manifest()
     return manifest
 
 @router.put("/page/{page_id}/draft", dependencies=[Depends(require_role(["admin"]))])
@@ -72,7 +76,10 @@ def save_page_draft(page_id: str, request: SaveDraftRequest, auth_user: dict = D
     current_draft["status"] = "draft"
     current_draft["updated_at"] = now_ts
 
-    ExperienceEngine.save_layout(current_draft)
+    try:
+        ExperienceEngine.save_layout(current_draft)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
 
     audit_service.record_trust_event(
         domain="EXPERIENCE",
@@ -109,7 +116,10 @@ def publish_page_experience(page_id: str, request: Optional[PublishRequest] = No
         "updated_at": now_ts
     }
 
-    ExperienceEngine.save_layout(live_manifest)
+    try:
+        ExperienceEngine.save_layout(live_manifest)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=f"Cannot publish invalid layout: {e}")
 
     audit_service.record_trust_event(
         domain="EXPERIENCE",
