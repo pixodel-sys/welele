@@ -1,8 +1,9 @@
 from typing import Optional, List, Dict, Any
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from schemas.ai_schemas import SubtitleRequest, SubtitleResponse, AnalyzeVideoRequest, AnalyzeVideoResponse
 from services.ai_service import ai_service
+from services.rbac_service import require_authenticated_user
 
 router = APIRouter(prefix="/ai", tags=["Welele AI™"])
 
@@ -21,14 +22,14 @@ def get_ai_status():
     """Returns real-time status of live Google Gemini connection vs offline simulation fallback."""
     return ai_service.get_status()
 
-@router.post("/subtitles", response_model=SubtitleResponse)
+@router.post("/subtitles", response_model=SubtitleResponse, dependencies=[Depends(require_authenticated_user)])
 def generate_subtitles(req: SubtitleRequest):
     return ai_service.generate_subtitles(
         video_url=req.video_url,
         target_languages=req.target_languages
     )
 
-@router.post("/analyze-video", response_model=AnalyzeVideoResponse)
+@router.post("/analyze-video", response_model=AnalyzeVideoResponse, dependencies=[Depends(require_authenticated_user)])
 def analyze_video(req: AnalyzeVideoRequest):
     return ai_service.analyze_video_content(
         video_url=req.video_url,
@@ -36,7 +37,7 @@ def analyze_video(req: AnalyzeVideoRequest):
         synopsis=req.synopsis
     )
 
-@router.post("/story-forge/generate")
+@router.post("/story-forge/generate", dependencies=[Depends(require_authenticated_user)])
 def generate_story_forge_script(req: StoryForgeGenerateRequest):
     return ai_service.generate_story_forge_script(
         genre=req.genre,
@@ -45,7 +46,7 @@ def generate_story_forge_script(req: StoryForgeGenerateRequest):
         language=req.language or "English"
     )
 
-@router.post("/story-forge/translate")
+@router.post("/story-forge/translate", dependencies=[Depends(require_authenticated_user)])
 def translate_story_forge_dialogue(req: StoryForgeTranslateRequest):
     return ai_service.translate_dialogue(
         line=req.line,

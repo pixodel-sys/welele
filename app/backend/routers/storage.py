@@ -4,9 +4,10 @@ Direct Presigned Upload URL generation for S3 / Cloudflare R2 / Supabase Storage
 """
 
 from typing import Optional, Dict, Any, List
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends
 from pydantic import BaseModel
 from services.storage_service import storage_service
+from services.rbac_service import require_role
 
 router = APIRouter(prefix="/storage", tags=["Cloud Storage & Video Delivery (Pillar 4)"])
 
@@ -18,7 +19,7 @@ class BinaryUploadResponse(BaseModel):
     content_type: str
     provider: str
 
-@router.post("/upload-binary", response_model=BinaryUploadResponse)
+@router.post("/upload-binary", response_model=BinaryUploadResponse, dependencies=[Depends(require_role(["creator", "admin"]))])
 async def upload_binary_master(
     file: UploadFile = File(...),
     series_id: str = Form(...),
@@ -84,7 +85,7 @@ class RenditionsResponse(BaseModel):
     aspect_ratio: str
     renditions: List[HlsRendition]
 
-@router.post("/presigned-upload-url", response_model=PresignedUploadResponse)
+@router.post("/presigned-upload-url", response_model=PresignedUploadResponse, dependencies=[Depends(require_role(["creator", "admin"]))])
 def get_presigned_upload_url(req: PresignedUploadRequest):
     """
     Generates an authorized pre-signed upload URL for direct S3/R2 video asset ingestion.

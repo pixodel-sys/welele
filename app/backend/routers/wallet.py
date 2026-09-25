@@ -4,16 +4,17 @@ Handles user coin balances, purchase packs, gift transfers, and double-entry tra
 """
 
 from typing import Optional
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from pydantic import BaseModel
 from services.ledger_service import ledger_service
 from services.payment_service import payment_service
+from services.rbac_service import require_authenticated_user, get_current_user
 from database import db
 
 router = APIRouter(prefix="/wallet", tags=["Wallet & Ledger"])
 
 class SendGiftPayload(BaseModel):
-    user_id: str
+    user_id: Optional[str] = None
     creator_id: str
     series_id: str
     episode_id: str
@@ -24,11 +25,20 @@ class SendGiftPayload(BaseModel):
     message: Optional[str] = ""
 
 @router.get("/balance")
-def get_wallet_balance(user_id: str = Query(..., description="User ID")):
-    wallet = ledger_service.get_or_create_wallet(user_id)
-    balance = ledger_service.get_balance(user_id)
+def get_wallet_balance(
+    user_id: Optional[str] = Query(None, description="Optional User ID for admins"),
+    auth_user: dict = Depends(require_authenticated_user)
+):
+    target_user_id = auth_user["sub"]
+    if user_id and auth_user.get("role") == "admin":
+        target_user_id = user_id
+    elif user_id and user_id != auth_user["sub"]:
+        raise HTTPException(status_code=403, detail="Forbidden: You cannot inspect another user's wallet balance.")
+
+    wallet = ledger_service.get_or_create_wallet(target_user_id)
+    balance = ledger_service.get_balance(target_user_id)
     return {
-        "user_id": user_id,
+        "user_id": target_user_id,
         "coin_balance": balance["coin_balance"],
         "bonus_coins": balance["bonus_coins"],
         "total_usable_coins": balance["total_usable_coins"],
@@ -37,13 +47,20 @@ def get_wallet_balance(user_id: str = Query(..., description="User ID")):
 
 @router.get("/ledger")
 def get_coin_ledger_history(
-    user_id: str = Query(..., description="User ID"),
-    limit: int = Query(50, description="Max entries")
+    user_id: Optional[str] = Query(None, description="Optional User ID for admins"),
+    limit: int = Query(50, description="Max entries"),
+    auth_user: dict = Depends(require_authenticated_user)
 ):
     """Returns immutable double-entry audit history of all coin movements for the user."""
-    history = ledger_service.get_ledger_history(user_id, limit=limit)
+    target_user_id = auth_user["sub"]
+    if user_id and auth_user.get("role") == "admin":
+        target_user_id = user_id
+    elif user_id and user_id != auth_user["sub"]:
+        raise HTTPException(status_code=403, detail="Forbidden: You cannot view another user's financial ledger.")
+
+    history = ledger_service.get_ledger_history(target_user_id, limit=limit)
     return {
-        "user_id": user_id,
+        "user_id": target_user_id,
         "total_entries": len(history),
         "ledger": history
     }
@@ -63,10 +80,18 @@ def get_available_coin_packs(region: Optional[str] = "ZA"):
     }
 
 @router.post("/gifts/send")
-def send_virtual_gift(req: SendGiftPayload):
+def send_virtual_gift(
+    req: SendGiftPayload,
+    auth_user: dict = Depends(require_authenticated_user)
+):
     """Deducts coins from user wallet, credits creator earnings, and records double-entry ledger."""
+    # Strict IDOR defense: Always bind debit to the authenticated caller's identity
+    acting_user_id = auth_user["sub"]
+    if req.user_id and req.user_id != acting_user_id and auth_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Forbidden: Cannot spend coins from another user's account.")
+
     success, msg, ledger_entry = ledger_service.debit_coins(
-        user_id=req.user_id,
+        user_id=acting_user_id,
         amount=req.coin_cost,
         transaction_type="GIFT_SENT",
         reference_id=req.gift_id,
@@ -85,7 +110,7 @@ def send_virtual_gift(req: SendGiftPayload):
 
     gift_record = {
         "id": f"gift_{req.gift_id}",
-        "user_id": req.user_id,
+        "user_id": acting_user_id,
         "creator_id": req.creator_id,
         "series_id": req.series_id,
         "episode_id": req.episode_id,
@@ -96,7 +121,7 @@ def send_virtual_gift(req: SendGiftPayload):
     }
     db.insert("gifts", gift_record)
 
-    balance = ledger_service.get_balance(req.user_id)
+    balance = ledger_service.get_balance(acting_user_id)
     return {
         "success": True,
         "message": f"Sent {req.gift_name} {req.gift_icon}!",

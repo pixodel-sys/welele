@@ -57,14 +57,14 @@ export const authApi = {
     }
     return res.data;
   },
-  creatorLogin: async (creator_id = 'creator_zola', studio_pin = '1234') => {
+  creatorLogin: async (creator_id: string, studio_pin?: string) => {
     const res = await API.post('/auth/creator/login', { creator_id, studio_pin });
     if (res.data?.access_token) {
       localStorage.setItem('welele_auth_token', res.data.access_token);
     }
     return res.data;
   },
-  adminLogin: async (admin_key = 'admin_master_welele_2026', two_factor_code = '999888') => {
+  adminLogin: async (admin_key: string, two_factor_code?: string) => {
     const res = await API.post('/auth/admin/login', { admin_key, two_factor_code });
     if (res.data?.access_token) {
       localStorage.setItem('welele_auth_token', res.data.access_token);

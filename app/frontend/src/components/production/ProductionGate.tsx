@@ -16,7 +16,7 @@ export const ProductionGate: React.FC = () => {
     setIsLoading(true);
     setErrorMessage(null);
     try {
-      const res = await authApi.adminLogin();
+      const res = await authApi.adminLogin(adminKey, twoFaCode);
       setIsLoading(false);
       login({
         id: res.user?.id || 'admin_supervisor',
