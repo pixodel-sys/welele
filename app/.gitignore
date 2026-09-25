@@ -42,6 +42,13 @@ htmlcov/
 backend/media_storage/
 media_storage/
 
+# Runtime application data (ephemeral — source code != runtime evidence)
+# welele_store.json is the live backend event store. It is written to continuously
+# at runtime and must never be committed. Fixtures and named snapshots in
+# backend/data/ remain tracked — only the live store is excluded.
+backend/data/welele_store.json
+backend/data/.welele_store_*.tmp
+
 # Scratch & Debug artifacts
 scratch/
 backend/scratch/

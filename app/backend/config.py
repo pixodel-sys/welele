@@ -20,8 +20,7 @@ class Settings:
         "http://127.0.0.1:3000",
         "https://staging.welele-staging.pages.dev",
         "https://welele.pages.dev",
-        "https://welele.media",
-        "*"
+        "https://welele.media"
     ]
     DATA_FILE: str = os.path.join(os.path.dirname(__file__), "data", "welele_store.json")
 
@@ -29,6 +28,12 @@ class Settings:
     SUPABASE_URL: str = os.getenv("SUPABASE_URL") or os.getenv("NEXT_PUBLIC_SUPABASE_URL") or ""
     SUPABASE_KEY: str = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_KEY") or os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY") or ""
     SUPABASE_ANON_KEY: str = os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY") or os.getenv("SUPABASE_ANON_KEY") or ""
+    SUPABASE_JWT_SECRET: str = os.getenv("SUPABASE_JWT_SECRET") or os.getenv("JWT_SECRET") or ""
+    JWT_SECRET: str = os.getenv("JWT_SECRET") or SUPABASE_JWT_SECRET or ("dev_secret_insecure_local_only" if ENVIRONMENT.lower() not in ("staging", "production", "prod") else "")
+
+    # Security & Administration
+    ADMIN_MASTER_KEY: str = os.getenv("ADMIN_MASTER_KEY", "")
+    ADMIN_2FA_CODE: str = os.getenv("ADMIN_2FA_CODE", "")
 
     # Cloud Object Storage (Pillar 4 / Cloudflare R2)
     CDN_BASE_URL: str = os.getenv("CDN_BASE_URL", "https://cdn.welele.media").rstrip("/")

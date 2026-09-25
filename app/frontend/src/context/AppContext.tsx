@@ -181,26 +181,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const switchRole = async (targetRole: 'viewer' | 'creator' | 'admin') => {
     try {
       if (targetRole === 'admin') {
-        const res = await authApi.adminLogin();
-        login({
-          id: res.user?.id || 'usr_admin_supervisor',
-          name: res.user?.name || 'Welele Operations Admin',
-          role: 'admin',
-          permissions: ['*'],
-          token: res?.access_token
-        });
-        setModeState('admin');
+        setIsAuthModalOpen(true);
       } else if (targetRole === 'creator') {
-        const res = await authApi.creatorLogin('creator_zola', '1234');
-        login({
-          id: res.user?.id || 'usr_creator_zola',
-          name: res.user?.name || 'Zola Dlamini',
-          role: 'creator',
-          creator_id: 'creator_zola',
-          permissions: ['series:create', 'episode:upload', 'ai:storyforge:execute', 'analytics:read:own'],
-          token: res?.access_token
-        });
-        setModeState('creator');
+        setIsAuthModalOpen(true);
       } else {
         const res = await authApi.guestLogin(market);
         login({

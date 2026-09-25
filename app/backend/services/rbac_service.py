@@ -17,7 +17,7 @@ from services.audit_service import audit_service
 
 security = HTTPBearer(auto_error=False)
 
-JWT_SECRET = getattr(settings, "JWT_SECRET", "welele_production_jwt_secret_key_2026_za_pan_africa")
+JWT_SECRET = settings.JWT_SECRET or settings.SUPABASE_JWT_SECRET or "welele_dev_secret_key_local_only"
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_SECONDS = 60 * 60 * 24 * 7  # 7 Days
 
@@ -122,9 +122,18 @@ def verify_access_token(token: str) -> Dict[str, Any]:
         
         header_b64, payload_b64, sig_b64 = parts
         message = f"{header_b64}.{payload_b64}".encode('utf-8')
-        expected_sig = hmac.new(JWT_SECRET.encode('utf-8'), message, hashlib.sha256).digest()
+        sig_bytes = _b64_decode(sig_b64)
         
-        if not hmac.compare_digest(_b64_decode(sig_b64), expected_sig):
+        # Check against primary JWT_SECRET and fallback SUPABASE_JWT_SECRET
+        valid = False
+        for secret in [JWT_SECRET, settings.SUPABASE_JWT_SECRET]:
+            if secret:
+                expected_sig = hmac.new(secret.encode('utf-8'), message, hashlib.sha256).digest()
+                if hmac.compare_digest(sig_bytes, expected_sig):
+                    valid = True
+                    break
+        
+        if not valid:
             audit_service.record_trust_event(
                 domain="SECURITY",
                 event_type="security.signature_failure",
@@ -151,6 +160,16 @@ def verify_access_token(token: str) -> Dict[str, Any]:
             )
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has expired")
         
+        # Normalize Supabase JWT claims
+        app_metadata = payload.get("app_metadata") or {}
+        role = app_metadata.get("role") or payload.get("role", "viewer")
+        creator_id = app_metadata.get("creator_id") or payload.get("creator_id")
+        payload["role"] = role
+        if creator_id:
+            payload["creator_id"] = creator_id
+        if "permissions" not in payload:
+            payload["permissions"] = ROLE_PERMISSIONS.get(role, ROLE_PERMISSIONS["viewer"])
+            
         return payload
     except HTTPException:
         raise

@@ -11,7 +11,7 @@ from repositories.ledger_repository import ledger_repository
 from repositories.series_repository import series_repository
 from services.storage_service import storage_service
 from services.ledger_service import ledger_service
-from services.rbac_service import require_role, get_current_user, enforce_tenant_access
+from services.rbac_service import require_role, get_current_user, enforce_tenant_access, require_authenticated_user
 from services.audit_service import audit_service
 
 router = APIRouter(prefix="/episodes", tags=["Episodes & Streaming"])
@@ -156,9 +156,10 @@ def get_episode_stream(
 def unlock_episode(
     series_id: str,
     episode_id: str,
-    user_id: str = Query(..., description="User ID"),
-    method: str = Query("COINS", description="Unlock method: COINS, AIRTIME_DCB, VIP_PASS")
+    method: str = Query("COINS", description="Unlock method: COINS, AIRTIME_DCB, VIP_PASS"),
+    auth_user: dict = Depends(require_authenticated_user)
 ):
+    user_id = auth_user["sub"]
     all_episodes = series_repository.local_get("episodes")
     all_series = series_repository.local_get("series")
     story = next((s for s in all_series if s["id"] == series_id), None)
@@ -178,6 +179,36 @@ def unlock_episode(
             status_code=400,
             detail="Cannot purchase or unlock an archived episode. This content has been retired from circulation."
         )
+
+    # Entitlement Verification for non-COINS unlock methods
+    if method == "VIP_PASS":
+        # Verify user has an active completed VIP pass
+        transactions = db.get("transactions") + db.get("payment_transactions")
+        has_active_pass = any(
+            t.get("user_id") == user_id and 
+            t.get("status") == "COMPLETED" and 
+            ("pass" in str(t.get("type", "")).lower() or "pass" in str(t.get("charge_type", "")).lower())
+            for t in transactions
+        )
+        if not has_active_pass and auth_user.get("role") != "admin":
+            raise HTTPException(
+                status_code=402,
+                detail="Payment required: No active VIP subscription pass verified for this account."
+            )
+    elif method == "AIRTIME_DCB":
+        # Verify carrier airtime transaction was settled for this episode
+        transactions = db.get("transactions") + db.get("payment_transactions")
+        has_settled_tx = any(
+            t.get("user_id") == user_id and
+            t.get("target_id") == episode_id and
+            t.get("status") == "COMPLETED"
+            for t in transactions
+        )
+        if not has_settled_tx and auth_user.get("role") != "admin":
+            raise HTTPException(
+                status_code=402,
+                detail="Payment required: Direct carrier billing payment not confirmed for this episode."
+            )
 
     coin_price = episode.get("coin_price", 5) if method == "COINS" else 0
     success, message, unlock_record = ledger_service.unlock_episode(

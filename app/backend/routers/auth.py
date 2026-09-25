@@ -37,27 +37,31 @@ class GuestAuthRequest(BaseModel):
     region_code: Optional[str] = "ZA"
 
 class CreatorLoginRequest(BaseModel):
-    creator_id: Optional[str] = "creator_zola"
-    studio_pin: Optional[str] = "1234"
+    creator_id: str
+    studio_pin: Optional[str] = None
     email: Optional[str] = None
     password: Optional[str] = None
 
 class AdminLoginRequest(BaseModel):
-    admin_key: Optional[str] = "admin_master_welele_2026"
+    admin_key: str
     email: Optional[str] = "ops@welele.media"
-    two_factor_code: Optional[str] = "999888"
+    two_factor_code: Optional[str] = None
 
 @router.post("/phone/send-otp")
 def send_phone_otp(req: PhoneAuthRequest):
-    """Generates and dispatches a 4-digit SMS OTP for frictionless carrier/phone login."""
-    demo_otp = "5542"
-    return {
+    """Generates and dispatches a cryptographically random SMS OTP for phone login."""
+    import secrets
+    otp = f"{secrets.randbelow(9000) + 1000}"
+    resp = {
         "status": "success",
         "message": f"OTP sent to {req.phone_number}",
         "phone_number": req.phone_number,
-        "region_code": req.region_code,
-        "demo_hint": f"Use OTP: {demo_otp}"
+        "region_code": req.region_code
     }
+    # Only reveal test OTP hint if explicitly in local development non-prod mode
+    if not settings.IS_PRODUCTION_OR_STAGING:
+        resp["demo_hint"] = f"Dev mode OTP: {otp}"
+    return resp
 
 @router.post("/phone/verify-otp")
 def verify_phone_otp(req: VerifyOtpRequest):
@@ -144,12 +148,27 @@ def guest_login(req: GuestAuthRequest):
 @router.post("/creator/login")
 def creator_login(req: CreatorLoginRequest):
     """Authenticates an African Showrunner / Production Studio account and issues a ROLE_CREATOR JWT."""
-    creator_id = req.creator_id or "creator_zola"
+    creator_id = req.creator_id
+    if not creator_id:
+        raise HTTPException(status_code=400, detail="Creator ID is required")
+        
+    creators = db.get("creators")
+    creator = next((c for c in creators if c.get("id") == creator_id), None)
     
-    # Check studio PIN / pass
-    is_pin_valid = (req.studio_pin == "1234")
-    is_pass_valid = (req.password == "welele_studio_pass_2026")
-    if not (is_pin_valid or is_pass_valid):
+    # Secure check: Verify against stored studio PIN/pass or configured studio key
+    expected_pin = creator.get("studio_pin") if creator else None
+    configured_key = os.getenv("CREATOR_STUDIO_KEY")
+    
+    is_valid = False
+    if expected_pin and req.studio_pin and req.studio_pin == expected_pin:
+        is_valid = True
+    elif configured_key and req.password and req.password == configured_key:
+        is_valid = True
+    elif not settings.IS_PRODUCTION_OR_STAGING and (req.studio_pin == "1234" or req.password == "welele_dev_pass"):
+        # Explicitly allowed ONLY in non-staging local development mock environments
+        is_valid = True
+
+    if not is_valid:
         audit_service.record_trust_event(
             domain="AUTH",
             event_type="auth.failed_login",
@@ -179,7 +198,7 @@ def creator_login(req: CreatorLoginRequest):
         target_type="creator_workstation",
         target_id=creator_id,
         after_state={"creator_id": creator_id, "role": "creator", "kyc_status": "VERIFIED"},
-        metadata={"method": "studio_pin", "studio": "Mzansi Epic Films"}
+        metadata={"method": "studio_pin", "studio": creator.get("stage_name", "Studio") if creator else "Studio"}
     )
     
     return {
@@ -189,8 +208,8 @@ def creator_login(req: CreatorLoginRequest):
         "user": {
             "id": user_id,
             "creator_id": creator_id,
-            "name": "Zola Dlamini",
-            "studio_name": "Mzansi Epic Films",
+            "name": creator.get("stage_name", "Creator") if creator else "Creator",
+            "studio_name": creator.get("stage_name", "Studio") if creator else "Studio",
             "role": "creator",
             "kyc_status": "VERIFIED"
         }
@@ -199,8 +218,21 @@ def creator_login(req: CreatorLoginRequest):
 @router.post("/admin/login")
 def admin_login(req: AdminLoginRequest):
     """Authenticates platform executive/operations account and issues a ROLE_ADMIN JWT."""
-    is_key_valid = (req.admin_key == "admin_master_welele_2026")
-    is_2fa_valid = (not req.two_factor_code or req.two_factor_code == "999888")
+    master_key = settings.ADMIN_MASTER_KEY
+    expected_2fa = settings.ADMIN_2FA_CODE
+
+    if not master_key and settings.IS_PRODUCTION_OR_STAGING:
+        raise HTTPException(status_code=500, detail="Server misconfiguration: ADMIN_MASTER_KEY must be configured in production/staging.")
+
+    is_key_valid = bool(master_key and req.admin_key == master_key)
+    # Only allow fallback development secret in non-production local dev
+    if not is_key_valid and not settings.IS_PRODUCTION_OR_STAGING:
+        is_key_valid = (req.admin_key == "dev_admin_secret_local_only")
+        
+    is_2fa_valid = bool(expected_2fa and req.two_factor_code == expected_2fa)
+    if not expected_2fa and not settings.IS_PRODUCTION_OR_STAGING:
+        is_2fa_valid = True  # Optional 2FA in dev if not configured
+
     if not (is_key_valid and is_2fa_valid):
         audit_service.record_trust_event(
             domain="AUTH",
@@ -248,9 +280,9 @@ def admin_login(req: AdminLoginRequest):
 
 @router.get("/me")
 def get_current_user_profile(user: dict = Depends(get_current_user)):
-    """Introspects current session, role, permissions, and wallet balance."""
-    wallet = ledger_service.get_wallet(user.get("sub", "guest_anonymous"))
-    coins = wallet.get("balance", 0) if wallet else 0
+    wallet = ledger_service.get_or_create_wallet(user.get("sub", "guest_anonymous"))
+    balance = ledger_service.get_balance(user.get("sub", "guest_anonymous"))
+    coins = balance.get("total_usable_coins", 0)
     
     return {
         "user_id": user.get("sub"),
