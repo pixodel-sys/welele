@@ -23,6 +23,7 @@ from repositories.content_intelligence_repository import content_intelligence_re
 from services.viewer_telemetry_service import viewer_telemetry_service
 from services.production_execution_service import production_execution_service
 from services.viewer_execution_service import viewer_execution_service
+from services.evidence_projection_service import evidence_projection_service
 from schemas.content_intelligence_models import (
     FactClassification,
     IntelligenceDomain,
@@ -185,6 +186,13 @@ class ContentIntelligenceService:
             sess_id = ev.get("client_session_id", "default_session")
             sessions.setdefault(sess_id, []).append(ev)
 
+        # 7. Materialized Content Performance Projection (Phase B)
+        content_projection = evidence_projection_service.build_content_projection(
+            target_id=episode_id,
+            series_id=series_id,
+            episode_id=episode_id
+        )
+
         return {
             "ip_id": ip_id,
             "series_id": series_id,
@@ -196,6 +204,7 @@ class ContentIntelligenceService:
             "viewer_evidence": viewer_evidence,
             "telemetry_events": all_telemetry,
             "telemetry_sessions": sessions,
+            "content_projection": content_projection,
             "source_lineage_hash": story_pkg.get("lineage_hash") or "f65ead9a0006d40f0647a2277eb2efc20443c174b32370ffdecd940199d892e6"
         }
 

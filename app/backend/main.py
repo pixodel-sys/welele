@@ -173,6 +173,7 @@ def run_runtime_startup_canary():
 
 @app.on_event("startup")
 def startup_event():
+    settings.validate_security_invariants()
     run_runtime_startup_canary()
     seed_database_if_empty()
 

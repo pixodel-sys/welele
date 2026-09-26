@@ -840,10 +840,14 @@ class SeriesRepository(BaseRepository):
         return result
 
     def get_series_detail(self, series_id: str) -> Optional[Dict[str, Any]]:
+        if not self.local_get("series"):
+            self.seed_if_missing()
         all_series = self.list_feed()
         return next((s for s in all_series if s["id"] == series_id), None)
 
     def get_series(self, series_id: str) -> Optional[Dict[str, Any]]:
+        if not self.local_get("series"):
+            self.seed_if_missing()
         all_series = self.local_get("series") or []
         return next((s for s in all_series if s.get("id") == series_id), None)
 

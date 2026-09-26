@@ -216,11 +216,18 @@ export const WeleleAdminStudio: React.FC<WeleleAdminStudioProps> = ({ stories })
 
   // Duplicate Section
   const duplicateSection = (section: ExperienceSection) => {
+    const timestamp = Date.now().toString(36);
+    const clonedItems = (section.items || []).map((item, idx) => ({
+      ...item,
+      slot_id: `slot_${section.type.toLowerCase().slice(0, 4)}_${timestamp}_${idx}_${Math.random().toString(36).slice(2, 6)}`,
+    }));
+
     const cloned: ExperienceSection = {
       ...JSON.parse(JSON.stringify(section)),
-      section_id: `sec_${section.type.toLowerCase()}_${Date.now().toString().slice(-4)}`,
+      section_id: `sec_${section.type.toLowerCase()}_${timestamp}_${Math.random().toString(36).slice(2, 6)}`,
       title: section.title ? `${section.title} (Copy)` : 'Cloned Section',
       order: manifest.sections.length,
+      items: clonedItems,
     };
     setManifest({
       ...manifest,
@@ -245,8 +252,9 @@ export const WeleleAdminStudio: React.FC<WeleleAdminStudioProps> = ({ stories })
 
   // Add Section
   const addSection = (type: SectionType) => {
+    const timestamp = Date.now().toString(36);
     const newSec: ExperienceSection = {
-      section_id: `sec_${type.toLowerCase()}_${Date.now().toString().slice(-4)}`,
+      section_id: `sec_${type.toLowerCase()}_${timestamp}_${Math.random().toString(36).slice(2, 6)}`,
       type,
       title: type === 'HERO_CAROUSEL' ? null : 'New Curated Section',
       subtitle: 'Editorial collection subtitle',
@@ -272,18 +280,32 @@ export const WeleleAdminStudio: React.FC<WeleleAdminStudioProps> = ({ stories })
     handleSelectSection(newSec.section_id, 'tree');
   };
 
+  // Clean sections by stripping hydrated catalog story objects before sending to backend
+  const prepareSectionsForSave = (sections: ExperienceSection[]) => {
+    return sections.map((sec) => ({
+      ...sec,
+      items: (sec.items || []).map((item) => {
+        const { story, ...rest } = item as any;
+        return rest;
+      }),
+    }));
+  };
+
   // Save Draft
   const handleSaveDraft = async () => {
     setSaving(true);
     try {
       await experienceApi.saveDraft(selectedPage, {
         meta: manifest.meta,
-        sections: manifest.sections,
+        sections: prepareSectionsForSave(manifest.sections),
       });
       setLastSaved('Just now');
       showNotification('Draft layout saved successfully', 'success');
-    } catch (err) {
-      showNotification('Failed to save draft', 'error');
+    } catch (err: any) {
+      console.error('Failed to save draft:', err);
+      const detail = err?.response?.data?.detail;
+      const message = typeof detail === 'string' ? detail : err?.message || 'Failed to save draft';
+      showNotification(`Failed to save draft: ${message}`, 'error');
     } finally {
       setSaving(false);
     }
@@ -295,14 +317,17 @@ export const WeleleAdminStudio: React.FC<WeleleAdminStudioProps> = ({ stories })
     try {
       await experienceApi.saveDraft(selectedPage, {
         meta: manifest.meta,
-        sections: manifest.sections,
+        sections: prepareSectionsForSave(manifest.sections),
       });
       const res = await experienceApi.publish(selectedPage);
       showNotification(`Published Live! Version: ${res.version}`, 'success');
       loadDraft(selectedPage);
       loadLive(selectedPage);
-    } catch (err) {
-      showNotification('Failed to publish experience', 'error');
+    } catch (err: any) {
+      console.error('Failed to publish experience:', err);
+      const detail = err?.response?.data?.detail;
+      const message = typeof detail === 'string' ? detail : err?.message || 'Failed to publish experience';
+      showNotification(`Failed to publish experience: ${message}`, 'error');
     } finally {
       setPublishing(false);
     }
@@ -802,6 +827,92 @@ export const WeleleAdminStudio: React.FC<WeleleAdminStudioProps> = ({ stories })
                       </button>
                     ))}
                   </div>
+
+                  {/* Algorithmic & Hybrid Merchandising Policy Controls */}
+                  {selectedSection.source.mode !== 'manual' && (
+                    <div className="p-3 rounded-[7px] bg-black/40 border border-welele-orange/20 space-y-3 mt-2 animate-fade-in">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-mono font-bold text-welele-orange uppercase tracking-wider flex items-center gap-1">
+                          <Sparkles className="w-3 h-3" /> Merchandising Policy (v2026.1)
+                        </span>
+                        <span className="text-[9px] text-welele-muted">Derived from Spine</span>
+                      </div>
+
+                      {/* Algorithm Type */}
+                      <div>
+                        <label className="text-[10px] font-bold text-welele-muted block mb-1">
+                          Audience Evidence Algorithm
+                        </label>
+                        <select
+                          value={selectedSection.source.algo_type || 'velocity_24h'}
+                          onChange={(e) => {
+                            const updated = manifest.sections.map((s) =>
+                              s.section_id === selectedSection.section_id
+                                ? { ...s, source: { ...s.source, algo_type: e.target.value as any } }
+                                : s
+                            );
+                            setManifest({ ...manifest, sections: updated });
+                          }}
+                          className="w-full px-2.5 py-1.5 rounded-[7px] bg-welele-surface border border-white/10 text-xs text-white focus:outline-none focus:border-welele-orange font-medium"
+                        >
+                          <option value="velocity_24h">24h Playback Velocity (Spine Momentum)</option>
+                          <option value="completion_rate">Completion Rate (100% Episode 1 Reached)</option>
+                          <option value="trending">Trending (7d Evidence Velocity + Unlocks)</option>
+                          <option value="new_releases">New Releases (Publication Eligibility)</option>
+                        </select>
+                      </div>
+
+                      {/* Genre Constraint Filter */}
+                      <div>
+                        <label className="text-[10px] font-bold text-welele-muted block mb-1">
+                          Genre Constraint Filter (Strict)
+                        </label>
+                        <select
+                          value={selectedSection.source.genre_filter || ''}
+                          onChange={(e) => {
+                            const val = e.target.value || undefined;
+                            const updated = manifest.sections.map((s) =>
+                              s.section_id === selectedSection.section_id
+                                ? { ...s, source: { ...s.source, genre_filter: val } }
+                                : s
+                            );
+                            setManifest({ ...manifest, sections: updated });
+                          }}
+                          className="w-full px-2.5 py-1.5 rounded-[7px] bg-welele-surface border border-white/10 text-xs text-white focus:outline-none focus:border-welele-orange font-medium"
+                        >
+                          <option value="">All Genres (Unconstrained)</option>
+                          <option value="Drama">Drama</option>
+                          <option value="Crime">Crime & Heist</option>
+                          <option value="Romance">Romance & Melodrama</option>
+                          <option value="Family">Family & Betrayal</option>
+                          <option value="Billionaire">Billionaire & Corporate</option>
+                        </select>
+                      </div>
+
+                      {/* Max Capacity */}
+                      <div>
+                        <div className="flex items-center justify-between text-[10px] text-welele-muted mb-1">
+                          <label className="font-bold">Max Dynamic Slots</label>
+                          <span className="font-mono text-white">{selectedSection.source.max_items || 8} items</span>
+                        </div>
+                        <input
+                          type="range"
+                          min={3}
+                          max={15}
+                          value={selectedSection.source.max_items || 8}
+                          onChange={(e) => {
+                            const updated = manifest.sections.map((s) =>
+                              s.section_id === selectedSection.section_id
+                                ? { ...s, source: { ...s.source, max_items: parseInt(e.target.value, 10) } }
+                                : s
+                            );
+                            setManifest({ ...manifest, sections: updated });
+                          }}
+                          className="w-full accent-welele-orange cursor-pointer"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Slot Manager */}
@@ -813,10 +924,12 @@ export const WeleleAdminStudio: React.FC<WeleleAdminStudioProps> = ({ stories })
                     </label>
                     <button
                       onClick={() => {
+                        const existingContentIds = new Set((selectedSection.items || []).map((it) => it.content_id));
+                        const candidateStory = stories.find((st) => !existingContentIds.has(st.id)) || stories[0];
                         const newSlot: SlotItem = {
-                          slot_id: `slot_${Date.now().toString().slice(-4)}`,
+                          slot_id: `slot_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`,
                           content_type: 'series',
-                          content_id: stories[0]?.id || 'story_blood_ties',
+                          content_id: candidateStory?.id || 'story_blood_ties',
                           badge: 'SPOTLIGHT ORIGINAL',
                           headline_override: '',
                           subheadline_override: '',

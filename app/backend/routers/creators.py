@@ -11,7 +11,7 @@ from services.rbac_service import require_role, get_current_user, enforce_tenant
 from services.audit_service import audit_service
 from repositories.series_repository import series_repository
 from repositories.ip_repository import ip_repository
-from repositories.event_repository import event_repository
+from repositories.telemetry_repository import telemetry_repository
 from schemas.story_schemas import CreateSeriesRequest, CreateEpisodeRequest
 
 router = APIRouter(prefix="/creators", tags=["Creator Hub"])
@@ -356,11 +356,11 @@ def get_retention_telemetry(
         else:
             ep_id = f"ep_{series_id}_{episode_number}"
 
-    res = event_repository.get_episode_retention(series_id, ep_id)
+    res = telemetry_repository.get_episode_retention(series_id, ep_id)
 
     # Phase 3A: Empirical telco payment mix from actual recorded events
-    legacy_events = event_repository.local_get("telemetry_events") or []
-    phase6_events = event_repository.local_get("viewer_telemetry_events") or []
+    legacy_events = telemetry_repository.local_get("telemetry_events") or []
+    phase6_events = telemetry_repository.local_get("viewer_telemetry_events") or []
     carrier_counts = {}
 
     for e in legacy_events:

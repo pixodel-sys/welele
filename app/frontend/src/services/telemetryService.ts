@@ -15,6 +15,14 @@ export type ViewerEventType =
   | 'PLAYBACK_PAUSED'
   | 'PLAYBACK_RESUMED'
   | 'PLAYBACK_COMPLETED'
+  | 'BUFFER_STARTED'
+  | 'BUFFER_RESOLVED'
+  | 'STALL_DETECTED'
+  | 'BITRATE_ADAPTED'
+  | 'SCRUB_SEEKED'
+  | 'AUDIO_TOGGLED'
+  | 'CAPTION_TOGGLED'
+  | 'FULLSCREEN_TOGGLED'
   | 'NEXT_EPISODE_SELECTED'
   | 'GATED_CONTENT_PRESENTED'
   | 'REACTION_ADDED'
@@ -47,6 +55,8 @@ export interface ViewerTelemetryEventPayload {
   source?: string;
   environment?: 'production' | 'staging' | 'test';
   is_test?: boolean;
+  technical_context?: Record<string, any>;
+  cohort_context?: Record<string, any>;
   metadata?: Record<string, any>;
 }
 
@@ -168,6 +178,8 @@ class TelemetryService {
         source: event.source || 'WELELE_VIEWER',
         environment: env,
         is_test: isTest,
+        technical_context: event.technical_context,
+        cohort_context: event.cohort_context,
         metadata: event.metadata || {}
       };
 

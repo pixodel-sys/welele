@@ -14,6 +14,7 @@ from schemas.experience_schemas import (
     SlotItem,
     ArtworkOverrides
 )
+from services.merchandising_policy_service import merchandising_policy_service
 
 class ExperienceEngine:
     """Intelligent layout resolver and merchandising manager."""
@@ -405,86 +406,22 @@ class ExperienceEngine:
             if sec_end and datetime.fromisoformat(sec_end.replace("Z", "+00:00")) < now_dt.replace(tzinfo=None):
                 continue
 
-            sec_copy = copy.deepcopy(sec)
-            items = sec_copy.get("items", [])
-            source = sec_copy.get("source", {})
-            mode = source.get("mode", "manual")
-            pinned_ids = source.get("pinned_content_ids", [])
-            max_items = source.get("max_items", 10)
+            sec_copy = dict(sec)
 
-            resolved_items: List[Dict[str, Any]] = []
-
-            # 1. Process explicitly defined items
-            for item in items:
-                if not item.get("is_active", True):
-                    continue
-                # Temporal gate
-                i_start = item.get("start_at")
-                i_end = item.get("end_at")
-                if i_start and datetime.fromisoformat(i_start.replace("Z", "+00:00")) > now_dt.replace(tzinfo=None):
-                    continue
-                if i_end and datetime.fromisoformat(i_end.replace("Z", "+00:00")) < now_dt.replace(tzinfo=None):
-                    continue
-
-                content_id = item.get("content_id")
-                if content_id and content_id in all_stories:
-                    story = all_stories[content_id]
-                    # Merge story data into slot
-                    item_resolved = copy.deepcopy(item)
-                    item_resolved["story"] = story
-                    
-                    # Sanitize CTA target if pointing to an archived episode
-                    if item_resolved.get("cta_action") == "STREAM_EPISODE" and item_resolved.get("cta_target"):
-                        pub_ep_ids = [e["id"] for e in story.get("episodes", []) if e.get("status") == "published"]
-                        if item_resolved["cta_target"] not in pub_ep_ids:
-                            item_resolved["cta_target"] = pub_ep_ids[0] if pub_ep_ids else None
-
-                    resolved_items.append(item_resolved)
-                elif item.get("content_type") == "promo":
-                    resolved_items.append(item)
-
-            # 2. If section has pinned IDs or is hybrid/algorithmic, populate missing
-            existing_ids = {it.get("content_id") for it in resolved_items if it.get("content_id")}
-
-            if mode in ["hybrid", "manual"] and pinned_ids:
-                for pid in pinned_ids:
-                    if pid not in existing_ids and pid in all_stories and len(resolved_items) < max_items:
-                        story = all_stories[pid]
-                        resolved_items.append({
-                            "slot_id": f"slot_{sec_copy['section_id']}_{pid}",
-                            "content_type": "series",
-                            "content_id": pid,
-                            "badge": "TRENDING" if story.get("is_trending") else ("ORIGINAL" if story.get("is_original") else None),
-                            "story": story,
-                            "is_active": True
-                        })
-                        existing_ids.add(pid)
-
-            if mode in ["hybrid", "algorithmic"]:
-                algo = source.get("algo_type", "velocity_24h")
-                # Sort catalog based on algo
-                if algo == "velocity_24h" or algo == "trending":
-                    ranked_stories = sorted(stories_list, key=lambda s: s.get("total_views", 0), reverse=True)
-                elif algo == "completion_rate":
-                    ranked_stories = sorted(stories_list, key=lambda s: s.get("rating", 0), reverse=True)
-                else:
-                    ranked_stories = list(stories_list)
-
-                for story in ranked_stories:
-                    if len(resolved_items) >= max_items:
-                        break
-                    if story["id"] not in existing_ids:
-                        resolved_items.append({
-                            "slot_id": f"slot_{sec_copy['section_id']}_{story['id']}",
-                            "content_type": "series",
-                            "content_id": story["id"],
-                            "badge": "🔥 TOP VIEWED" if story.get("total_views", 0) > 3000000 else None,
-                            "story": story,
-                            "is_active": True
-                        })
-                        existing_ids.add(story["id"])
-
-            sec_copy["items"] = resolved_items
+            # Resolve items using the canonical MerchandisingPolicyService boundary
+            sec_copy["items"] = merchandising_policy_service.resolve_section_items(
+                section=sec_copy,
+                all_stories=all_stories,
+                eval_time=now_dt
+            )
+            # Propagate Merchandising Provenance & Policy metadata
+            sec_copy["merchandising_metadata"] = {
+                "policy_version": merchandising_policy_service.POLICY_VERSION,
+                "methodology_version": merchandising_policy_service.METHODOLOGY_VERSION,
+                "mode": sec_copy.get("source", {}).get("mode", "manual"),
+                "algo_type": sec_copy.get("source", {}).get("algo_type", "velocity_24h"),
+                "resolved_item_count": len(sec_copy["items"])
+            }
             resolved_sections.append(sec_copy)
 
         raw_manifest["sections"] = resolved_sections
