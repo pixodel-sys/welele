@@ -4,7 +4,7 @@ import { useApp } from '../../context/AppContext';
 import { useChat } from '../../context/ChatContext';
 import { EpisodeDrawer } from './EpisodeDrawer';
 import { FloatingReactions } from './FloatingReactions';
-import { episodesApi, monetizationApi, telemetryApi } from '../../services/api';
+import { episodesApi, monetizationApi } from '../../services/api';
 import { telemetryService } from '../../services/telemetryService';
 import confetti from 'canvas-confetti';
 import {
@@ -593,21 +593,7 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
         }
       }
 
-      // Telemetry: episode_started beacon on episode change
-      if (currentStory) {
-        telemetryApi.trackEvent({
-          event_name: 'episode_started',
-          session_id: sessionIdRef.current,
-          user_id: userId || 'user_sa_01',
-          ip_id: currentStory.ip_id || (currentStory as any).franchise_code,
-          series_id: currentStory.id,
-          episode_id: episodeId,
-          playback_second: 0,
-          region_code: 'ZA',
-        });
-      }
-
-      // Phase 6 Authoritative Telemetry: PLAYBACK_STARTED
+      // Unified Event Spine: PLAYBACK_STARTED
       if (currentStory && currentEpisode) {
         telemetryService.track({
           event_family: 'WATCH',
@@ -617,7 +603,11 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
           episode_id: currentEpisode.id,
           duration_seconds: currentEpisode.duration_seconds || 90.0,
           position_seconds: 0.0,
-          source: 'VERTICAL_PLAYER'
+          source: 'VERTICAL_PLAYER',
+          cohort_context: {
+            viewer_tier: userId ? 'REGISTERED' : 'ANONYMOUS',
+            region_code: 'ZA'
+          }
         });
       }
 
@@ -641,23 +631,6 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
     }
   }, [episodeId, currentStory, userId, brandConfig, isUnlocked]);
 
-  // Telemetry: 15s periodic heartbeat during active playback
-  useEffect(() => {
-    if (!isPlaying || isIdentPlaying || !currentStory || !currentEpisode) return;
-    const interval = setInterval(() => {
-      telemetryApi.trackEvent({
-        event_name: 'heartbeat',
-        session_id: sessionIdRef.current,
-        user_id: userId || 'user_sa_01',
-        ip_id: currentStory.ip_id || (currentStory as any).franchise_code,
-        series_id: currentStory.id,
-        episode_id: currentEpisode.id,
-        playback_second: Math.round(currentTime),
-        region_code: 'ZA',
-      });
-    }, 15000);
-    return () => clearInterval(interval);
-  }, [isPlaying, isIdentPlaying, currentStory, currentEpisode, currentTime, userId]);
 
   // Video time updates, adaptive quality, and cliffhanger trigger
   const handleTimeUpdate = () => {
@@ -737,15 +710,18 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
     } else if (curr > (currentEpisode?.cliffhanger_time || 65) && !showCliffhangerPrompt) {
       setShowCliffhangerPrompt(true);
       if (currentStory && currentEpisode) {
-        telemetryApi.trackEvent({
-          event_name: 'cliffhanger_reached',
-          session_id: sessionIdRef.current,
-          user_id: userId || 'user_sa_01',
-          ip_id: currentStory.ip_id || (currentStory as any).franchise_code,
+        telemetryService.track({
+          event_family: 'WATCH',
+          event_type: 'PLAYBACK_PROGRESS',
+          content_id: currentEpisode.id,
           series_id: currentStory.id,
           episode_id: currentEpisode.id,
-          playback_second: Math.round(curr),
-          region_code: 'ZA',
+          position_seconds: curr,
+          duration_seconds: videoRef.current.duration || duration,
+          metadata: {
+            is_cliffhanger_reached: true,
+            cliffhanger_time: currentEpisode.cliffhanger_time || 65
+          }
         });
       }
     }
@@ -867,17 +843,15 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
         console.warn('[VerticalPlayer] Error retrieving stream post-coin-unlock:', streamErr);
       }
 
-      // Telemetry: Track unlock_completed
-      telemetryApi.trackEvent({
-        event_name: 'unlock_completed',
-        session_id: sessionIdRef.current,
-        user_id: userId || 'user_sa_01',
-        ip_id: currentStory.ip_id || (currentStory as any).franchise_code,
+      // Unified Event Spine: Track CONTENT_UNLOCKED
+      telemetryService.track({
+        event_family: 'PAY',
+        event_type: 'CONTENT_UNLOCKED',
+        content_id: currentEpisode.id,
         series_id: currentStory.id,
         episode_id: currentEpisode.id,
-        playback_second: Math.round(currentTime),
-        region_code: 'ZA',
-        metadata: { method: 'COINS', cost },
+        position_seconds: currentTime,
+        metadata: { method: 'COINS', cost, carrier: 'WALLET' }
       });
     } catch (err) {
       console.error('Episode unlock failed:', err);
@@ -984,17 +958,15 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
         console.warn('[VerticalPlayer] Error retrieving stream post-airtime-unlock:', streamErr);
       }
 
-      // Telemetry: Track unlock_completed via Airtime
-      telemetryApi.trackEvent({
-        event_name: 'unlock_completed',
-        session_id: sessionIdRef.current,
-        user_id: userId || 'user_sa_01',
-        ip_id: currentStory.ip_id || (currentStory as any).franchise_code,
+      // Unified Event Spine: Track CONTENT_UNLOCKED via Airtime
+      telemetryService.track({
+        event_family: 'PAY',
+        event_type: 'CONTENT_UNLOCKED',
+        content_id: currentEpisode.id,
         series_id: currentStory.id,
         episode_id: currentEpisode.id,
-        playback_second: Math.round(currentTime),
-        region_code: 'ZA',
-        metadata: { method: 'AIRTIME_DCB', carrier: selectedCarrier },
+        position_seconds: currentTime,
+        metadata: { method: 'AIRTIME_DCB', carrier: selectedCarrier }
       });
     } catch (err) {
       console.error('Quick airtime unlock failed:', err);

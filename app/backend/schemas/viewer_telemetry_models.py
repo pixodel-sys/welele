@@ -32,6 +32,16 @@ class ViewerEventType(str, Enum):
     PLAYBACK_PAUSED = "PLAYBACK_PAUSED"
     PLAYBACK_RESUMED = "PLAYBACK_RESUMED"
     PLAYBACK_COMPLETED = "PLAYBACK_COMPLETED"
+    BUFFER_STARTED = "BUFFER_STARTED"
+    BUFFER_RESOLVED = "BUFFER_RESOLVED"
+    STALL_DETECTED = "STALL_DETECTED"
+    BITRATE_ADAPTED = "BITRATE_ADAPTED"
+
+    # INTERACT
+    SCRUB_SEEKED = "SCRUB_SEEKED"
+    AUDIO_TOGGLED = "AUDIO_TOGGLED"
+    CAPTION_TOGGLED = "CAPTION_TOGGLED"
+    FULLSCREEN_TOGGLED = "FULLSCREEN_TOGGLED"
 
     # CONTINUE
     NEXT_EPISODE_SELECTED = "NEXT_EPISODE_SELECTED"
@@ -113,6 +123,8 @@ class ViewerTelemetryEvent(BaseModel):
     source: Optional[str] = Field(default=None, description="Referrer/entry context, e.g. DISCOVERY_FEED, VERTICAL_PLAYER")
     environment: str = Field(default="production", description="Runtime environment: production, staging, test")
     is_test: bool = Field(default=False, description="Flag indicating automated test, canary, or internal test session")
+    technical_context: Optional[Dict[str, Any]] = Field(default=None, description="Factual network & playback conditions: connection_type, buffer_health_sec, bitrate, etc.")
+    cohort_context: Optional[Dict[str, Any]] = Field(default=None, description="Non-prescriptive cohort context: viewer_tier, entry_rail, referrer, device_class")
     metadata: Dict[str, Any] = Field(default_factory=dict, description="Bounded event-specific factual context")
     ingested_at: Optional[str] = Field(default=None, description="ISO 8601 UTC timestamp of backend ingestion")
 

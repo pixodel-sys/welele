@@ -6,10 +6,12 @@ session event reconstruction, and empirical validation reports.
 
 from typing import List, Optional
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
-from repositories.event_repository import event_repository
+from repositories.telemetry_repository import telemetry_repository
 from schemas.telemetry_schemas import TelemetryEventPayload, EpisodeRetentionResponse
 from schemas.viewer_telemetry_models import ViewerTelemetryEvent, TelemetryEvidencePackage
+from schemas.projection_models import ContentEvidenceProjection, ViewerEvidenceProjection
 from services.viewer_telemetry_service import viewer_telemetry_service
+from services.evidence_projection_service import evidence_projection_service
 
 router = APIRouter(prefix="/telemetry", tags=["Viewer Telemetry & Event Spine"])
 
@@ -53,21 +55,44 @@ def validate_isibusiso_telemetry():
 
 
 # ---------------------------------------------------------------------------
-# Legacy Compatibility Endpoints
+# Phase B: Materialized Evidence Projection Endpoints
+# ---------------------------------------------------------------------------
+
+@router.get("/projections/content/{content_id}", response_model=ContentEvidenceProjection)
+def get_content_evidence_projection(content_id: str, series_id: Optional[str] = Query(None)):
+    """
+    Returns the rebuildable Content Performance Matrix with full provenance.
+    """
+    return evidence_projection_service.build_content_projection(target_id=content_id, series_id=series_id)
+
+
+@router.get("/projections/viewer/{session_or_viewer_id}", response_model=ViewerEvidenceProjection)
+def get_viewer_evidence_projection(session_or_viewer_id: str):
+    """
+    Returns observational viewer evidence without persona guessing.
+    """
+    return evidence_projection_service.build_viewer_projection(
+        viewer_id=session_or_viewer_id,
+        anonymous_id=session_or_viewer_id
+    )
+
+
+# ---------------------------------------------------------------------------
+# Deprecated Compatibility Endpoints (Rerouted through Unified Spine Storage)
 # ---------------------------------------------------------------------------
 
 @router.post("/events/track")
 def track_legacy_event(payload: TelemetryEventPayload, background_tasks: BackgroundTasks):
     """
-    Legacy beacon endpoint (compatibility alias).
+    Deprecated compatibility alias: saves to telemetry storage.
     """
-    background_tasks.add_task(event_repository.ingest_event, payload)
+    background_tasks.add_task(telemetry_repository.local_insert, "telemetry_events", payload.model_dump())
     return {"status": "accepted", "event": payload.event_name}
 
 
 @router.get("/retention/{series_id}/{episode_id}", response_model=EpisodeRetentionResponse)
 def get_legacy_retention(series_id: str, episode_id: str):
     """
-    Legacy retention endpoint (compatibility alias).
+    Unified retention endpoint backed by telemetry_repository.
     """
-    return event_repository.get_episode_retention(series_id, episode_id)
+    return telemetry_repository.get_episode_retention(series_id, episode_id)

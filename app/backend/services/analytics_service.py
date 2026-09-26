@@ -10,7 +10,8 @@ from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from repositories.event_repository import event_repository
+from repositories.telemetry_repository import telemetry_repository
+from schemas.telemetry_schemas import EpisodeRetentionResponse
 
 class AnalyticsService:
     def analyze_episode_performance(
@@ -21,9 +22,9 @@ class AnalyticsService:
         """
         Calculates empirical retention metrics and correlates playback signals.
         """
-        raw_retention_raw = event_repository.get_episode_retention(series_id, episode_id)
+        raw_retention_raw = telemetry_repository.get_episode_retention(series_id, episode_id)
         raw_retention = raw_retention_raw.model_dump() if hasattr(raw_retention_raw, "model_dump") else raw_retention_raw
-        events = event_repository.get_events_for_episode(episode_id)
+        events = telemetry_repository.get_events_for_episode(episode_id)
 
         total_sessions = max(raw_retention.get("total_starts", 0), 1)
         curve = raw_retention.get("retention_curve", [])

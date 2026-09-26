@@ -4,12 +4,14 @@ Handles Viewer Phone OTP, Guest Sessions, Creator Showrunner Login,
 Enterprise Admin 2FA, Session Introspection, and emits comprehensive AUTH domain audit events.
 """
 
+import os
 import uuid
 import datetime
 from typing import Optional, List
 from fastapi import APIRouter, HTTPException, Depends, status
 from pydantic import BaseModel
 from database import db
+from config import settings
 from services.ledger_service import ledger_service
 from services.audit_service import audit_service
 from services.rbac_service import (
@@ -221,17 +223,29 @@ def admin_login(req: AdminLoginRequest):
     master_key = settings.ADMIN_MASTER_KEY
     expected_2fa = settings.ADMIN_2FA_CODE
 
-    if not master_key and settings.IS_PRODUCTION_OR_STAGING:
-        raise HTTPException(status_code=500, detail="Server misconfiguration: ADMIN_MASTER_KEY must be configured in production/staging.")
+    # Fail closed: If ADMIN_MASTER_KEY is not configured in the environment, reject all admin login attempts
+    if not master_key or not master_key.strip():
+        audit_service.record_trust_event(
+            domain="AUTH",
+            event_type="auth.failed_login",
+            actor_id=req.email or "ops@welele.media",
+            actor_role="admin",
+            target_type="admin_console",
+            target_id="enterprise_ops",
+            metadata={"reason": "Admin authentication unconfigured (fail closed)"}
+        )
+        raise HTTPException(
+            status_code=500 if settings.IS_PRODUCTION_OR_STAGING else 401,
+            detail="Admin authentication is disabled: ADMIN_MASTER_KEY environment variable is not configured."
+        )
 
-    is_key_valid = bool(master_key and req.admin_key == master_key)
-    # Only allow fallback development secret in non-production local dev
-    if not is_key_valid and not settings.IS_PRODUCTION_OR_STAGING:
-        is_key_valid = (req.admin_key == "dev_admin_secret_local_only")
-        
-    is_2fa_valid = bool(expected_2fa and req.two_factor_code == expected_2fa)
-    if not expected_2fa and not settings.IS_PRODUCTION_OR_STAGING:
-        is_2fa_valid = True  # Optional 2FA in dev if not configured
+    is_key_valid = bool(req.admin_key == master_key)
+    
+    # 2FA Enforcement: When configured or in production/staging, 2FA must match strictly
+    if settings.IS_PRODUCTION_OR_STAGING or expected_2fa:
+        is_2fa_valid = bool(expected_2fa and req.two_factor_code == expected_2fa)
+    else:
+        is_2fa_valid = True  # Optional only in local dev if ADMIN_2FA_CODE is unset
 
     if not (is_key_valid and is_2fa_valid):
         audit_service.record_trust_event(

@@ -92,6 +92,7 @@ def isibusiso_intelligence_pipeline_setup():
             "lineage_hash": "f65ead9a0006d40f0647a2277eb2efc20443c174b32370ffdecd940199d892e6"
         }
         ip_repository.local_insert("story_packages", pkg)
+        ip_repository.local_insert("story_forge_packages", pkg)
         pkg_id = "pkg_isibusiso_v1"
     else:
         pkg = story_packages[0]

@@ -33,6 +33,8 @@ class ArtworkOverrides(BaseModel):
     trailer_video_url: Optional[str] = None
 
 class SlotItem(BaseModel):
+    model_config = {"extra": "allow"}
+
     slot_id: str
     content_type: Literal["series", "episode", "creator", "promo", "genre"] = "series"
     content_id: Optional[str] = None
@@ -46,8 +48,10 @@ class SlotItem(BaseModel):
     is_active: bool = True
     start_at: Optional[str] = None  # ISO 8601 string
     end_at: Optional[str] = None    # ISO 8601 string
+    story: Optional[Dict[str, Any]] = None  # Hydrated catalog story attached by backend resolver
 
 class SectionSource(BaseModel):
+    model_config = {"extra": "allow"}
     mode: Literal["manual", "algorithmic", "hybrid"] = "manual"
     algo_type: Optional[Literal["velocity_24h", "completion_rate", "new_releases", "trending", "personalized"]] = None
     pinned_content_ids: List[str] = Field(default_factory=list)
@@ -55,6 +59,7 @@ class SectionSource(BaseModel):
     max_items: int = 10
 
 class SectionConfig(BaseModel):
+    model_config = {"extra": "allow"}
     auto_play_seconds: Optional[int] = 8
     aspect_ratio: Optional[str] = "9:16"
     card_size: Optional[Literal["small", "medium", "large"]] = "medium"
@@ -65,6 +70,7 @@ class SectionConfig(BaseModel):
     columns: Optional[int] = 2
 
 class ExperienceSection(BaseModel):
+    model_config = {"extra": "allow"}
     section_id: str
     type: SectionType
     title: Optional[str] = None
