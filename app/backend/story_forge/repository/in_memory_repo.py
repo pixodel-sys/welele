@@ -82,9 +82,9 @@ class InMemoryStoryForgeRepository(StoryForgeRepository):
             story_id = state.story_id
             curr_ver = self._current_versions.get(story_id, 0)
 
-            # Optimistic Concurrency Check
-            if state.previous_state_version is not None:
-                if state.previous_state_version != curr_ver:
+            # Optimistic Concurrency Check: Only check previous_state_version when advancing to a new version
+            if state.state_version > curr_ver:
+                if state.previous_state_version is not None and state.previous_state_version != curr_ver:
                     raise ConcurrencyError(
                         f"Stale state write rejected! Current version is {curr_ver}, "
                         f"attempted mutation against previous version {state.previous_state_version}."
@@ -102,6 +102,27 @@ class InMemoryStoryForgeRepository(StoryForgeRepository):
             if story_id in self._stories:
                 self._stories[story_id]["current_state_version"] = state.state_version
             return deepcopy(state)
+
+    def delete_story(self, story_id: str) -> bool:
+        with self._lock:
+            if story_id in self._stories:
+                del self._stories[story_id]
+            if story_id in self._states:
+                del self._states[story_id]
+            if story_id in self._current_versions:
+                del self._current_versions[story_id]
+            if story_id in self._transitions:
+                del self._transitions[story_id]
+            if story_id in self._dependencies:
+                del self._dependencies[story_id]
+            if story_id in self._events:
+                del self._events[story_id]
+            if story_id in self._production_decisions:
+                del self._production_decisions[story_id]
+            to_del_sessions = [sid for sid, s in self._sessions.items() if s.get("story_id") == story_id]
+            for sid in to_del_sessions:
+                del self._sessions[sid]
+            return True
 
     def get_current_state(self, story_id: str) -> Optional[StoryState]:
         with self._lock:

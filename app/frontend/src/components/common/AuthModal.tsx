@@ -37,6 +37,7 @@ export const AuthModal: React.FC = () => {
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
   const [phoneInput, setPhoneInput] = useState<string>(userPhoneNumber || '082 891 2345');
   const [otpCode, setOtpCode] = useState<string>('');
+  const [demoHint, setDemoHint] = useState<string | null>(null);
 
   // Creator State
   const [creatorId, setCreatorId] = useState<string>('creator_zola');
@@ -72,6 +73,7 @@ export const AuthModal: React.FC = () => {
     });
     setIsAuthModalOpen(false);
     setStep('phone');
+    setDemoHint(null);
     setErrorMessage(null);
   };
 
@@ -82,12 +84,17 @@ export const AuthModal: React.FC = () => {
     setIsLoading(true);
     setErrorMessage(null);
     try {
-      await authApi.sendOtp(phoneInput, market);
+      const res = await authApi.sendOtp(phoneInput, market);
       setIsLoading(false);
+      if (res?.demo_hint) {
+        setDemoHint(res.demo_hint);
+      } else {
+        setDemoHint(null);
+      }
       setStep('otp');
     } catch (err: any) {
       setIsLoading(false);
-      setErrorMessage('SMS service unavailable. Please try again later.');
+      setErrorMessage(err?.response?.data?.detail || 'SMS service unavailable. Please try again later.');
     }
   };
 
@@ -358,10 +365,17 @@ export const AuthModal: React.FC = () => {
               </form>
             ) : (
               <form onSubmit={handleVerifyOtp} className="mt-4 space-y-3.5">
-                <div className="p-2.5 rounded-[7px] bg-emerald-500/10 border border-emerald-500/30 text-center">
-                  <span className="text-[10px] text-emerald-400 font-bold block">Demo SMS Received:</span>
-                  <span className="text-xs text-white font-mono font-bold">"Your Welele verification code is 5542"</span>
-                </div>
+                {demoHint ? (
+                  <div className="p-2.5 rounded-[7px] bg-emerald-500/10 border border-emerald-500/30 text-center">
+                    <span className="text-[10px] text-emerald-400 font-bold block">SMS Verification Sent:</span>
+                    <span className="text-xs text-white font-mono font-bold">"{demoHint}"</span>
+                  </div>
+                ) : (
+                  <div className="p-2.5 rounded-[7px] bg-emerald-500/10 border border-emerald-500/30 text-center">
+                    <span className="text-[10px] text-emerald-400 font-bold block">SMS Verification Sent:</span>
+                    <span className="text-xs text-white font-medium">4-digit verification code sent to {phoneInput}</span>
+                  </div>
+                )}
 
                 <div>
                   <label className="text-[11px] font-bold text-white block mb-1 text-center">

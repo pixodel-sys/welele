@@ -32,6 +32,8 @@ const STORAGE_KEYS = {
   SESSION_PREFIX: 'welele_forge_session_',
   TRACE_PREFIX: 'welele_forge_trace_',
   DEPS_PREFIX: 'welele_forge_deps_',
+  DEPENDENCIES_PREFIX: 'welele_forge_deps_',
+  COMPLETION_PREFIX: 'welele_forge_comp_',
   PENDING_INPUTS_PREFIX: 'welele_forge_pending_inputs_',
 };
 
@@ -59,6 +61,26 @@ function safeSetItem(key: string, val: any): void {
     console.warn('[StoryForgeFallback] localStorage write failed:', e);
   }
   memoryStore[key] = val;
+}
+
+// Auto-purge stale Bougie records on initial load if present in local storage
+try {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    const rawStories = localStorage.getItem(STORAGE_KEYS.STORIES);
+    if (rawStories && rawStories.toLowerCase().includes('bougie')) {
+      const parsed = JSON.parse(rawStories);
+      if (Array.isArray(parsed)) {
+        const filtered = parsed.filter((s: any) => !s.title?.toLowerCase().includes('bougie') && !s.id?.toLowerCase().includes('bougie'));
+        localStorage.setItem(STORAGE_KEYS.STORIES, JSON.stringify(filtered));
+      }
+    }
+    const activeId = localStorage.getItem('welele_active_story_id');
+    if (activeId && activeId.toLowerCase().includes('bougie')) {
+      localStorage.removeItem('welele_active_story_id');
+    }
+  }
+} catch (e) {
+  // ignore
 }
 
 export const storyForgeFallback = {
@@ -112,6 +134,57 @@ export const storyForgeFallback = {
     return safeGetItem(STORAGE_KEYS.STORIES) || [];
   },
 
+  deleteStory: (storyId: string): boolean => {
+    const list: StorySummary[] = safeGetItem(STORAGE_KEYS.STORIES) || [];
+    const filtered = list.filter(s => s.id !== storyId);
+    safeSetItem(STORAGE_KEYS.STORIES, filtered);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(STORAGE_KEYS.STATE_PREFIX + storyId);
+      localStorage.removeItem(STORAGE_KEYS.COMPLETION_PREFIX + storyId);
+      localStorage.removeItem(STORAGE_KEYS.DEPENDENCIES_PREFIX + storyId);
+      if (localStorage.getItem('welele_active_story_id') === storyId) {
+        localStorage.removeItem('welele_active_story_id');
+      }
+    }
+    return true;
+  },
+
+  clearUntitledDrafts: (): number => {
+    const list: StorySummary[] = safeGetItem(STORAGE_KEYS.STORIES) || [];
+    const kept = list.filter(s => {
+      const t = (s.title || '').trim().toLowerCase();
+      const isUntitled = t === 'untitled' || t === 'untitled story' || t === 'story' || t === '';
+      const hasLogline = (s.logline || '').trim().length > 0;
+      return !isUntitled || hasLogline;
+    });
+    const removedCount = list.length - kept.length;
+    safeSetItem(STORAGE_KEYS.STORIES, kept);
+    return removedCount;
+  },
+
+  syncBackendStories: (backendStories: StorySummary[]): void => {
+    const localList: StorySummary[] = safeGetItem(STORAGE_KEYS.STORIES) || [];
+    // Only preserve local-only offline staged drafts (id starting with story_local_)
+    const localDraftsOnly = localList.filter(s => {
+      const isLocalDraft = s.id && s.id.startsWith('story_local_');
+      const t = (s.title || '').trim().toLowerCase();
+      const isUntitled = t === 'untitled' || t === 'untitled story' || t === 'story' || t === '';
+      const hasLogline = (s.logline || '').trim().length > 0;
+      return isLocalDraft && (!isUntitled || hasLogline);
+    });
+
+    const map = new Map<string, StorySummary>();
+    for (const bs of backendStories) {
+      map.set(bs.id, bs);
+    }
+    for (const s of localDraftsOnly) {
+      if (!map.has(s.id)) {
+        map.set(s.id, s);
+      }
+    }
+    safeSetItem(STORAGE_KEYS.STORIES, Array.from(map.values()));
+  },
+
   getStorySummary: (storyId: string): StorySummary => {
     const list: StorySummary[] = safeGetItem(STORAGE_KEYS.STORIES) || [];
     const found = list.find(s => s.id === storyId);
@@ -126,15 +199,70 @@ export const storyForgeFallback = {
     };
   },
 
+  cacheStoryState: (state: StoryState): void => {
+    if (!state || !state.story_id) return;
+    safeSetItem(STORAGE_KEYS.STATE_PREFIX + state.story_id, state);
+
+    const list: StorySummary[] = safeGetItem(STORAGE_KEYS.STORIES) || [];
+    const idx = list.findIndex(s => s.id === state.story_id);
+    const summary: StorySummary = {
+      id: state.story_id,
+      title: state.title,
+      owner_id: 'creator_current',
+      logline: state.logline,
+      primary_language: 'isiZulu',
+      status: 'ACTIVE_DEVELOPMENT',
+      current_state_version: state.state_version
+    };
+    if (idx >= 0) {
+      list[idx] = { ...list[idx], ...summary };
+      safeSetItem(STORAGE_KEYS.STORIES, list);
+    } else {
+      safeSetItem(STORAGE_KEYS.STORIES, [summary, ...list]);
+    }
+  },
+
   getStoryState: (storyId: string): StoryState => {
     const state = safeGetItem(STORAGE_KEYS.STATE_PREFIX + storyId);
     if (state) return state;
 
-    return storyForgeFallback.createStory({
+    // Check if we have the story in our stories list (synced from backend or created locally)
+    const summary = storyForgeFallback.getStorySummary(storyId);
+    if (summary && summary.title && summary.title !== 'Untitled Story' && summary.title !== 'Story') {
+      const recoveredState: StoryState = {
+        story_id: storyId,
+        state_version: summary.current_state_version || 1,
+        previous_state_version: null,
+        title: summary.title,
+        logline: summary.logline || null,
+        theme: null,
+        tone: null,
+        characters: {},
+        world: {
+          arena: '',
+          rules_and_lore: []
+        },
+        plants: []
+      };
+      safeSetItem(STORAGE_KEYS.STATE_PREFIX + storyId, recoveredState);
+      return recoveredState;
+    }
+
+    // Ephemeral state - NEVER mutate or pollute the saved stories list!
+    return {
       story_id: storyId,
+      state_version: 1,
       title: 'Untitled Story',
-      owner_id: 'creator_current'
-    });
+      logline: '',
+      theme: null,
+      tone: null,
+      characters: {},
+      world: {
+        arena: '',
+        rules_and_lore: []
+      },
+      plants: []
+    };
   },
 
   /**
@@ -180,10 +308,13 @@ export const storyForgeFallback = {
     const session = safeGetItem(STORAGE_KEYS.SESSION_PREFIX + sessionId);
     if (session?.current_action) return session.current_action;
 
+    const storyId = session?.story_id || (typeof window !== 'undefined' ? localStorage.getItem('welele_active_story_id') || '' : '');
+    const state = storyId ? storyForgeFallback.getStoryState(storyId) : null;
+
     return {
       session_id: sessionId,
-      story_id: 'story_default',
-      state_version: 1,
+      story_id: storyId,
+      state_version: state?.state_version || 1,
       action: 'ASK',
       skill: 'FORGE_JUDGE',
       question: null,
@@ -265,7 +396,7 @@ export const storyForgeFallback = {
    */
   submitInput: (sessionId: string, payload: SubmitInputPayload): ForgeCycleResult => {
     const session = safeGetItem(STORAGE_KEYS.SESSION_PREFIX + sessionId);
-    const storyId = session?.story_id || 'story_default';
+    const storyId = session?.story_id || (typeof window !== 'undefined' ? localStorage.getItem('welele_active_story_id') || '' : '');
     const currentState: StoryState = storyForgeFallback.getStoryState(storyId);
     const responseText = payload.creator_response || payload.creator_input || '';
 

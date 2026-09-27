@@ -264,7 +264,16 @@ class CollaborativeStoryDirector:
 
         if story_state.characters:
             parts.append("\n### ESTABLISHED CHARACTERS & CANONICAL ATTRIBUTES")
+            # Filter to principal cast to keep prompt crisp and focused
+            principals = []
             for name, c in story_state.characters.items():
+                role_val = c.role.value if hasattr(c.role, 'value') else str(c.role)
+                if role_val in ("PROTAGONIST", "ANTAGONIST", "DEUTERAGONIST", "CONFIDANT") or c.core_motivation or c.summary:
+                    principals.append((name, c))
+            if not principals:
+                principals = list(story_state.characters.items())[:6]
+
+            for name, c in principals[:8]:
                 gender_str = c.gender or (c.attributes.get("gender") if isinstance(c.attributes, dict) else None)
                 pronoun_str = c.pronouns or (c.attributes.get("pronouns") if isinstance(c.attributes, dict) else None)
                 identity_meta = []
@@ -286,7 +295,7 @@ class CollaborativeStoryDirector:
                 if c.fatal_flaw:
                     parts.append(f"  * Flaw: {c.fatal_flaw}")
                 if c.relationships:
-                    for rel in c.relationships:
+                    for rel in c.relationships[:3]:
                         parts.append(f"  * Relationship with {rel.target_character}: {rel.relation_type} ({rel.dynamic or 'no dynamic noted'})")
 
         # Story Constraints & Version Precedence

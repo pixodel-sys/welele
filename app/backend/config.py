@@ -65,6 +65,20 @@ class Settings:
         )
         self.GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
 
+        # SMSPortal Integration (Viewer Phone OTP)
+        self.SMSPORTAL_CLIENT_ID: str = (
+            os.getenv("SMSPORTAL_CLIENT_ID") or
+            os.getenv("Client ID (username)") or
+            os.getenv("SMSPORTAL_USERNAME") or
+            ""
+        )
+        self.SMSPORTAL_API_SECRET: str = (
+            os.getenv("SMSPORTAL_API_SECRET") or
+            os.getenv("API Secret (password)") or
+            os.getenv("SMSPORTAL_PASSWORD") or
+            ""
+        )
+
     def validate_security_invariants(self):
         """Enforces that production and staging environments fail closed and never use known/default admin secrets."""
         if self.IS_PRODUCTION_OR_STAGING:

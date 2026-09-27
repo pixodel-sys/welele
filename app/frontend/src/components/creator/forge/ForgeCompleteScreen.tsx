@@ -45,6 +45,13 @@ export const ForgeCompleteScreen: React.FC<ForgeCompleteScreenProps> = ({
     { label: 'Production context', detail: 'Format staging and narrative constraints verified' },
   ];
 
+  const isM3Certified = assessment?.status === 'FORGE_COMPLETE' || assessment?.current_milestone === 'FORGE_COMPLETE';
+  const certificationLabel = isM3Certified
+    ? '🟢 M3 Certified • Story Forge Complete'
+    : assessment?.current_milestone
+    ? `🟡 ${assessment.current_milestone.replace(/_/g, ' ')} • Story Concluded`
+    : '🟡 Story Concluded • Pending Invariant Certification';
+
   return (
     <div className="relative rounded-3xl bg-gradient-to-b from-[#121A24] via-[#0D121B] to-[#0A0D14] border-2 border-emerald-500/40 p-6 sm:p-10 shadow-2xl overflow-hidden animate-fade-in text-white">
       {/* Radiant celebratory glow */}
@@ -53,9 +60,11 @@ export const ForgeCompleteScreen: React.FC<ForgeCompleteScreenProps> = ({
 
       {/* Top Badge */}
       <div className="flex items-center justify-between gap-4 mb-6">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-mono text-xs font-bold uppercase tracking-wider">
-          <Sparkles className="w-4 h-4 text-emerald-400 animate-pulse" />
-          <span>M3 Certified • Story Forge Complete</span>
+        <div className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full ${
+          isM3Certified ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300' : 'bg-amber-500/20 border-amber-500/40 text-amber-300'
+        } border font-mono text-xs font-bold uppercase tracking-wider`}>
+          <Sparkles className={`w-4 h-4 ${isM3Certified ? 'text-emerald-400' : 'text-amber-400'} animate-pulse`} />
+          <span>{certificationLabel}</span>
         </div>
 
         <span className="text-xs font-mono text-emerald-400/80 bg-emerald-950/40 px-3 py-1 rounded-lg border border-emerald-500/30">

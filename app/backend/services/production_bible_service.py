@@ -649,9 +649,27 @@ class ProductionBibleService:
 
         # ---------------------------------------------------------------------
         # Track 1: VIDEO (GENERATED)
+        # Sourced dynamically from story package beats if provided
         # ---------------------------------------------------------------------
-        scene_desc = (
-            [
+        if raw_beats:
+            scene_desc = []
+            cam_directions = []
+            for idx, b in enumerate(raw_beats):
+                t_end = b.get("timestamp_end_s") or b.get("timestamp_seconds") or ((idx + 1) * 30)
+                t_start = b.get("timestamp_start_s") or (0 if idx == 0 else (raw_beats[idx - 1].get("timestamp_seconds") or (idx * 30)))
+                scene_desc.append({
+                    "scene_id": f"SC_{idx+1:02d}_{b.get('label', 'BEAT').upper().replace(' ', '_')[:24]}",
+                    "timing": f"00:{t_start:02d} - 00:{t_end:02d}",
+                    "visual_action": b.get("action_description") or b.get("action_summary") or b.get("description", "DEFERRED"),
+                    "framing": "9:16 Vertical Native Close-Up and Tension Profile",
+                    "lighting": "High-contrast dynamic directional key"
+                })
+                cam_directions.append({
+                    "shot": f"Beat {idx+1} {b.get('label', '')}",
+                    "technique": f"Vertical dynamic camera framing beat {idx+1}, 35mm prime."
+                })
+        elif is_isibusiso:
+            scene_desc = [
                 {
                     "scene_id": "SC_01_INT_CLINIC_NIGHT",
                     "timing": "00:00 - 00:15",
@@ -673,7 +691,14 @@ class ProductionBibleService:
                     "framing": "9:16 Vertical Whip-Pan & Hero Profile Freeze",
                     "lighting": "High-contrast golden dawn sunrise"
                 }
-            ] if is_isibusiso else [
+            ]
+            cam_directions = [
+                {"shot": "Beat 1 Delivery", "technique": "Handheld micro-tilt from sweat to birthmark, 35mm f/1.4 prime."},
+                {"shot": "Beat 2 Convoy", "technique": "Low-angle vertical tracking shot as Bhekisisa steps into frame, 24mm f/1.8."},
+                {"shot": "Beat 3 Stand-off", "technique": "Whip-pan from drawn sidearms to customary ledger, 50mm f/1.2."}
+            ]
+        else:
+            scene_desc = [
                 {
                     "scene_id": "SC_01_SCENE_UNSPECIFIED",
                     "timing": "00:00 - 00:90",
@@ -682,18 +707,12 @@ class ProductionBibleService:
                     "lighting": "DEFERRED_TO_GAFFER"
                 }
             ]
-        )
+            cam_directions = []
 
         track_video = TrackVideo(
             scene_descriptions=scene_desc,
-            camera_direction=(
-                [
-                    {"shot": "Beat 1 Delivery", "technique": "Handheld micro-tilt from sweat to birthmark, 35mm f/1.4 prime."},
-                    {"shot": "Beat 2 Convoy", "technique": "Low-angle vertical tracking shot as Bhekisisa steps into frame, 24mm f/1.8."},
-                    {"shot": "Beat 3 Stand-off", "technique": "Whip-pan from drawn sidearms to customary ledger, 50mm f/1.2."}
-                ] if is_isibusiso else []
-            ),
-            lighting_execution="Chiaroscuro key separation" if is_isibusiso else "DEFERRED",
+            camera_direction=cam_directions,
+            lighting_execution="High-contrast key separation" if (is_isibusiso or raw_beats) else "DEFERRED",
             provenance=ProvenanceType.GENERATED,
             source_path="generator.track_video",
             derivation_notes="Synthesized from episode beats and visual language standards."
@@ -701,9 +720,26 @@ class ProductionBibleService:
 
         # ---------------------------------------------------------------------
         # Track 2: DIALOGUE (CANON lines + DERIVED subtext)
+        # Sourced dynamically from story package dialogue if provided
         # ---------------------------------------------------------------------
-        dialogue_lines_val = (
-            [
+        raw_dialogue = target_pkg.get("dialogue") or []
+        if raw_dialogue:
+            dialogue_lines_val = [
+                {
+                    "speaker": d.get("speaker", "UNKNOWN"),
+                    "line": d.get("line", ""),
+                    "subtext": d.get("subtext", "Dramatic tension."),
+                    "timestamp_s": d.get("timestamp_s", 30),
+                    "delivery_tone": d.get("delivery_tone", "Determined")
+                }
+                for d in raw_dialogue
+            ]
+            vernacular_notes = [
+                f"{d.get('speaker')}: {d.get('delivery_tone')} delivery with local vernacular nuance."
+                for d in raw_dialogue
+            ]
+        elif is_isibusiso:
+            dialogue_lines_val = [
                 {
                     "speaker": "Thandiwe",
                     "line": "A child is not platinum ore to be dug up and traded in Sandton, Bhekisisa.",
@@ -725,18 +761,19 @@ class ProductionBibleService:
                     "timestamp_s": 72,
                     "delivery_tone": "Choked, tearful."
                 }
-            ] if is_isibusiso else []
-        )
+            ]
+            vernacular_notes = [
+                "Thandiwe uses formal ancestral isiZulu, elevating dispute to customary law.",
+                "Bhekisisa speaks Sandton boardroom isiZulu emphasizing ownership.",
+                "Lerato uses colloquial street isiZulu."
+            ]
+        else:
+            dialogue_lines_val = []
+            vernacular_notes = ["DEFERRED_TO_DIALOGUE_COACH"]
 
         track_dialogue = TrackDialogue(
             dialogue_lines=dialogue_lines_val,
-            vernacular_subtext_notes=(
-                [
-                    "Thandiwe uses formal ancestral isiZulu, elevating dispute to customary law.",
-                    "Bhekisisa speaks Sandton boardroom isiZulu emphasizing ownership.",
-                    "Lerato uses colloquial street isiZulu."
-                ] if is_isibusiso else ["DEFERRED_TO_DIALOGUE_COACH"]
-            ),
+            vernacular_subtext_notes=vernacular_notes,
             provenance=ProvenanceType.CANON,
             source_path="story_package.dialogue",
             derivation_notes="Verbatim spoken lines sourced from Story Package; subtext derived from character motivation."
@@ -745,9 +782,16 @@ class ProductionBibleService:
         # ---------------------------------------------------------------------
         # Track 3: NARRATION (DERIVED)
         # ---------------------------------------------------------------------
+        pkg_logline = target_pkg.get("logline", "")
         track_narration = TrackNarration(
-            has_narration=is_isibusiso,
-            opening_hook_vo="In Soweto, blood is thicker than gold... but at dawn, gold came to collect." if is_isibusiso else None,
+            has_narration=bool(is_isibusiso or pkg_logline),
+            opening_hook_vo=(
+                "In Soweto, blood is thicker than gold... but at dawn, gold came to collect."
+                if is_isibusiso
+                else f"Two brothers, a dog, and a crossing that would test the boundaries of survival."
+                if "Bougie" in (target_pkg.get("package_title") or "")
+                else None
+            ),
             internal_monologues=(
                 [
                     {
@@ -765,17 +809,33 @@ class ProductionBibleService:
         # ---------------------------------------------------------------------
         # Track 4: AMBIENCE (GENERATED)
         # ---------------------------------------------------------------------
+        audio_lang = target_pkg.get("audio_language") or {}
+        raw_foley = audio_lang.get("foley_architecture") or []
+        if raw_foley:
+            foley_events_val = [
+                {
+                    "timestamp_s": int(f.get("timing", "00:00").replace("00:", "")) if "00:" in f.get("timing", "") else 10,
+                    "foley": f"{f.get('event', '')}: {f.get('description', '')}"
+                }
+                for f in raw_foley
+            ]
+            room_tone_val = "Arid African bushveld exterior room tone; dry cicadas, distant highway hum, tense desert wind."
+        elif is_isibusiso:
+            foley_events_val = [
+                {"timestamp_s": 5, "foley": "Newborn first sharp gasp and cry echoing in ward."},
+                {"timestamp_s": 18, "foley": "Gravel road crunch under heavy tyres of Mercedes convoy."},
+                {"timestamp_s": 42, "foley": "Metallic double-click of aluminum cash briefcase opening."},
+                {"timestamp_s": 84, "foley": "Heavy slide of 9mm semi-automatic pistols racking."},
+                {"timestamp_s": 86, "foley": "Leather snap of sjamboks against corrugated fence."}
+            ]
+            room_tone_val = "Subdued township night room tone; distant generator hum; crickets; blackout silence."
+        else:
+            foley_events_val = []
+            room_tone_val = "NOT_SPECIFIED"
+
         track_ambience = TrackAmbience(
-            room_tone="Subdued township night room tone; distant generator hum; crickets; blackout silence." if is_isibusiso else "NOT_SPECIFIED",
-            foley_events=(
-                [
-                    {"timestamp_s": 5, "foley": "Newborn first sharp gasp and cry echoing in ward."},
-                    {"timestamp_s": 18, "foley": "Gravel road crunch under heavy tyres of Mercedes convoy."},
-                    {"timestamp_s": 42, "foley": "Metallic double-click of aluminum cash briefcase opening."},
-                    {"timestamp_s": 84, "foley": "Heavy slide of 9mm semi-automatic pistols racking."},
-                    {"timestamp_s": 86, "foley": "Leather snap of sjamboks against corrugated fence."}
-                ] if is_isibusiso else []
-            ),
+            room_tone=room_tone_val,
+            foley_events=foley_events_val,
             provenance=ProvenanceType.GENERATED,
             source_path="generator.track_ambience",
             derivation_notes="Generated sound design timeline synchronized to scene events."
@@ -784,21 +844,38 @@ class ProductionBibleService:
         # ---------------------------------------------------------------------
         # Track 5: MUSIC (GENERATED)
         # ---------------------------------------------------------------------
+        score_sig = audio_lang.get("score_signature") or {}
+        if score_sig:
+            theme_val = score_sig.get("theme_name", "Bougie Main Motif")
+            bpm_val = score_sig.get("bpm", 112)
+            inst_val = score_sig.get("instrumentation", ["Kalimba", "808 Bass"])
+            stems_val = [
+                {"time": "00:00 - 00:15", "stem": f"Solo kalimba arpeggio at {bpm_val} BPM."},
+                {"time": "00:15 - 00:50", "stem": "Heavy 808 sub-bass enters as pursuit escalates."},
+                {"time": "00:50 - 00:87", "stem": "Full percussion crescendo reaching peak intensity 10/10."},
+                {"time": "00:88 - 00:90", "stem": "Abrupt cut to silence at paywall cliffhanger prompt."}
+            ]
+        elif is_isibusiso:
+            theme_val = "The Sacred Bloodline (Isibusiso Main Motif)"
+            bpm_val = 68
+            inst_val = ["Low Zulu acoustic drum pulse", "Solo staccato cello", "Seed rattle (Isagila)", "High-tension string tremolo"]
+            stems_val = [
+                {"time": "00:00 - 00:15", "stem": "Solo Zulu drum heartbeat at 68 BPM."},
+                {"time": "00:15 - 00:50", "stem": "Staccato cello enters as convoy arrives, building chromatic tension."},
+                {"time": "00:50 - 00:87", "stem": "String tremolo and brass crescendo reaching peak intensity 10/10."},
+                {"time": "00:88 - 00:90", "stem": "Abrupt cut to silence at paywall cliffhanger prompt."}
+            ]
+        else:
+            theme_val = "NOT_SPECIFIED"
+            bpm_val = None
+            inst_val = []
+            stems_val = []
+
         track_music = TrackMusic(
-            score_theme="The Sacred Bloodline (Isibusiso Main Motif)" if is_isibusiso else "NOT_SPECIFIED",
-            tempo_bpm=68 if is_isibusiso else None,
-            instrumentation=(
-                ["Low Zulu acoustic drum pulse", "Solo staccato cello", "Seed rattle (Isagila)", "High-tension string tremolo"]
-                if is_isibusiso else []
-            ),
-            stems_progression=(
-                [
-                    {"time": "00:00 - 00:15", "stem": "Solo Zulu drum heartbeat at 68 BPM."},
-                    {"time": "00:15 - 00:50", "stem": "Staccato cello enters as convoy arrives, building chromatic tension."},
-                    {"time": "00:50 - 00:87", "stem": "String tremolo and brass crescendo reaching peak intensity 10/10."},
-                    {"time": "00:88 - 00:90", "stem": "Abrupt cut to silence at paywall cliffhanger prompt."}
-                ] if is_isibusiso else []
-            ),
+            score_theme=theme_val,
+            tempo_bpm=bpm_val,
+            instrumentation=inst_val,
+            stems_progression=stems_val,
             paywall_cut_behavior="ABRUPT_SILENCE_AT_CLIFFHANGER",
             provenance=ProvenanceType.GENERATED,
             source_path="generator.track_music",

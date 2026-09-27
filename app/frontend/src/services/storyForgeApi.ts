@@ -11,11 +11,11 @@ import {
 } from '../types/storyForge';
 import { storyForgeFallback } from './storyForgeFallback';
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL as string) || '/api';
+const API_BASE = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL) || ((globalThis as any).process?.env?.VITE_API_BASE_URL) || '/api';
 
 const forgeClient = axios.create({
   baseURL: `${API_BASE}/v1/forge`,
-  timeout: 12000,
+  timeout: 60000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -61,6 +61,9 @@ export const storyForgeApi = {
   createStory: async (payload: CreateStoryPayload): Promise<StoryState> => {
     try {
       const res = await forgeClient.post('/stories', payload);
+      if (res.data) {
+        storyForgeFallback.cacheStoryState(res.data);
+      }
       return res.data;
     } catch (err) {
       console.warn('[storyForgeApi] Backend unavailable, engaging resilient edge staging kernel for story creation:', err);
@@ -71,13 +74,38 @@ export const storyForgeApi = {
   listStories: async (): Promise<StorySummary[]> => {
     try {
       const res = await forgeClient.get('/stories');
-      if (Array.isArray(res.data) && res.data.length > 0) {
+      if (Array.isArray(res.data)) {
+        storyForgeFallback.syncBackendStories(res.data);
         return res.data;
       }
     } catch (err) {
       console.warn('[storyForgeApi] listStories falling back to edge store:', err);
     }
-    return storyForgeFallback.listStories();
+    const fallbackList = storyForgeFallback.listStories();
+    // Return meaningful stories first; filter out empty untitled duplicates if any titled story exists
+    const hasNamed = fallbackList.some(s => s.title && s.title !== 'Untitled Story' && s.title !== 'Story');
+    if (hasNamed) {
+      return fallbackList.filter(s => (s.title && s.title !== 'Untitled Story' && s.title !== 'Story') || !!s.logline);
+    }
+    return fallbackList;
+  },
+
+  deleteStory: async (storyId: string): Promise<boolean> => {
+    try {
+      await forgeClient.delete(`/stories/${storyId}`);
+    } catch (e) {
+      console.warn('[storyForgeApi] Backend delete failed or unavailable:', e);
+    }
+    return storyForgeFallback.deleteStory(storyId);
+  },
+
+  clearUntitledDrafts: async (): Promise<number> => {
+    try {
+      await forgeClient.delete('/stories/cleanup/untitled');
+    } catch {
+      // ignore
+    }
+    return storyForgeFallback.clearUntitledDrafts();
   },
 
   getStorySummary: async (storyId: string): Promise<StorySummary> => {
@@ -90,8 +118,14 @@ export const storyForgeApi = {
   },
 
   getStoryState: async (storyId: string): Promise<StoryState> => {
+    if (!storyId || !storyId.trim()) {
+      return storyForgeFallback.getStoryState(storyId || '');
+    }
     try {
       const res = await forgeClient.get(`/stories/${storyId}/state`);
+      if (res.data) {
+        storyForgeFallback.cacheStoryState(res.data);
+      }
       return res.data;
     } catch {
       return storyForgeFallback.getStoryState(storyId);
@@ -194,6 +228,9 @@ export const storyForgeApi = {
   },
 
   getCurrentAction: async (sessionId: string): Promise<CurrentAction> => {
+    if (!sessionId || !sessionId.trim()) {
+      return storyForgeFallback.getCurrentAction(sessionId || '');
+    }
     try {
       const res = await forgeClient.get(`/sessions/${sessionId}/current`);
       return res.data;
