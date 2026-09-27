@@ -61,8 +61,6 @@ export const AuthModal: React.FC = () => {
     }
   }, [isAuthModalOpen, authModalTargetRole]);
 
-  if (!isAuthModalOpen) return null;
-
   const triggerSuccess = (role: 'viewer' | 'creator' | 'admin') => {
     confetti({
       particleCount: 75,
@@ -242,6 +240,8 @@ export const AuthModal: React.FC = () => {
       setErrorMessage(err.response?.data?.detail || 'Invalid Enterprise Admin Key or 2FA MFA Token.');
     }
   };
+
+  if (!isAuthModalOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
