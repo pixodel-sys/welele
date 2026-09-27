@@ -14,7 +14,8 @@ import {
   RefreshCw,
   AlertCircle,
   FileText,
-  Upload
+  Upload,
+  Trash2
 } from 'lucide-react';
 
 interface StoryIntakeScreenProps {
@@ -64,6 +65,29 @@ export const StoryIntakeScreen: React.FC<StoryIntakeScreenProps> = ({
       setExistingStories(list);
     } catch (e: any) {
       console.warn('Could not load existing stories:', e);
+    } finally {
+      setIsLoadingStories(false);
+    }
+  };
+
+  const handleDeleteStory = async (e: React.MouseEvent, storyId: string) => {
+    e.stopPropagation();
+    try {
+      await storyForgeApi.deleteStory(storyId);
+      setExistingStories(prev => prev.filter(s => s.id !== storyId));
+    } catch (err) {
+      console.error('Failed to delete story:', err);
+    }
+  };
+
+  const handleCleanUntitled = async () => {
+    setIsLoadingStories(true);
+    try {
+      await storyForgeApi.clearUntitledDrafts();
+      const list = await storyForgeApi.listStories();
+      setExistingStories(list);
+    } catch (err) {
+      console.error('Failed to clean untitled drafts:', err);
     } finally {
       setIsLoadingStories(false);
     }
@@ -542,23 +566,42 @@ export const StoryIntakeScreen: React.FC<StoryIntakeScreenProps> = ({
       {/* TAB 2: RESUME STORY */}
       {activeTab === 'resume' && (
         <div className="bg-[#12131C] border border-white/10 rounded-2xl p-6 shadow-2xl space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold uppercase tracking-wider text-white/80 font-mono">
-              Saved Forge Stories ({existingStories.length})
-            </h3>
-            <button
-              onClick={loadStories}
-              disabled={isLoadingStories}
-              className="text-xs text-white/50 hover:text-white flex items-center gap-1"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isLoadingStories ? 'animate-spin' : ''}`} />
-              <span>Refresh</span>
-            </button>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-bold uppercase tracking-wider text-white/80 font-mono">
+                Saved Forge Stories ({existingStories.length})
+              </h3>
+              <p className="text-xs text-white/40">
+                Institutional canon and in-development stories.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleCleanUntitled}
+                disabled={isLoadingStories}
+                className="px-3 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 text-xs font-mono flex items-center gap-1.5 transition-all shadow-sm"
+                title="Purge untitled and empty drafts"
+              >
+                <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                <span>Clean Untitled Drafts</span>
+              </button>
+              <button
+                type="button"
+                onClick={loadStories}
+                disabled={isLoadingStories}
+                className="p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white/60 hover:text-white transition-all text-xs"
+                title="Refresh stories"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isLoadingStories ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
           </div>
 
           {isLoadingStories ? (
-            <div className="py-12 text-center text-xs text-white/40 font-mono">
-              Loading stories from Forge engine...
+            <div className="py-12 text-center text-xs text-white/40 font-mono flex items-center justify-center gap-2">
+              <RefreshCw className="w-4 h-4 animate-spin text-[#FF6500]" />
+              <span>Loading stories from Forge engine...</span>
             </div>
           ) : existingStories.length === 0 ? (
             <div className="py-12 text-center text-xs text-white/40 font-mono space-y-2">
@@ -572,34 +615,61 @@ export const StoryIntakeScreen: React.FC<StoryIntakeScreenProps> = ({
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {existingStories.map((s) => (
-                <div
-                  key={s.id}
-                  onClick={() => onResumeStory(s.id)}
-                  className="p-4 rounded-xl bg-black/40 border border-white/10 hover:border-[#FF6500]/60 transition-all cursor-pointer group flex flex-col justify-between"
-                >
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between text-[11px] font-mono">
-                      <span className="px-2 py-0.5 rounded bg-white/10 text-white/80 font-bold">
-                        v{s.current_state_version}
-                      </span>
-                      <span className="text-emerald-400 font-semibold">{s.status}</span>
+              {existingStories.map((s) => {
+                const isUntitled = !s.title || s.title.trim().toLowerCase() === 'untitled story' || s.title.trim().toLowerCase() === 'story';
+                return (
+                  <div
+                    key={s.id}
+                    onClick={() => onResumeStory(s.id)}
+                    className="p-4 rounded-xl bg-black/40 border border-white/10 hover:border-[#FF6500]/60 transition-all cursor-pointer group flex flex-col justify-between relative overflow-hidden"
+                  >
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between text-[11px] font-mono">
+                        <div className="flex items-center gap-1.5">
+                          <span className="px-2 py-0.5 rounded bg-white/10 text-white/80 font-bold">
+                            v{s.current_state_version}
+                          </span>
+                          {isUntitled && (
+                            <span className="px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 text-[10px] font-bold">
+                              Draft
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-emerald-400 font-semibold">{s.status}</span>
+                          <button
+                            type="button"
+                            onClick={(e) => handleDeleteStory(e, s.id)}
+                            className="p-1 rounded-md text-white/30 hover:text-rose-400 hover:bg-rose-500/20 transition-all"
+                            title="Delete this draft"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                      <h4 className="text-base font-black text-white group-hover:text-[#FF6500] truncate">
+                        {s.title}
+                      </h4>
+                      {s.logline ? (
+                        <p className="text-xs text-white/60 line-clamp-2 leading-relaxed">
+                          {s.logline}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-white/30 italic">
+                          No premise logline recorded yet.
+                        </p>
+                      )}
+                      <div className="text-[10px] font-mono text-white/30 pt-1">
+                        ID: {s.id}
+                      </div>
                     </div>
-                    <h4 className="text-base font-black text-white group-hover:text-[#FF6500] truncate">
-                      {s.title}
-                    </h4>
-                    {s.logline && (
-                      <p className="text-xs text-white/60 line-clamp-2 leading-relaxed">
-                        {s.logline}
-                      </p>
-                    )}
+                    <div className="mt-3 pt-2.5 border-t border-white/5 flex items-center justify-between text-xs text-[#FF6500] font-bold">
+                      <span>Resume Cockpit</span>
+                      <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                    </div>
                   </div>
-                  <div className="mt-3 pt-2.5 border-t border-white/5 flex items-center justify-between text-xs text-[#FF6500] font-bold">
-                    <span>Resume Cockpit</span>
-                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

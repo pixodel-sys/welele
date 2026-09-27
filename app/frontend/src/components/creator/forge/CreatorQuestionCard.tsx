@@ -11,7 +11,8 @@ import {
   ChevronUp,
   Check,
   Edit3,
-  Compass
+  Compass,
+  Copy
 } from 'lucide-react';
 
 interface CreatorQuestionCardProps {
@@ -20,6 +21,7 @@ interface CreatorQuestionCardProps {
   isLoading: boolean;
   errorMessage: string | null;
   onSubmit: (response: string, proposalAction?: 'ACCEPT' | 'REJECT' | 'MODIFY') => void;
+  onAutofillRemainingGaps?: () => void;
 }
 
 export const CreatorQuestionCard: React.FC<CreatorQuestionCardProps> = ({
@@ -28,10 +30,12 @@ export const CreatorQuestionCard: React.FC<CreatorQuestionCardProps> = ({
   isLoading,
   errorMessage,
   onSubmit,
+  onAutofillRemainingGaps,
 }) => {
   const [answer, setAnswer] = useState('');
   const [showCraftDetails, setShowCraftDetails] = useState(false);
   const [selectedProposalAction, setSelectedProposalAction] = useState<'ACCEPT' | 'MODIFY' | null>(null);
+  const [selectedOptionIndex, setSelectedOptionIndex] = useState<number | null>(null);
   const [isLocallySubmitting, setIsLocallySubmitting] = useState(false);
   const lastQuestionKeyRef = React.useRef<string | null>(null);
 
@@ -107,22 +111,36 @@ export const CreatorQuestionCard: React.FC<CreatorQuestionCardProps> = ({
         </span>
       </div>
 
-      {/* Dominant Creator Question Headline */}
-      <div className="space-y-2 mb-6">
-        <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-snug font-sans">
-          {translated.headline}
-        </h2>
-        <p className="text-sm sm:text-base text-white/70 leading-relaxed max-w-3xl">
+      {/* Dominant Creator Question Headline with Selection and 1-Click Copy */}
+      <div className="space-y-2 mb-6 select-text">
+        <div className="flex items-start justify-between gap-3">
+          <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-snug font-sans select-text cursor-text">
+            {translated.headline}
+          </h2>
+          <button
+            type="button"
+            onClick={() => {
+              const fullText = `${translated.headline}\n\nContext: ${translated.context}\nWhy it matters: ${translated.whyItMatters}`;
+              navigator.clipboard.writeText(fullText);
+            }}
+            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/50 hover:text-white transition-all text-xs font-mono shrink-0 flex items-center gap-1 border border-white/5"
+            title="Copy question to clipboard"
+          >
+            <Copy className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Copy Question</span>
+          </button>
+        </div>
+        <p className="text-sm sm:text-base text-white/70 leading-relaxed max-w-3xl select-text cursor-text">
           {translated.context}
         </p>
       </div>
 
       {/* Why This Matters Context Card */}
-      <div className="mb-6 p-4 rounded-2xl bg-white/[0.03] border border-white/5 flex items-start gap-3 text-xs text-white/80 leading-relaxed">
+      <div className="mb-6 p-4 rounded-2xl bg-white/[0.03] border border-white/5 flex items-start gap-3 text-xs text-white/80 leading-relaxed select-text">
         <Lightbulb className="w-4 h-4 text-[#FFA000] shrink-0 mt-0.5" />
-        <div>
-          <span className="font-bold text-white block mb-0.5">Why this matters:</span>
-          <span>{translated.whyItMatters}</span>
+        <div className="select-text cursor-text">
+          <span className="font-bold text-white block mb-0.5 select-text">Why this matters:</span>
+          <span className="select-text">{translated.whyItMatters}</span>
         </div>
       </div>
 
@@ -141,7 +159,10 @@ export const CreatorQuestionCard: React.FC<CreatorQuestionCardProps> = ({
             <button
               type="button"
               disabled={isLocked}
-              onClick={() => setSelectedProposalAction('ACCEPT')}
+              onClick={() => {
+                setSelectedProposalAction('ACCEPT');
+                setAnswer(currentAction?.proposal || '');
+              }}
               className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
                 isLocked ? 'opacity-40 cursor-not-allowed pointer-events-none' : ''
               } ${
@@ -151,7 +172,7 @@ export const CreatorQuestionCard: React.FC<CreatorQuestionCardProps> = ({
               }`}
             >
               <Check className="w-3.5 h-3.5" />
-              <span>Accept Direction</span>
+              <span>Accept Suggestion as Canon</span>
             </button>
             <button
               type="button"
@@ -168,6 +189,66 @@ export const CreatorQuestionCard: React.FC<CreatorQuestionCardProps> = ({
               <Edit3 className="w-3.5 h-3.5" />
               <span>Modify or Elaborate Below</span>
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Writer's Room Smart Suggestions (Options A, B, C) */}
+      {!isProposal && (
+        <div className="mb-6 space-y-2.5">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-white/50 flex items-center gap-1.5">
+              <Sparkles className="w-3 h-3 text-[#FFA000]" />
+              <span>Suggested Creative Directions (Click to Choose)</span>
+            </span>
+            {onAutofillRemainingGaps && (
+              <button
+                type="button"
+                onClick={onAutofillRemainingGaps}
+                disabled={isLocked}
+                className="text-[11px] font-mono text-[#FF6500] hover:text-[#FFA000] transition-colors underline flex items-center gap-1"
+                title="Resolve remaining story gaps using safe Forge suggestions"
+              >
+                <span>Auto-resolve remaining gaps ⚡</span>
+              </button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            {[
+              {
+                letter: 'A',
+                text: `${storyState?.title ? 'Regarding ' + storyState.title + ': ' : ''}High-stakes escalation through a discovered secret or sudden deadline.`
+              },
+              {
+                letter: 'B',
+                text: 'Emotional conflict triggered by family heritage, social debt, or loyalties divided.'
+              },
+              {
+                letter: 'C',
+                text: 'Direct physical opposition or institutional pressure that raises the stakes immediately.'
+              }
+            ].map((opt, idx) => (
+              <button
+                key={idx}
+                type="button"
+                disabled={isLocked}
+                onClick={() => {
+                  setSelectedOptionIndex(idx);
+                  setAnswer(opt.text);
+                }}
+                className={`p-3 rounded-xl border text-left text-xs transition-all flex flex-col justify-between gap-1.5 ${
+                  selectedOptionIndex === idx
+                    ? 'bg-[#FF6500]/15 border-[#FF6500] text-white shadow-lg shadow-[#FF6500]/10'
+                    : 'bg-white/[0.02] border-white/10 hover:border-white/20 text-white/70 hover:text-white'
+                }`}
+              >
+                <span className="w-5 h-5 rounded-full bg-white/10 text-white/90 font-mono text-[10px] font-bold flex items-center justify-center shrink-0">
+                  {opt.letter}
+                </span>
+                <span className="leading-snug text-[11px]">{opt.text}</span>
+              </button>
+            ))}
           </div>
         </div>
       )}

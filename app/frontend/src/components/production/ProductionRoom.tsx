@@ -38,7 +38,8 @@ import {
   Music,
   MessageSquare,
   FileText,
-  Printer
+  Printer,
+  Trash2
 } from 'lucide-react';
 import { PrintExportEngine } from '../../services/printExport/printExportEngine';
 
@@ -66,14 +67,16 @@ export const ProductionRoom: React.FC = () => {
   const [packageViewMode, setPackageViewMode] = useState<'pillars' | 'audit' | 'bible' | 'episode_pack'>('pillars');
   const [productionBible, setProductionBible] = useState<any | null>(null);
   const [episodePack, setEpisodePack] = useState<any | null>(null);
+  const [selectedEpisodeNumber, setSelectedEpisodeNumber] = useState<number>(1);
   const [isLoadingBible, setIsLoadingBible] = useState<boolean>(false);
 
-  const loadBibleAndPack = async (ipId: string) => {
+  const loadBibleAndPack = async (ipId: string, epNum: number = 1) => {
     setIsLoadingBible(true);
+    setSelectedEpisodeNumber(epNum);
     try {
       const b = await productionApi.getProductionBible(ipId);
       setProductionBible(b);
-      const ep = await productionApi.getEpisodePack(ipId, 1);
+      const ep = await productionApi.getEpisodePack(ipId, epNum);
       setEpisodePack(ep);
     } catch (e) {
       console.warn('Could not load Production Bible / Pack:', e);
@@ -94,6 +97,27 @@ export const ProductionRoom: React.FC = () => {
       console.warn('Could not load Forge stories queue:', e);
     } finally {
       setIsLoadingQueue(false);
+    }
+  };
+
+  const handleDeleteStory = async (storyId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!window.confirm('Delete this story draft from the queue?')) return;
+    try {
+      await storyForgeApi.deleteStory(storyId);
+      await loadQueue();
+    } catch (err) {
+      console.error('Failed to delete story:', err);
+    }
+  };
+
+  const handleCleanUntitled = async () => {
+    if (!window.confirm('Purge all untitled/empty ghost drafts from the queue?')) return;
+    try {
+      await storyForgeApi.clearUntitledDrafts();
+      await loadQueue();
+    } catch (err) {
+      console.error('Failed to clear untitled drafts:', err);
     }
   };
 
@@ -120,44 +144,44 @@ export const ProductionRoom: React.FC = () => {
         }
       }
 
-      // If no packages from IP repo yet, provide default canonical packages
+      // If no packages from IP repo yet, provide canonical Umkhehlo: The Hidden Heiress package
       if (allPkgs.length === 0) {
         allPkgs.push({
-          id: 'pkg_ancestral_ledger_001',
-          package_title: 'The Ancestral Ledger: Season 1 Package',
-          ip_title: 'The Ancestral Ledger',
-          franchise_code: 'IP-ANC-LEDGER',
-          genre: 'Supernatural Comedy / Vertical Microdrama',
+          id: 'pkg_umkhehlo_hidden_heiress_001',
+          package_title: 'Umkhehlo: The Hidden Heiress - Season 1 Package',
+          ip_title: 'Umkhehlo: The Hidden Heiress',
+          franchise_code: 'IP-UMKHEHLO',
+          genre: 'African Vertical Microdrama / Royal Romance',
           primary_language: 'isiZulu',
           version: 1,
-          target_duration_seconds: 90,
+          target_duration_seconds: 80,
           forge_configuration_id: 'CFG-001',
-          lineage_hash: '2fbbbb302bbfe5118749dbbb188f11a4cf130a08e6f1f4e1f7fc7fa82f7c0068',
+          lineage_hash: 'c88dbbe021a88b5e2849e75127dcf8bb0299f01bc49ae81efef9b76e1823ab02',
           created_at: new Date().toISOString(),
           beats_json: [
-            { beat_number: 1, label: 'Cold Open Hook', action_description: 'Sipho discovers the golden debt ledger at 02:00 AM.', intensity: 8, timestamp_seconds: 5 },
-            { beat_number: 2, label: 'Inciting Ledger Debt', action_description: 'Ledger demands repayment in cowries or corporate shares.', intensity: 9, timestamp_seconds: 40 },
-            { beat_number: 3, label: 'Cliffhanger Paywall', action_description: 'Gogo MaMthembu appears through the Sandton boardroom glass.', intensity: 10, timestamp_seconds: 85, cliffhanger_trigger: true }
+            { beat_number: 1, label: 'Cold Open Hook: The Stained Veil', action_description: 'Designer heel stamps on silk veil; slap echoes across Umhlanga estate.', intensity: 8, timestamp_seconds: 3 },
+            { beat_number: 2, label: 'Inciting Halting: The Bloodline Mark', action_description: 'Bheki drops to one knee gripping Nandi\'s wrist cuff; wedding halted.', intensity: 9, timestamp_seconds: 40 },
+            { beat_number: 3, label: 'Cliffhanger Paywall: Coma & Demolition', action_description: 'Bheki poisoned into coma; Vusi Zulu orders bulldozers toward Umlazi home.', intensity: 10, timestamp_seconds: 80, cliffhanger_trigger: true }
           ],
           dialogues_json: [
-            { character: 'Sipho', line: 'You cannot audit spirits with standard GAAP accounting.' },
-            { character: 'Gogo MaMthembu', line: 'The bloodline ledger never closes, child.' }
+            { character: 'Nandi Mkhize', line: 'You can demolish the shop, Vusi Zulu, but you cannot demolish the royal bloodline.' },
+            { character: 'Vusi Zulu', line: 'In KwaZulu-Natal, bloodline without power is just an ink mark.' }
           ],
-          cliffhanger_prompt: 'Will Sipho sign the ancestral waiver before the corporate audit begins?',
+          cliffhanger_prompt: 'Will Nandi present the authentic ancestral seal at the seaside pavilion before the one-hour clock expires?',
           plants: [
-            { name: 'Late Uncle Safe Key', status: 'planted', expected_payoff: 'Ep 3 Vault Opening' },
-            { name: '19th-Century Murder Record', status: 'planted', expected_payoff: 'Season Finale Climax' }
+            { name: 'Royal Heirloom Wrist Cuff', status: 'planted', expected_payoff: 'Ep 1 Wedding Halt Proof' },
+            { name: 'Sealed 2002 Royal Succession Ledger', status: 'planted', expected_payoff: 'Seaside Pavilion Showdown' }
           ],
           story_world: {
-            world_name: 'Sandton Corporate Shrine',
-            geographical_setting: 'Johannesburg & Soweto',
+            world_name: 'Durban & Umhlanga Coastal Dynasty',
+            geographical_setting: 'Umhlanga Estate & Umlazi, Durban',
             time_period: '2026',
-            mythology_and_rules: 'Ancestral debt compounds daily; spirits only manifest in reflective surfaces.',
-            cultural_context: 'South African modern banking vs ancestral customs'
+            mythology_and_rules: 'Customary royal lineage covenants supersede commercial contracts under ancestral law.',
+            cultural_context: 'Modern South African corporate wealth vs customary Zulu royal succession'
           },
           characters: [
-            { name: 'Sipho Ndlovu', role: 'protagonist', archetype: 'The Modern Skeptic', secret_motivation: 'Clear family debt within 48h', fatal_flaw: 'Relies solely on rational finance', signature_quote: 'Numbers do not lie, but curses do.' },
-            { name: 'Gogo MaMthembu', role: 'antagonist', archetype: 'The Ancient Debt Keeper', secret_motivation: 'Enforce spiritual covenant', fatal_flaw: 'Unforgiving rigidity', signature_quote: 'Every coin has blood on its edge.' }
+            { name: 'Nandi Mkhize', role: 'protagonist', archetype: 'The Hidden Heiress', secret_motivation: 'Expose the truth of her mother\'s exile and claim her rightful throne', fatal_flaw: 'Reluctance to claim royal authority', signature_quote: 'A crown is not bought with corporate shares.' },
+            { name: 'Vusi Zulu', role: 'antagonist', archetype: 'The Usurper Patriarch', secret_motivation: 'Control the multi-billion Rand estate through fraudulent marriage', fatal_flaw: 'Underestimating the customary elders', signature_quote: 'Power belongs to those who seize it.' }
           ]
         });
       }
@@ -275,7 +299,10 @@ export const ProductionRoom: React.FC = () => {
 
         {/* TAB 3: STORY PACKAGES */}
         <button
-          onClick={() => setActiveTab('story_packages')}
+          onClick={() => {
+            setActiveTab('story_packages');
+            setPackageViewMode('pillars');
+          }}
           className={`px-4 py-2.5 rounded-[7px] text-xs font-bold flex items-center gap-2 transition-all shrink-0 ${
             activeTab === 'story_packages'
               ? 'bg-gradient-to-r from-[#FF6500] to-[#FFA000] text-black shadow-lg shadow-orange-500/20 font-black'
@@ -286,7 +313,47 @@ export const ProductionRoom: React.FC = () => {
           <span>Story Packages ({packagesList.length})</span>
         </button>
 
-        {/* TAB 4: SERIES */}
+        {/* TAB 4: PRODUCTION BIBLE (DEDICATED FULL TAB) */}
+        <button
+          onClick={() => {
+            setActiveTab('story_packages');
+            setPackageViewMode('bible');
+            const activePkg = selectedPackage || packagesList[0];
+            if (activePkg && (activePkg.ip_id || activePkg.id)) {
+              loadBibleAndPack(activePkg.ip_id || activePkg.id);
+            }
+          }}
+          className={`px-4 py-2.5 rounded-[7px] text-xs font-bold flex items-center gap-2 transition-all shrink-0 ${
+            activeTab === 'story_packages' && packageViewMode === 'bible'
+              ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30 font-black border border-purple-400'
+              : 'bg-[#14151B] text-white/70 hover:text-white border border-white/5'
+          }`}
+        >
+          <BookOpen className="w-4 h-4 text-purple-400" />
+          <span>Production Bible</span>
+        </button>
+
+        {/* TAB 5: EPISODE 1 PACK (DEDICATED FULL TAB) */}
+        <button
+          onClick={() => {
+            setActiveTab('story_packages');
+            setPackageViewMode('episode_pack');
+            const activePkg = selectedPackage || packagesList[0];
+            if (activePkg && (activePkg.ip_id || activePkg.id)) {
+              loadBibleAndPack(activePkg.ip_id || activePkg.id);
+            }
+          }}
+          className={`px-4 py-2.5 rounded-[7px] text-xs font-bold flex items-center gap-2 transition-all shrink-0 ${
+            activeTab === 'story_packages' && packageViewMode === 'episode_pack'
+              ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/30 font-black border border-emerald-300'
+              : 'bg-[#14151B] text-white/70 hover:text-white border border-white/5'
+          }`}
+        >
+          <Film className="w-4 h-4 text-emerald-300" />
+          <span>Episode 1 Pack</span>
+        </button>
+
+        {/* TAB 6: SERIES */}
         <button
           onClick={() => setActiveTab('series')}
           className={`px-4 py-2.5 rounded-[7px] text-xs font-bold flex items-center gap-2 transition-all shrink-0 ${
@@ -331,7 +398,7 @@ export const ProductionRoom: React.FC = () => {
       {/* ========================================================================= */}
       {activeTab === 'story_forge' && (
         <div className="space-y-4">
-          <StoryForgeCockpit />
+          <StoryForgeCockpit initialStoryId={selectedStoryId} />
         </div>
       )}
 
@@ -350,13 +417,25 @@ export const ProductionRoom: React.FC = () => {
                 Stories progressing through Forge milestones: M0 Intake → M1 Kernel → M2 Spokes → M3 Complete.
               </p>
             </div>
-            <button
-              onClick={() => setActiveTab('story_forge')}
-              className="px-3.5 py-2 rounded-[7px] bg-[#FF6500] hover:bg-[#FFA000] text-black text-xs font-bold flex items-center gap-1.5 transition-all shadow"
-            >
-              <PlusCircle className="w-3.5 h-3.5" />
-              <span>Start New Story in Forge</span>
-            </button>
+            <div className="flex items-center gap-2">
+              {queueStories.some(s => s.title === 'Untitled Story' || s.id.startsWith('story_local_')) && (
+                <button
+                  onClick={handleCleanUntitled}
+                  className="px-3 py-2 rounded-[7px] bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 hover:text-red-300 text-xs font-bold flex items-center gap-1.5 transition-all"
+                  title="Purge all untitled/empty ghost drafts"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Clean Ghost Drafts</span>
+                </button>
+              )}
+              <button
+                onClick={() => setActiveTab('story_forge')}
+                className="px-3.5 py-2 rounded-[7px] bg-[#FF6500] hover:bg-[#FFA000] text-black text-xs font-bold flex items-center gap-1.5 transition-all shadow"
+              >
+                <PlusCircle className="w-3.5 h-3.5" />
+                <span>Start New Story in Forge</span>
+              </button>
+            </div>
           </div>
 
           {isLoadingQueue ? (
@@ -383,7 +462,7 @@ export const ProductionRoom: React.FC = () => {
               {queueStories.map((story) => (
                 <div
                   key={story.id}
-                  className="p-5 rounded-[7px] bg-[#14151B] border border-white/10 hover:border-[#FF6500]/50 transition-all flex flex-col justify-between space-y-4 shadow-lg"
+                  className="p-5 rounded-[7px] bg-[#14151B] border border-white/10 hover:border-[#FF6500]/50 transition-all flex flex-col justify-between space-y-4 shadow-lg group relative"
                 >
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
@@ -411,13 +490,25 @@ export const ProductionRoom: React.FC = () => {
                     <span className="text-[10px] font-mono text-white/50">
                       ID: {story.id.slice(0, 10)}...
                     </span>
-                    <button
-                      onClick={() => setActiveTab('story_forge')}
-                      className="px-3 py-1.5 rounded-[7px] bg-white/10 hover:bg-[#FF6500] hover:text-black text-white text-xs font-bold flex items-center gap-1 transition-all"
-                    >
-                      <span>Enter Cockpit</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={(e) => handleDeleteStory(story.id, e)}
+                        className="p-1.5 rounded-[7px] bg-white/5 hover:bg-red-500/20 text-white/40 hover:text-red-400 border border-white/5 hover:border-red-500/30 transition-all"
+                        title="Delete story draft"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedStoryId(story.id);
+                          setActiveTab('story_forge');
+                        }}
+                        className="px-3 py-1.5 rounded-[7px] bg-white/10 hover:bg-[#FF6500] hover:text-black text-white text-xs font-bold flex items-center gap-1 transition-all"
+                      >
+                        <span>Enter Cockpit</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -520,12 +611,12 @@ export const ProductionRoom: React.FC = () => {
                         <h3 className="text-xl font-bold text-white">{activePkg.package_title || activePkg.ip_title}</h3>
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        {/* View Mode Toggle: 4 Layers of Truth */}
-                        <div className="flex flex-wrap bg-black/60 rounded-[7px] p-0.5 border border-white/10 gap-0.5">
+                      <div className="flex flex-wrap items-center gap-2.5">
+                        {/* Streamlined View Toggle: Pillars vs Audit */}
+                        <div className="flex bg-black/60 rounded-[7px] p-0.5 border border-white/10 gap-1">
                           <button
                             onClick={() => setPackageViewMode('pillars')}
-                            className={`px-2.5 py-1.5 rounded-[5px] text-[11px] font-bold transition-all flex items-center gap-1.5 ${
+                            className={`px-3 py-1.5 rounded-[5px] text-xs font-bold transition-all flex items-center gap-1.5 ${
                               packageViewMode === 'pillars'
                                 ? 'bg-[#FF6500] text-black shadow-md'
                                 : 'text-white/60 hover:text-white'
@@ -536,7 +627,7 @@ export const ProductionRoom: React.FC = () => {
                           </button>
                           <button
                             onClick={() => setPackageViewMode('audit')}
-                            className={`px-2.5 py-1.5 rounded-[5px] text-[11px] font-bold transition-all flex items-center gap-1.5 ${
+                            className={`px-3 py-1.5 rounded-[5px] text-xs font-bold transition-all flex items-center gap-1.5 ${
                               packageViewMode === 'audit'
                                 ? 'bg-amber-500 text-black shadow-md'
                                 : 'text-white/60 hover:text-white'
@@ -544,38 +635,6 @@ export const ProductionRoom: React.FC = () => {
                           >
                             <ListChecks className="w-3.5 h-3.5" />
                             <span>Handoff Audit</span>
-                          </button>
-                          <button
-                            onClick={() => {
-                              setPackageViewMode('bible');
-                              if (activePkg.ip_id || activePkg.id) {
-                                loadBibleAndPack(activePkg.ip_id || activePkg.id);
-                              }
-                            }}
-                            className={`px-2.5 py-1.5 rounded-[5px] text-[11px] font-bold transition-all flex items-center gap-1.5 ${
-                              packageViewMode === 'bible'
-                                ? 'bg-purple-500 text-black shadow-md'
-                                : 'text-white/60 hover:text-white'
-                            }`}
-                          >
-                            <BookOpen className="w-3.5 h-3.5" />
-                            <span>Production Bible (10 Sections)</span>
-                          </button>
-                          <button
-                            onClick={() => {
-                              setPackageViewMode('episode_pack');
-                              if (activePkg.ip_id || activePkg.id) {
-                                loadBibleAndPack(activePkg.ip_id || activePkg.id);
-                              }
-                            }}
-                            className={`px-2.5 py-1.5 rounded-[5px] text-[11px] font-bold transition-all flex items-center gap-1.5 ${
-                              packageViewMode === 'episode_pack'
-                                ? 'bg-emerald-500 text-black shadow-md'
-                                : 'text-white/60 hover:text-white'
-                            }`}
-                          >
-                            <Film className="w-3.5 h-3.5" />
-                            <span>Episode 1 Pack (5 Tracks)</span>
                           </button>
                         </div>
 
@@ -1080,99 +1139,110 @@ export const ProductionRoom: React.FC = () => {
                     )}
 
                     {packageViewMode === 'episode_pack' && (
-                      /* EPISODE 1 PRODUCTION PACK (5 COORDINATED TRACKS) VIEW */
+                      /* EPISODE PRODUCTION PACK (5 COORDINATED TRACKS) VIEW */
                       <div className="space-y-5 text-xs text-white/90">
-                        <div className="p-4 rounded-[7px] bg-emerald-950/30 border border-emerald-500/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                        {/* Interactive Episode Selector Header (Episodes 1 to 5) */}
+                        <div className="p-4 rounded-[7px] bg-emerald-950/30 border border-emerald-500/40 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                           <div className="space-y-1">
                             <div className="flex items-center gap-2">
                               <Film className="w-4 h-4 text-emerald-400" />
-                              <h3 className="font-bold text-white text-sm">Episode 1 Production Pack: The Midnight Lineage</h3>
+                              <h3 className="font-bold text-white text-sm">
+                                {episodePack?.title || `Episode ${selectedEpisodeNumber} Production Pack`}
+                              </h3>
                               <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                                 5 Coordinated Tracks
                               </span>
                             </div>
                             <p className="text-welele-muted text-[11px]">
-                              Execution specification derived from Production Bible with strict provenance and cliffhanger timing.
+                              {episodePack?.readiness_audit?.audit_message || "Execution specification derived from Living Episodic State with strict provenance and cliffhanger timing."}
                             </p>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-mono text-emerald-300 bg-black/50 px-2.5 py-1 rounded border border-emerald-500/30">
-                              90s Vertical Format
-                            </span>
-                            <span className="text-xs font-mono text-[#FF6500] bg-black/50 px-2.5 py-1 rounded border border-[#FF6500]/30">
-                              Paywall Cut: 88s
-                            </span>
+
+                          {/* Episode Switcher (Naturally Discovered Episodes 1 to 8) */}
+                          <div className="flex flex-wrap items-center gap-1.5 p-1 rounded-xl bg-black/60 border border-white/10 shrink-0">
+                            {[1, 2, 3, 4, 5, 6, 7, 8].map((epNum) => (
+                              <button
+                                key={epNum}
+                                onClick={() => loadBibleAndPack(activePkg.ip_id || activePkg.id, epNum)}
+                                className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1 ${
+                                  selectedEpisodeNumber === epNum
+                                    ? 'bg-[#FF6500] text-black shadow-md shadow-[#FF6500]/25'
+                                    : epNum === 8
+                                    ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 hover:bg-emerald-500/20'
+                                    : 'text-white/60 hover:text-white hover:bg-white/5'
+                                }`}
+                              >
+                                <span>Ep {epNum}</span>
+                                {epNum === 8 && <span className="text-[9px] uppercase font-bold text-emerald-400">FINALE</span>}
+                              </button>
+                            ))}
                           </div>
                         </div>
 
-                        {/* TRACK 1: VIDEO */}
+                        {/* TRACK 1: VIDEO (Dynamic from Units) */}
                         <div className="p-4 rounded-[7px] bg-[#14151B] border border-white/10 space-y-3">
                           <div className="flex items-center justify-between border-b border-white/10 pb-2">
                             <div className="flex items-center gap-2">
                               <Video className="w-4 h-4 text-emerald-400" />
-                              <h4 className="font-bold text-white text-xs uppercase tracking-wider">Track 1: VIDEO (Visuals, Framing & Lighting)</h4>
+                              <h4 className="font-bold text-white text-xs uppercase tracking-wider">
+                                Track 1: VIDEO (Visuals, Framing & Lighting)
+                              </h4>
                             </div>
-                            <span className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 font-mono text-[9px] font-bold">GENERATED</span>
+                            <span className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 font-mono text-[9px] font-bold">
+                              {episodePack?.production_units?.[0]?.video_track?.provenance || 'DERIVED'}
+                            </span>
                           </div>
                           <div className="space-y-2 text-[11px]">
-                            <div className="p-2.5 rounded bg-black/40 border border-white/5 space-y-1">
-                              <div className="flex items-center justify-between text-welele-gold font-mono">
-                                <span>Scene 1 (00:00 - 00:15) — INT. SOWETO CLINIC WARD - NIGHT</span>
-                                <span>9:16 Close-up</span>
-                              </div>
-                              <p className="text-white/80">Tight vertical frame on midwife Thandiwe's sweating brow; candle flickers on weathered green walls. Camera tilts down to reveal royal birthmark glowing under amber flame.</p>
-                            </div>
-                            <div className="p-2.5 rounded bg-black/40 border border-white/5 space-y-1">
-                              <div className="flex items-center justify-between text-welele-gold font-mono">
-                                <span>Scene 2 (00:15 - 00:50) — EXT. CLINIC GATE - DAWN</span>
-                                <span>Low-Angle Dutch Tracking</span>
-                              </div>
-                              <p className="text-white/80">Low-angle vertical tracking of 3 black Mercedes G-Wagons cutting through dawn dust. Bhekisisa steps out in bespoke suit. Lerato emerges crying from rear door.</p>
-                            </div>
-                            <div className="p-2.5 rounded bg-black/40 border border-white/5 space-y-1">
-                              <div className="flex items-center justify-between text-welele-gold font-mono">
-                                <span>Scene 3 (00:50 - 00:90) — INT/EXT. CLINIC THRESHOLD - CLIMAX</span>
-                                <span>High-Tension Whip-Pan</span>
-                              </div>
-                              <p className="text-white/80">Guards rack 9mm handguns; township community emerges with sjamboks. Thandiwe steps forward holding ancient customary ledger high into the golden sunrise.</p>
-                            </div>
+                            {(episodePack?.production_units || []).map((unit: any, uIdx: number) => {
+                              const vt = unit.video_track;
+                              const tStart = vt.timing_start_seconds !== undefined ? String(vt.timing_start_seconds).padStart(2, '0') : '00';
+                              const tEnd = vt.timing_end_seconds !== undefined ? String(vt.timing_end_seconds).padStart(2, '0') : '90';
+                              return (
+                                <div key={uIdx} className="p-2.5 rounded bg-black/40 border border-white/5 space-y-1">
+                                  <div className="flex items-center justify-between text-welele-gold font-mono">
+                                    <span>Scene {unit.sequence} (00:{tStart} - 00:{tEnd}) — {vt.environment}</span>
+                                    <span>{vt.framing}</span>
+                                  </div>
+                                  <p className="text-white/80">{vt.visual_action}</p>
+                                  {vt.visual_prompt && (
+                                    <div className="text-[10px] text-white/50 font-mono pt-1">
+                                      Prompt: "{vt.visual_prompt}"
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
 
-                        {/* TRACK 2: DIALOGUE */}
+                        {/* TRACK 2: DIALOGUE (Dynamic from Units) */}
                         <div className="p-4 rounded-[7px] bg-[#14151B] border border-white/10 space-y-3">
                           <div className="flex items-center justify-between border-b border-white/10 pb-2">
                             <div className="flex items-center gap-2">
                               <MessageSquare className="w-4 h-4 text-emerald-400" />
-                              <h4 className="font-bold text-white text-xs uppercase tracking-wider">Track 2: DIALOGUE (Locked Lines & Subtext)</h4>
+                              <h4 className="font-bold text-white text-xs uppercase tracking-wider">
+                                Track 2: DIALOGUE (Locked Lines & Subtext)
+                              </h4>
                             </div>
-                            <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono text-[9px] font-bold">CANON</span>
+                            <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono text-[9px] font-bold">
+                              CANON / DERIVED
+                            </span>
                           </div>
                           <div className="space-y-2 text-[11px]">
-                            <div className="p-2.5 rounded bg-black/40 border border-white/5 space-y-1">
-                              <div className="flex items-center justify-between">
-                                <strong className="text-white font-mono">Thandiwe Sithole (00:35)</strong>
-                                <span className="text-[10px] text-welele-muted">Steely Maternal Authority</span>
-                              </div>
-                              <p className="text-welele-gold italic">"A child is not platinum ore to be dug up and traded in Sandton, Bhekisisa."</p>
-                              <p className="text-white/60 text-[10px]">Subtext: Moral defiance rejecting corporate commodification of sacred bloodline.</p>
-                            </div>
-                            <div className="p-2.5 rounded bg-black/40 border border-white/5 space-y-1">
-                              <div className="flex items-center justify-between">
-                                <strong className="text-white font-mono">Bhekisisa Khumalo (00:55)</strong>
-                                <span className="text-[10px] text-welele-muted">Cold Corporate Threat</span>
-                              </div>
-                              <p className="text-welele-gold italic">"That child carries the only bloodline that keeps my mining shafts open. Hand him over."</p>
-                              <p className="text-white/60 text-[10px]">Subtext: Dynastic survival panic masked behind aristocratic arrogance.</p>
-                            </div>
-                            <div className="p-2.5 rounded bg-black/40 border border-white/5 space-y-1">
-                              <div className="flex items-center justify-between">
-                                <strong className="text-white font-mono">Lerato Sithole (00:72)</strong>
-                                <span className="text-[10px] text-welele-muted">Desperate Pleading</span>
-                              </div>
-                              <p className="text-welele-gold italic">"Mama, forgive me... I had no other way to clear the loan sharks."</p>
-                              <p className="text-white/60 text-[10px]">Subtext: Shattered guilt and plea for maternal sanctuary.</p>
-                            </div>
+                            {(episodePack?.production_units || []).map((unit: any, uIdx: number) => {
+                              const dt = unit.dialogue_track;
+                              const tStart = dt.timing_start_seconds !== undefined ? String(dt.timing_start_seconds).padStart(2, '0') : '00';
+                              return (
+                                <div key={uIdx} className="p-2.5 rounded bg-black/40 border border-white/5 space-y-1">
+                                  <div className="flex items-center justify-between">
+                                    <strong className="text-white font-mono">{dt.speaker} (00:{tStart})</strong>
+                                    <span className="text-[10px] text-welele-muted">{dt.emotion} • {dt.dialect || dt.language}</span>
+                                  </div>
+                                  <p className="text-welele-gold italic">{dt.dialogue}</p>
+                                  <p className="text-white/60 text-[10px]">Subtext: {dt.delivery_intention}</p>
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
 
@@ -1187,7 +1257,9 @@ export const ProductionRoom: React.FC = () => {
                               </div>
                               <span className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 font-mono text-[8px] font-bold">DERIVED</span>
                             </div>
-                            <p className="text-white/80 italic">"In Soweto, blood is thicker than gold... but at dawn, gold came to collect."</p>
+                            <p className="text-white/80 italic">
+                              "{episodePack?.production_units?.[0]?.narration_track?.narration_text || "When royal blood speaks, all signatures turn to dust."}"
+                            </p>
                           </div>
 
                           {/* Track 4: Ambience */}
@@ -1197,9 +1269,16 @@ export const ProductionRoom: React.FC = () => {
                                 <Volume2 className="w-3.5 h-3.5 text-emerald-400" />
                                 <span className="font-bold text-white">Track 4: AMBIENCE</span>
                               </div>
-                              <span className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 font-mono text-[8px] font-bold">GENERATED</span>
+                              <span className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 font-mono text-[8px] font-bold">DERIVED</span>
                             </div>
-                            <p className="text-white/70">Rolling blackout silence, newborn cry, V8 diesel rumble, briefcase click, racking handguns.</p>
+                            <p className="text-white/70">
+                              {episodePack?.production_units?.[0]?.ambience_track?.environmental_sound || "Acoustic room tone, rain on corrugated iron, coastal pavilion wind."}
+                            </p>
+                            {episodePack?.production_units?.[0]?.ambience_track?.action_sfx && (
+                              <div className="text-[10px] text-white/50 font-mono pt-1">
+                                SFX: {episodePack.production_units[0].ambience_track.action_sfx.join(' • ')}
+                              </div>
+                            )}
                           </div>
 
                           {/* Track 5: Music */}
@@ -1209,9 +1288,11 @@ export const ProductionRoom: React.FC = () => {
                                 <Music className="w-3.5 h-3.5 text-emerald-400" />
                                 <span className="font-bold text-white">Track 5: MUSIC</span>
                               </div>
-                              <span className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 font-mono text-[8px] font-bold">GENERATED</span>
+                              <span className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 font-mono text-[8px] font-bold">DERIVED</span>
                             </div>
-                            <p className="text-white/70">68 BPM Zulu drum pulse $\rightarrow$ staccato cello $\rightarrow$ brass crescendo $\rightarrow$ abrupt silence at 88s cut.</p>
+                            <p className="text-white/70">
+                              {episodePack?.production_units?.[0]?.music_track?.style_instrumentation || "68 BPM Zulu drum pulse heartbeat, low cello drone, sudden 88s cut."}
+                            </p>
                           </div>
                         </div>
                       </div>

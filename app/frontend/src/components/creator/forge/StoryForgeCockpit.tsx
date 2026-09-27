@@ -20,10 +20,14 @@ import {
   Palette
 } from 'lucide-react';
 
-export const StoryForgeCockpit: React.FC = () => {
+interface StoryForgeCockpitProps {
+  initialStoryId?: string | null;
+}
+
+export const StoryForgeCockpit: React.FC<StoryForgeCockpitProps> = ({ initialStoryId }) => {
   const isSubmittingRef = useRef<boolean>(false);
   // Session & Story State
-  const [activeStoryId, setActiveStoryId] = useState<string | null>(null);
+  const [activeStoryId, setActiveStoryId] = useState<string | null>(initialStoryId || null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [storyState, setStoryState] = useState<StoryState | null>(null);
   const [currentAction, setCurrentAction] = useState<CurrentAction | null>(null);
@@ -42,6 +46,13 @@ export const StoryForgeCockpit: React.FC = () => {
   );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isPackageModalOpen, setIsPackageModalOpen] = useState<boolean>(false);
+
+  // Auto-load if initialStoryId is provided
+  useEffect(() => {
+    if (initialStoryId && initialStoryId !== activeStoryId) {
+      initializeSession(initialStoryId);
+    }
+  }, [initialStoryId]);
 
   // Initialize or resume session
   const initializeSession = async (
@@ -109,6 +120,9 @@ export const StoryForgeCockpit: React.FC = () => {
       setStoryState(stateData);
       setDependencies(depsData);
       setAssessment(compData);
+      if (stateData && stateData.chronology) {
+        setEvents(stateData.chronology);
+      }
 
       const targetSessionId = sId || sessionId;
       if (targetSessionId) {
@@ -176,6 +190,9 @@ export const StoryForgeCockpit: React.FC = () => {
       setAssessment(compData);
       setDependencies(depsData);
       setCurrentAction(actionData);
+      if (nextStoryState && nextStoryState.chronology) {
+        setEvents(nextStoryState.chronology);
+      }
     } catch (err: any) {
       const msg = err.response?.data?.detail || err.message || 'Error processing story cycle.';
       setErrorMessage(msg);
@@ -216,7 +233,14 @@ export const StoryForgeCockpit: React.FC = () => {
     );
   }
 
-  const isForgeComplete = assessment?.status === 'FORGE_COMPLETE';
+  const isForgeComplete =
+    (assessment?.status === 'FORGE_COMPLETE' || assessment?.current_milestone === 'FORGE_COMPLETE') &&
+    assessment?.story_id === storyState?.story_id;
+
+  const isStoryTerminal =
+    isForgeComplete ||
+    currentAction?.action === 'STOP' ||
+    storyState?.explicit_ending_declared === true;
 
   return (
     <div className="max-w-7xl mx-auto py-4 px-3 sm:px-5 space-y-5 font-sans text-white">
@@ -276,7 +300,7 @@ export const StoryForgeCockpit: React.FC = () => {
             </button>
           </div>
 
-          {isForgeComplete && (
+          {isStoryTerminal && (
             <button
               onClick={() => setIsPackageModalOpen(true)}
               className="px-4 py-2 rounded-xl bg-emerald-500 text-black font-black text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-emerald-500/20 hover:bg-emerald-400 transition-all"

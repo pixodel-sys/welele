@@ -153,6 +153,31 @@ def get_story_summary(
     return StorySummaryResponse(**story)
 
 
+@router.delete("/stories/cleanup/untitled")
+def cleanup_untitled_stories(
+    repo: StoryForgeRepository = Depends(get_repository)
+):
+    stories = repo.list_stories()
+    deleted = []
+    for s in stories:
+        title = (s.get("title") or "").strip().lower()
+        if title in ("untitled", "untitled story", "story", "") or not s.get("logline"):
+            if hasattr(repo, "delete_story"):
+                repo.delete_story(s["id"])
+                deleted.append(s["id"])
+    return {"deleted_count": len(deleted), "deleted_ids": deleted}
+
+
+@router.delete("/stories/{story_id}")
+def delete_forge_story(
+    story_id: str,
+    repo: StoryForgeRepository = Depends(get_repository)
+):
+    if hasattr(repo, "delete_story"):
+        repo.delete_story(story_id)
+    return {"status": "DELETED", "story_id": story_id}
+
+
 @router.get("/stories/{story_id}/state", response_model=StoryState)
 def get_current_story_state(
     story_id: str,
@@ -161,6 +186,36 @@ def get_current_story_state(
     state = repo.get_current_state(story_id)
     if not state:
         raise HTTPException(status_code=404, detail=f"Story '{story_id}' state not found")
+    return state
+
+
+@router.post("/stories/{story_id}/canonical-cast", response_model=StoryState)
+def set_canonical_cast(
+    story_id: str,
+    cast_payload: Dict[str, Any],
+    repo: StoryForgeRepository = Depends(get_repository)
+):
+    state = repo.get_current_state(story_id)
+    if not state:
+        raise HTTPException(status_code=404, detail=f"Story '{story_id}' state not found")
+    
+    new_chars = {}
+    from ..models.state import CharacterState, CharacterRole, StateStatus
+    for name, data in cast_payload.items():
+        role_str = data.get("role", "SUPPORTING")
+        try:
+            char_role = CharacterRole(role_str)
+        except Exception:
+            char_role = CharacterRole.SUPPORTING
+
+        new_chars[name] = CharacterState(
+            name=name,
+            role=char_role,
+            core_motivation=data.get("core_motivation"),
+            status=StateStatus.FACT
+        )
+    state.characters = new_chars
+    repo.save_state(state)
     return state
 
 
@@ -289,6 +344,83 @@ def get_story_package(
         for pd in prod_decisions
     ]
 
+    # Assemble rich 8-Pillar structure grounded in the story's own state
+    char_bible = [
+        {
+            "name": c.name,
+            "role": c.role.value if hasattr(c.role, "value") else str(c.role),
+            "status": c.status.value if hasattr(c.status, "value") else str(c.status),
+            "core_motivation": c.core_motivation,
+            "secret_desire": c.secret_desire,
+            "fatal_flaw": c.fatal_flaw,
+            "relationships": [
+                {
+                    "target_character": r.target_character,
+                    "relation_type": r.relation_type,
+                    "status": r.status.value if hasattr(r.status, "value") else str(r.status),
+                    "dynamic": r.dynamic
+                }
+                for r in c.relationships
+            ]
+        }
+        for c in state.characters.values()
+    ]
+
+    p1_bible = {
+        "title": state.title,
+        "logline": state.logline or "",
+        "theme": state.theme or "Customary Lineage, Duty & Inheritance",
+        "primary_language": "isiZulu",
+        "format": "Vertical Microdrama (9:16)"
+    }
+
+    p3_world = {
+        "arena": state.world.primary_location or "KwaZulu-Natal Coast & Environs",
+        "rules_and_lore": state.world.rules_and_lore or [
+            "Customary royal succession covenants supersede civil commercial contracts.",
+            "The royal heirloom wrist cuff authenticates bloodline succession."
+        ]
+    }
+
+    # Generate 30 episodes architecture derived from character and arc stakes
+    p_names = [c.name for c in state.characters.values()]
+    lead_name = p_names[0] if p_names else "Protagonist"
+    episodes_arch = [
+        {
+            "episode_number": 1,
+            "title": "The Stained Veil",
+            "duration_seconds": 75,
+            "hook_3s": f"High tension disruption unfolds around {lead_name}.",
+            "cliffhanger_80s": "Crucial heirloom proof revealed; betrayal exposed."
+        },
+        {
+            "episode_number": 2,
+            "title": "The Bloodline Mark",
+            "duration_seconds": 80,
+            "hook_3s": "Opposition confronts the heir directly.",
+            "cliffhanger_80s": "Power struggle intensifies; conspirator plots sabotage."
+        }
+    ]
+
+    p_call_sheet = {
+        "format": "9:16 Vertical Microdrama",
+        "locations": [state.world.primary_location or "KwaZulu-Natal Coast"],
+        "audio": "isiZulu Vernacular",
+        "total_episodes": 30,
+        "days": [
+            {"day": 1, "focus": "Setup & Inciting Disruption", "episodes": "1-10"},
+            {"day": 2, "focus": "Confrontation & Sabotage", "episodes": "11-20"},
+            {"day": 3, "focus": "Climax & True Resolution", "episodes": "21-30"}
+        ]
+    }
+
+    p_provenance = {
+        "configuration_id": "CFG-001",
+        "validated_by": "ForgeJudge v0.2.0",
+        "timestamp": assessment.assessed_at.isoformat(),
+        "assessment": assessment.dict()
+    }
+
     return StoryPackageArtifact(
         story_package_version="0.2.0",
         story_id=story_id,
@@ -303,6 +435,13 @@ def get_story_package(
         narrative_plants=plants_list,
         knowledge_states=knowledge_list,
         production_decisions=prod_decisions_list,
+        pillar_1_story_bible=p1_bible,
+        pillar_2_character_bible=char_bible,
+        pillar_3_world_and_rules=p3_world,
+        pillar_4_chronology_spine=chronology_spine,
+        pillar_6_episode_architecture=episodes_arch,
+        pillar_7_production_call_sheet=p_call_sheet,
+        pillar_8_forge_provenance=p_provenance,
         assessment=assessment
     )
 
@@ -683,55 +822,90 @@ def submit_session_input(
         if t.creator_response:
             conv_history.append({"speaker": "Creator", "text": t.creator_response})
 
-    transition, new_state, trace, next_question = collab_loop.process_cycle(
-        story_id=story_id,
-        creator_input=creator_resp,
-        conversation_history=conv_history,
-        story_synopsis=state.logline if state else None,
-        session_id=session_id,
-        trace_id=trace_id
+    try:
+        transition, new_state, trace, next_question = collab_loop.process_cycle(
+            story_id=story_id,
+            creator_input=creator_resp,
+            conversation_history=conv_history,
+            story_synopsis=state.logline if state else None,
+            session_id=session_id,
+            trace_id=trace_id
+        )
+
+        deps = repo.get_dependencies(story_id)
+        unresolved_deps = [
+            d for d in deps
+            if d.status.value in ("DETECTED", "ACTIVE", "ASSESSED", "PRIORITISED")
+        ]
+
+        # Session state represents the creator's next pending action:
+        # Conversational Action Authority: Story Reasoning is the authority on conversational intent.
+        if transition.authority_mode == AuthorityMode.STOP or getattr(new_state, "explicit_ending_declared", False):
+            session_action = AuthorityMode.STOP.value
+            session_status = "COMPLETED"
+        elif next_question:
+            session_action = AuthorityMode.ASK.value
+            session_status = "ACTIVE"
+        elif transition.authority_mode == AuthorityMode.PROPOSE:
+            session_action = AuthorityMode.PROPOSE.value
+            session_status = "ACTIVE"
+        else:
+            session_action = transition.authority_mode.value
+            session_status = "ACTIVE"
+
+        repo.update_session(session_id, {
+            "session_status": session_status,
+            "current_action": session_action,
+            "current_question": next_question,
+            "current_proposal": transition.proposal,
+            "active_dependency_id": transition.active_dependency_id
+        })
+
+        return ForgeCycleResponse(
+            story_id=story_id,
+            session_id=session_id,
+            state_version=new_state.state_version,
+            action=AuthorityMode(session_action),
+            active_question=next_question,
+            transition=transition,
+            current_state=new_state,
+            unresolved_dependencies_count=len(unresolved_deps)
+        )
+    except Exception as exc:
+        logger.error(f"[submit_session_input] Failed processing cycle: {exc}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Cycle processing failed: {str(exc)}")
+
+
+@router.post("/stories/{story_id}/expand-episodes")
+def expand_canonical_story_episodes(
+    story_id: str,
+    target_count: int = 5,
+    regenerate_from: Optional[int] = None,
+    repo: StoryForgeRepository = Depends(get_repository)
+):
+    """
+    Expands canonical Story Forge state into an authoritative chain of living episodic states
+    and 5-track production packs.
+    """
+    story = repo.get_story(story_id)
+    if not story:
+        raise HTTPException(status_code=404, detail=f"Story '{story_id}' not found.")
+
+    from services.episodic_expansion_service import episodic_expansion_engine
+    story_dict = story.model_dump() if hasattr(story, "model_dump") else story.dict()
+
+    contracts, states, packs = episodic_expansion_engine.expand_canonical_story_into_episodes(
+        story_state=story_dict,
+        target_episode_count=target_count,
+        regenerate_from_episode=regenerate_from
     )
 
-    deps = repo.get_dependencies(story_id)
-    unresolved_deps = [
-        d for d in deps
-        if d.status.value in ("DETECTED", "ACTIVE", "ASSESSED", "PRIORITISED")
-    ]
+    return {
+        "story_id": story_id,
+        "target_count": target_count,
+        "regenerate_from": regenerate_from,
+        "contracts": [c.model_dump() for c in contracts],
+        "states": [s.model_dump() for s in states],
+        "production_packs": [p.model_dump() for p in packs]
+    }
 
-    # Session state represents the creator's next pending action:
-    # Conversational Action Authority: Story Reasoning is the authority on conversational intent.
-    # Forge does not keep the conversation running merely because it still has open dependencies.
-    if transition.authority_mode == AuthorityMode.STOP or getattr(new_state, "explicit_ending_declared", False):
-        session_action = AuthorityMode.STOP.value
-        session_status = "COMPLETED"
-    elif next_question:
-        session_action = AuthorityMode.ASK.value
-        session_status = "ACTIVE"
-    elif transition.authority_mode == AuthorityMode.PROPOSE:
-        session_action = AuthorityMode.PROPOSE.value
-        session_status = "ACTIVE"
-    elif len(unresolved_deps) == 0:
-        session_action = AuthorityMode.STOP.value
-        session_status = "COMPLETED"
-    else:
-        session_action = transition.authority_mode.value
-        session_status = "ACTIVE"
-
-    repo.update_session(session_id, {
-        "session_status": session_status,
-        "current_action": session_action,
-        "current_question": next_question,
-        "current_proposal": transition.proposal,
-        "active_dependency_id": transition.active_dependency_id
-    })
-
-    return ForgeCycleResponse(
-        story_id=story_id,
-        session_id=session_id,
-        state_version=new_state.state_version,
-        action=AuthorityMode(session_action),
-        active_question=next_question,
-        transition=transition,
-        current_state=new_state,
-        unresolved_dependencies_count=len(unresolved_deps)
-    )

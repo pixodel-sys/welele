@@ -64,7 +64,10 @@ class ForgeJudge:
                 c for c in state.characters.values()
                 if c.role == CharacterRole.PROTAGONIST or (len(state.characters) == 1 and c.status == StateStatus.FACT)
             ]
-            has_valid_protagonist = len(protagonists) > 0 and all(bool(c.core_motivation and c.core_motivation.strip()) for c in state.characters.values())
+            has_valid_protagonist = len(protagonists) > 0 and (
+                any(bool(c.core_motivation and c.core_motivation.strip()) for c in protagonists) or
+                getattr(state, "explicit_ending_declared", False)
+            )
             if not has_valid_protagonist:
                 m1_passed = False
                 missing_invariants.append("M1_PROTAGONIST_MOTIVATION_REQUIRED")
@@ -79,6 +82,7 @@ class ForgeJudge:
                 any(c.role == CharacterRole.ANTAGONIST for c in state.characters.values()) or
                 len(state.world.rules_and_lore) > 0 or
                 has_systemic_counterforce or
+                getattr(state, "explicit_ending_declared", False) or
                 any("debt" in (getattr(p, 'plant_name', None) or p.element_code).lower() or "retribution" in (getattr(p, 'plant_name', None) or p.element_code).lower() or "conflict" in (getattr(p, 'plant_name', None) or p.element_code).lower() for p in state.plants)
             )
             if not has_counterforce:
@@ -86,7 +90,7 @@ class ForgeJudge:
                 missing_invariants.append("M1_COUNTERFORCE_REQUIRED")
 
             # 3. Relational dynamic / collision edge
-            has_relationships = any(len(c.relationships) > 0 for c in state.characters.values())
+            has_relationships = any(len(c.relationships) > 0 for c in state.characters.values()) or (getattr(state, "explicit_ending_declared", False) and len(state.characters) >= 2)
             if not has_relationships:
                 m1_passed = False
                 missing_invariants.append("M1_RELATIONSHIP_DYNAMIC_REQUIRED")

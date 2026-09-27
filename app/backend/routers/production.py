@@ -99,6 +99,31 @@ def get_episode_production_pack(ip_id: str, episode_number: int):
     pack = production_repository.get_episode_pack(ip_id=ip_id, episode_number=episode_number)
     if not pack:
         try:
+            # Check living episodic expansion engine first
+            from services.episodic_expansion_service import episodic_expansion_engine
+            from repositories.ip_repository import ip_repository
+            
+            ip_detail = ip_repository.get_ip_detail(ip_id)
+            story_state = None
+            if ip_detail and ip_detail.get("story_packages"):
+                story_state = ip_detail["story_packages"][0]
+            
+            if not story_state:
+                story_state = {
+                    "story_id": ip_id,
+                    "title": ip_detail.get("ip", {}).get("title", "Umkhehlo") if ip_detail else "Umkhehlo",
+                    "logline": ip_detail.get("ip", {}).get("logline", "") if ip_detail else "",
+                    "characters": {}
+                }
+
+            contracts, states, packs = episodic_expansion_engine.expand_canonical_story_into_episodes(
+                story_state=story_state,
+                target_episode_count=max(5, episode_number)
+            )
+            matching_pack = next((p for p in packs if p.episode_number == episode_number), None)
+            if matching_pack:
+                return matching_pack
+                
             pack = production_bible_service.generate_episode_production_pack(ip_id=ip_id, episode_number=episode_number)
         except Exception as e:
             raise HTTPException(status_code=404, detail=f"Episode Production Pack not found: {str(e)}")

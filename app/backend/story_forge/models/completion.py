@@ -91,6 +91,14 @@ class StoryPackageArtifact(BaseModel):
     narrative_plants: List[Dict[str, Any]] = Field(default_factory=list)
     knowledge_states: List[Dict[str, Any]] = Field(default_factory=list)
     production_decisions: List[Dict[str, Any]] = Field(default_factory=list)
+    pillar_1_story_bible: Optional[Dict[str, Any]] = None
+    pillar_2_character_bible: Optional[List[Dict[str, Any]]] = None
+    pillar_3_world_and_rules: Optional[Dict[str, Any]] = None
+    pillar_4_chronology_spine: Optional[List[Dict[str, Any]]] = None
+    pillar_5_production_artwork: Optional[Dict[str, Any]] = None
+    pillar_6_episode_architecture: Optional[List[Dict[str, Any]]] = None
+    pillar_7_production_call_sheet: Optional[Dict[str, Any]] = None
+    pillar_8_forge_provenance: Optional[Dict[str, Any]] = None
     assessment: ForgeCompletionAssessment
     compiled_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 

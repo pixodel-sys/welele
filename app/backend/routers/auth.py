@@ -20,6 +20,11 @@ from services.rbac_service import (
     require_authenticated_user
 )
 
+import logging
+from services.sms_service import sms_service
+
+logger = logging.getLogger("welele.auth")
+
 router = APIRouter(prefix="/auth", tags=["Auth & RBAC Identity"])
 
 class PhoneAuthRequest(BaseModel):
@@ -51,23 +56,48 @@ class AdminLoginRequest(BaseModel):
 
 @router.post("/phone/send-otp")
 def send_phone_otp(req: PhoneAuthRequest):
-    """Generates and dispatches a cryptographically random SMS OTP for phone login."""
-    import secrets
-    otp = f"{secrets.randbelow(9000) + 1000}"
+    """Generates and dispatches an authentic SMS OTP via SMSPortal for phone login."""
+    code, sms_sent, err_msg = sms_service.generate_otp(
+        phone_number=req.phone_number,
+        region_code=req.region_code or "ZA"
+    )
+    
     resp = {
         "status": "success",
-        "message": f"OTP sent to {req.phone_number}",
+        "message": f"Verification code sent to {req.phone_number}",
         "phone_number": req.phone_number,
-        "region_code": req.region_code
+        "region_code": req.region_code or "ZA",
+        "sms_dispatched": sms_sent
     }
-    # Only reveal test OTP hint if explicitly in local development non-prod mode
+    
+    if err_msg and not sms_sent:
+        logger.warning("[send_phone_otp] SMS notice for %s: %s", req.phone_number, err_msg)
+        resp["warning"] = err_msg
+
+    # In development mode, provide demo_hint for testing convenience
     if not settings.IS_PRODUCTION_OR_STAGING:
-        resp["demo_hint"] = f"Dev mode OTP: {otp}"
+        resp["demo_hint"] = f"Dev mode OTP: {code}"
     return resp
 
 @router.post("/phone/verify-otp")
 def verify_phone_otp(req: VerifyOtpRequest):
     """Verifies OTP, issues a signed JWT with ROLE_VIEWER, and records an AUTH audit event."""
+    is_valid, msg = sms_service.verify_otp(
+        phone_number=req.phone_number,
+        submitted_code=req.otp_code,
+        region_code=req.region_code or "ZA"
+    )
+    
+    # Allow legacy dev demo code '5542' strictly in non-production environments
+    if not is_valid and not settings.IS_PRODUCTION_OR_STAGING and req.otp_code == "5542":
+        is_valid = True
+        
+    if not is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=msg or "Invalid or expired verification code."
+        )
+
     user_id = f"usr_{uuid.uuid4().hex[:8]}"
     
     # Initialize wallet with promotional coins if not existing

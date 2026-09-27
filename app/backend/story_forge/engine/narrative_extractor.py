@@ -119,8 +119,15 @@ class NarrativeExtractor:
         "actually", "wait", "okay", "ok", "no", "yes", "maybe", "well", "instead",
         "basically", "obviously", "clearly", "originally", "initially", "currently",
         "truthfully", "honestly", "furthermore", "also", "rather", "anyway", "besides",
-        "together", "given", "about", "around", "against", "without", "through",
-        "bank", "casino", "hotel", "village", "company", "business", "clandestine"
+        "bank", "casino", "hotel", "village", "company", "business", "clandestine",
+        "premise", "lead", "character", "characters", "challenge", "untitled", "dramatic",
+        "dilemma", "summary", "primary", "afraid", "look", "cellphone", "number", "barking",
+        "black", "bakkie", "shouting", "nobody", "move", "survival", "threat", "hunt",
+        "emotional", "duty", "burden", "give", "hand", "package", "parcel", "toyota",
+        "fortuner", "ranger", "with", "from", "now", "here", "just", "chaos", "panic",
+        "double", "cross", "split", "having", "brotherhood", "covenant", "companionship",
+        "sanctuary", "guardian", "brandishing", "portuguese", "market", "central", "voice",
+        "husky", "deep", "owner", "core", "along", "two", "unbeknownst", "waal", "drive"
     }
 
     @classmethod

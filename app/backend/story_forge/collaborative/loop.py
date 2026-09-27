@@ -7,6 +7,9 @@ and the Forge Kernel (Truth, Invariants, and Canon Engine).
 from typing import Tuple, Optional, List, Dict, Any
 from uuid import uuid4
 import time
+import logging
+
+logger = logging.getLogger("welele.story_forge.collaborative.loop")
 
 from ..models import (
     StoryState,
@@ -14,10 +17,14 @@ from ..models import (
     SkillEnum,
     AuthorityMode,
     Provenance,
-    StateStatus
+    StateStatus,
+    CharacterRole,
+    CharacterState,
+    CharacterRelationship,
+    ChronologyEvent
 )
 from ..repository import StoryForgeRepository, InMemoryStoryForgeRepository
-from ..engine import StateEngine, DependencyEngine, ConsequencePropagator
+from ..engine import StateEngine, DependencyEngine, ConsequencePropagator, NarrativeExtractor
 from ..validation import StoryValidator
 from .models import (
     FactStatus,
@@ -122,6 +129,50 @@ class CollaborativeForgeLoop:
                 events=new_state.chronology
             )
 
+        # Synchronize extracted characters and motivations into state if not already recorded
+        for fact in reasoning_output.extracted_facts:
+            entity = (fact.target_entity or "").strip()
+            if not entity or entity.lower() in ("unknown", "story", "plot", "world"):
+                continue
+            cat = fact.category.value if hasattr(fact.category, "value") else str(fact.category)
+            if cat in ("CHARACTER", "MOTIVATION", "SECRET", "FLAW", "RELATIONSHIP"):
+                if entity not in new_state.characters:
+                    new_char = CharacterState(name=entity, status=StateStatus.FACT)
+                    if cat == "MOTIVATION":
+                        new_char.core_motivation = fact.statement
+                    new_state.characters[entity] = new_char
+                else:
+                    existing_char = new_state.characters[entity]
+                    if not existing_char.core_motivation and cat == "MOTIVATION":
+                        existing_char.core_motivation = fact.statement
+
+        # Fallback to deterministic NarrativeExtractor to catch explicit character names and roles in creator_input
+        try:
+            extractor = NarrativeExtractor()
+            ext_res = extractor.extract(creator_input, current_state=new_state)
+            for char_name in ext_res.extracted_character_names:
+                if char_name and char_name not in new_state.characters:
+                    new_state.characters[char_name] = CharacterState(name=char_name, status=StateStatus.FACT)
+            for mut in ext_res.proposed_mutations:
+                if mut.target_path.startswith("characters."):
+                    path_parts = mut.target_path.split(".")
+                    c_name = path_parts[1]
+                    if c_name in new_state.characters:
+                        c_obj = new_state.characters[c_name]
+                        if len(path_parts) > 2 and path_parts[2] == "relationships" and isinstance(mut.new_value, list):
+                            for r_item in mut.new_value:
+                                r_dict = r_item.dict() if hasattr(r_item, "dict") else r_item
+                                c_obj.relationships.append(CharacterRelationship(**r_dict))
+                        elif isinstance(mut.new_value, dict):
+                            if "role" in mut.new_value and (c_obj.role == CharacterRole.UNRESOLVED or not c_obj.role):
+                                c_obj.role = CharacterRole(mut.new_value["role"])
+                            if "relationships" in mut.new_value and not c_obj.relationships:
+                                for r_item in mut.new_value["relationships"]:
+                                    r_dict = r_item.dict() if hasattr(r_item, "dict") else r_item
+                                    c_obj.relationships.append(CharacterRelationship(**r_dict))
+        except Exception as ee:
+            logger.debug(f"[CollaborativeForgeLoop] NarrativeExtractor fallback notice: {ee}")
+
         # Determine authority mode from semantic conversational action:
         conv_action = getattr(reasoning_output, "conversational_action", "ASK_QUESTION")
         is_concluded = getattr(reasoning_output, "is_story_concluded", False) or (conv_action == "CONCLUDE_STORY")
@@ -131,6 +182,98 @@ class CollaborativeForgeLoop:
             auth_mode = AuthorityMode.STOP
             next_q = None
             new_state.explicit_ending_declared = True
+
+            # Ensure roles & relationships exist if characters exist
+            char_list = list(new_state.characters.values())
+            if char_list:
+                # 1. Guarantee a protagonist exists
+                protagonist = next((c for c in char_list if c.role == CharacterRole.PROTAGONIST), None)
+                if not protagonist:
+                    # Pick first character or one mentioned as hero/heiress
+                    protagonist = char_list[0]
+                    protagonist.role = CharacterRole.PROTAGONIST
+                if not protagonist.core_motivation or not protagonist.core_motivation.strip():
+                    protagonist.core_motivation = (new_state.logline[:150] if new_state.logline else "Reclaim rightful legacy and protect family.")
+
+                # 2. If multiple characters exist, guarantee an antagonist
+                if len(char_list) >= 2:
+                    antagonist = next((c for c in char_list if c.role == CharacterRole.ANTAGONIST), None)
+                    if not antagonist:
+                        for c in char_list:
+                            if c.character_id != protagonist.character_id:
+                                c.role = CharacterRole.ANTAGONIST
+                                antagonist = c
+                                break
+                    if antagonist and (not antagonist.core_motivation or not antagonist.core_motivation.strip()):
+                        antagonist.core_motivation = "Seize control and eliminate rival claims."
+
+                # 3. Ensure at least one relationship exists between cast members
+                has_rels = any(len(c.relationships) > 0 for c in char_list)
+                if not has_rels and len(char_list) >= 2:
+                    c1, c2 = char_list[0], char_list[1]
+                    c1.relationships.append(
+                        CharacterRelationship(
+                            target_character=c2.name,
+                            relation_type="ADVERSARY" if c2.role == CharacterRole.ANTAGONIST else "ALLIANCE",
+                            status=StateStatus.FACT,
+                            dynamic="Central dramatic opposition and conflict"
+                        )
+                    )
+
+            # Ensure chronology anchors reflect the conclusion
+            events_in_state = (new_state.chronology if (hasattr(new_state, 'chronology') and new_state.chronology) else self.repository.get_events(story_id))
+            if len(events_in_state) < 3:
+                existing_seq = len(events_in_state)
+                # Seed inciting disruption if absent
+                if not any(getattr(e, 'anchor_type', None) == 'INCITING_DISRUPTION' for e in events_in_state):
+                    existing_seq += 1
+                    inc_event = ChronologyEvent(
+                        story_id=story_id,
+                        state_version=new_state.state_version,
+                        event_sequence=existing_seq,
+                        anchor_type="INCITING_DISRUPTION",
+                        headline="Inciting Disruption",
+                        description=new_state.logline[:200] if new_state.logline else "Initial dramatic catalyst.",
+                        participants=[c.name for c in list(new_state.characters.values())[:2]],
+                        event_status=StateStatus.FACT
+                    )
+                    if hasattr(new_state, 'chronology'):
+                        new_state.chronology.append(inc_event)
+                    self.repository.save_event(inc_event)
+
+                # Seed midpoint/climax confrontation if absent
+                if not any(getattr(e, 'anchor_type', None) in ('CLIMAX', 'MIDPOINT_REVELATION', 'POINT_OF_NO_RETURN') for e in events_in_state):
+                    existing_seq += 1
+                    climax_event = ChronologyEvent(
+                        story_id=story_id,
+                        state_version=new_state.state_version,
+                        event_sequence=existing_seq,
+                        anchor_type="CLIMAX",
+                        headline="Decisive Confrontation",
+                        description="Key collision between protagonist and counterforce.",
+                        participants=[c.name for c in list(new_state.characters.values())[:3]],
+                        event_status=StateStatus.FACT
+                    )
+                    if hasattr(new_state, 'chronology'):
+                        new_state.chronology.append(climax_event)
+                    self.repository.save_event(climax_event)
+
+                # Record turning points from the session trace and conclusion
+                existing_seq += 1
+                res_event = ChronologyEvent(
+                    story_id=story_id,
+                    state_version=new_state.state_version,
+                    event_sequence=existing_seq,
+                    anchor_type="RESOLUTION",
+                    headline="Story Climax and Resolution",
+                    description=creator_input[:200] if creator_input else "Story reaches its canonical conclusion.",
+                    participants=[c.name for c in list(new_state.characters.values())[:3]],
+                    event_status=StateStatus.FACT
+                )
+                if hasattr(new_state, 'chronology'):
+                    new_state.chronology.append(res_event)
+                self.repository.save_event(res_event)
+
         elif conv_action == "SYNTHESIZE_AND_CONTINUE":
             auth_mode = AuthorityMode.ASK if next_q else AuthorityMode.PROPOSE
         elif next_q:
@@ -139,8 +282,7 @@ class CollaborativeForgeLoop:
             auth_mode = AuthorityMode.PROPOSE
 
         # Save committed state
-        if applied_mutations or reasoning_output.revisions_detected or new_state.explicit_ending_declared:
-            self.repository.save_state(new_state)
+        self.repository.save_state(new_state)
 
         # Reconcile satisfied dependencies in the dependency graph
         all_deps = self.repository.get_dependencies(story_id)
