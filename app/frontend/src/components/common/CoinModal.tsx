@@ -362,40 +362,26 @@ export const CoinModal: React.FC = () => {
           </div>
         </div>
 
-        {/* South Africa SIM Airtime Balance & Recharge Widget (When ZAR is selected) */}
+        {/* South Africa Direct Carrier Billing Rail Banner */}
         {currency === 'ZAR' && (
-          <div className="mt-3.5 p-3.5 rounded-[7px] bg-gradient-to-r from-emerald-950/70 via-welele-surface-2 to-teal-950/60 border border-emerald-500/30 flex items-center justify-between gap-2 shadow-inner">
+          <div className="mt-3.5 p-3 rounded-[7px] bg-gradient-to-r from-emerald-950/70 via-welele-surface-2 to-teal-950/60 border border-emerald-500/30 flex items-center justify-between gap-2 shadow-inner">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-[7px] bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+              <div className="w-8 h-8 rounded-[7px] bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
                 <Signal className="w-4 h-4 animate-pulse" />
               </div>
               <div>
                 <span className="text-[10px] uppercase font-extrabold tracking-wider text-emerald-400/90 block">
-                  Connected SIM Airtime Balance ({detectedCarrierName})
+                  Carrier Billing Ready ({detectedCarrierName})
                 </span>
-                <div className="text-xl font-black text-emerald-300 font-cinematic flex items-center gap-1.5">
-                  <span>R{airtimeBalance.toFixed(2)}</span>
-                  <span className="text-[11px] text-emerald-400 font-medium">(Ready for 1-Tap)</span>
-                </div>
+                <span className="text-xs text-white font-medium">
+                  Billed directly to your cellular account via SIM authorization
+                </span>
               </div>
             </div>
 
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => topupAirtimeBalance(20.0)}
-                className="px-2 py-1 rounded-[7px] bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-[10px] font-bold text-emerald-300 transition-colors"
-                title="Simulate topping up airtime balance"
-              >
-                + R20
-              </button>
-              <button
-                onClick={() => topupAirtimeBalance(50.0)}
-                className="px-2 py-1 rounded-[7px] bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-[10px] font-bold text-emerald-300 transition-colors"
-                title="Simulate topping up airtime balance"
-              >
-                + R50
-              </button>
-            </div>
+            <span className="px-2 py-0.5 rounded-[5px] text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+              ACTIVE RAIL
+            </span>
           </div>
         )}
 
@@ -724,8 +710,8 @@ export const CoinModal: React.FC = () => {
               </div>
 
               <div className="p-2.5 rounded-[7px] bg-black/40 border border-white/5 text-[11px] text-emerald-300 flex items-center justify-between">
-                <span>Airtime Balance: R{airtimeBalance.toFixed(2)}</span>
-                <span>→ New: R{Math.max(0, airtimeBalance - (activeTab === 'passes' ? (selectedPass?.price_zar || 0) : (selectedPack?.price_local || 0))).toFixed(2)}</span>
+                <span>Payment Method: {paymentMethod.replace('_', ' ').toUpperCase()}</span>
+                <span className="font-bold">Direct Carrier Billing</span>
               </div>
 
               <div className="flex gap-2">

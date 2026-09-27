@@ -2,7 +2,7 @@ import React from 'react';
 import { useApp } from '../../context/AppContext';
 import { AppMode, MarketRegion } from '../../types';
 import { WeleleLogo } from './WeleleLogo';
-import { Globe, Signal, LogIn, LogOut } from 'lucide-react';
+import { Globe, LogIn, LogOut } from 'lucide-react';
 
 export const Header: React.FC = () => {
   const {
@@ -11,8 +11,6 @@ export const Header: React.FC = () => {
     coins,
     market,
     setMarket,
-    airtimeBalance,
-    selectedCarrier,
     setIsCoinModalOpen,
     isLoggedIn,
     setIsAuthModalOpen,
@@ -33,13 +31,6 @@ export const Header: React.FC = () => {
     'Pidgin',
     'French',
   ];
-
-  const carrierShortNames: Record<string, string> = {
-    vodacom_airtime: 'Vodacom',
-    mtn_sa_airtime: 'MTN SA',
-    cellc_airtime: 'Cell C',
-    telkom_airtime: 'Telkom',
-  };
 
   return (
     <header className="sticky top-0 z-40 w-full glass-panel border-b border-white/10 px-3 sm:px-4 py-2.5 transition-all">
@@ -78,18 +69,6 @@ export const Header: React.FC = () => {
             </select>
           </div>
 
-          {/* South African Airtime Balance Indicator (if ZA market) */}
-          {market === 'ZA' && (
-            <button
-              onClick={() => setIsCoinModalOpen(true)}
-              title="Click to manage SIM Airtime & Passes"
-              className="hidden sm:flex items-center gap-1 bg-emerald-950/60 hover:bg-emerald-900/80 border border-emerald-500/40 text-emerald-300 px-2.5 py-1.5 rounded-[7px] text-xs font-semibold transition-all"
-            >
-              <Signal className="w-3 h-3 text-emerald-400 animate-pulse" />
-              <span className="text-[11px] text-emerald-200">{carrierShortNames[selectedCarrier] || 'Airtime'}:</span>
-              <span className="font-extrabold text-emerald-300">R{airtimeBalance.toFixed(2)}</span>
-            </button>
-          )}
 
           {/* Language Selector (Desktop) */}
           <div className="hidden lg:flex items-center gap-1 bg-welele-surface-2 px-2.5 py-1.5 rounded-[7px] border border-white/10 text-xs">
