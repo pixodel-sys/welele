@@ -142,13 +142,22 @@ export const Header: React.FC = () => {
               </button>
             </div>
           ) : isLoggedIn ? (
-            <button
-              onClick={() => setIsAuthModalOpen(true)}
-              className="w-8 h-8 rounded-[7px] border border-welele-orange/50 overflow-hidden hover:scale-105 transition-transform"
-              title={`Logged in as ${user.name}`}
-            >
-              <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
-            </button>
+            <div className="flex items-center gap-1.5 bg-welele-surface-2 p-1 rounded-[7px] border border-white/10">
+              <div className="flex items-center gap-1.5 px-2 py-0.5" title={`Signed in as ${user.phone || user.name}`}>
+                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                <span className="text-[10px] font-bold text-white max-w-[110px] truncate">
+                  {user.phone ? user.phone : user.name}
+                </span>
+              </div>
+              <button
+                onClick={logout}
+                className="px-2 py-1 rounded-[5px] bg-white/5 hover:bg-white/10 text-welele-muted hover:text-white text-[10px] font-bold flex items-center gap-1 transition-colors"
+                title="Sign Out"
+              >
+                <LogOut className="w-3 h-3" />
+                <span className="hidden sm:inline">Sign Out</span>
+              </button>
+            </div>
           ) : (
             <button
               onClick={() => {

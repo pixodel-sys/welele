@@ -36,7 +36,7 @@ class PhoneAuthRequest(BaseModel):
 class VerifyOtpRequest(BaseModel):
     phone_number: str
     otp_code: str
-    display_name: Optional[str] = "Zola D."
+    display_name: Optional[str] = "Welele Viewer"
     region_code: Optional[str] = "ZA"
 
 class GuestAuthRequest(BaseModel):

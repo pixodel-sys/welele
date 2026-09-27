@@ -32,6 +32,7 @@ import {
   ChevronRight,
   Film,
   RotateCcw,
+  LogIn,
 } from 'lucide-react';
 import { useContentProtection } from '../../hooks/useContentProtection';
 import { mediaStore } from '../../services/mediaStore';
@@ -66,6 +67,9 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
     userId,
     activeLanguage,
     setActiveLanguage,
+    isLoggedIn,
+    setIsAuthModalOpen,
+    setAuthModalTargetRole,
   } = useApp();
 
   const { isSecurityAlertActive, securityMessage } = useContentProtection({
@@ -757,6 +761,14 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
 
   const handleUnlockWithCoins = async () => {
     if (!currentStory || !currentEpisode) return;
+
+    // Strict viewer authentication gate: guest accounts must sign in before spending coins
+    if (!isLoggedIn || userId.startsWith('guest_')) {
+      setAuthModalTargetRole('viewer');
+      setIsAuthModalOpen(true);
+      return;
+    }
+
     const cost = currentEpisode.coin_price || 5;
 
     // Phase 3A: Payment initiation telemetry
@@ -871,6 +883,13 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
   // South African 1-Tap Direct Airtime Unlock
   const handleQuickAirtimeUnlock = async () => {
     if (!currentStory || !currentEpisode) return;
+
+    // Strict viewer authentication gate: guest accounts must sign in before carrier billing
+    if (!isLoggedIn || userId.startsWith('guest_')) {
+      setAuthModalTargetRole('viewer');
+      setIsAuthModalOpen(true);
+      return;
+    }
 
     // Phase 3A: Payment initiation telemetry
     telemetryService.track({
@@ -1315,38 +1334,59 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
               Unlock the next dramatic turn of <b>{currentStory.title}</b>!
             </p>
 
-            {/* South African 1-Tap Airtime Unlock Button (Zero Coins Needed) */}
+            {/* Unlock Options / Sign In Gate */}
             <div className="w-full max-w-xs space-y-2.5">
-              <button
-                onClick={handleQuickAirtimeUnlock}
-                disabled={isAirtimeUnlocking}
-                className="w-full py-3.5 rounded-[7px] font-black text-xs bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white shadow-xl shadow-emerald-500/30 hover:opacity-95 transition-all flex items-center justify-center gap-2 border border-emerald-400/40"
-              >
-                {isAirtimeUnlocking ? (
-                  <span className="animate-pulse">Authorizing SIM Airtime...</span>
-                ) : (
-                  <>
-                    <Zap className="w-4 h-4 fill-current text-yellow-300" />
-                    <span>⚡ 1-Tap Unlock with Airtime (R3.00)</span>
-                  </>
-                )}
-              </button>
+              {!isLoggedIn || userId.startsWith('guest_') ? (
+                <>
+                  <button
+                    onClick={() => {
+                      setAuthModalTargetRole('viewer');
+                      setIsAuthModalOpen(true);
+                    }}
+                    className="w-full py-3.5 rounded-[7px] font-black text-xs bg-gradient-welele text-white shadow-xl shadow-orange-500/30 hover:opacity-95 transition-all flex items-center justify-center gap-2 border border-white/20"
+                  >
+                    <LogIn className="w-4 h-4" />
+                    <span>Sign In with Phone to Unlock</span>
+                  </button>
+                  <p className="text-[10px] text-welele-muted">
+                    Sign in with your mobile number to get 50 bonus coins & save purchases
+                  </p>
+                </>
+              ) : (
+                <>
+                  {/* South African 1-Tap Airtime Unlock Button (Zero Coins Needed) */}
+                  <button
+                    onClick={handleQuickAirtimeUnlock}
+                    disabled={isAirtimeUnlocking}
+                    className="w-full py-3.5 rounded-[7px] font-black text-xs bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white shadow-xl shadow-emerald-500/30 hover:opacity-95 transition-all flex items-center justify-center gap-2 border border-emerald-400/40"
+                  >
+                    {isAirtimeUnlocking ? (
+                      <span className="animate-pulse">Authorizing SIM Airtime...</span>
+                    ) : (
+                      <>
+                        <Zap className="w-4 h-4 fill-current text-yellow-300" />
+                        <span>⚡ 1-Tap Unlock with Airtime (R3.00)</span>
+                      </>
+                    )}
+                  </button>
 
-              {/* Standard Coin Unlock Button */}
-              <button
-                onClick={handleUnlockWithCoins}
-                disabled={isUnlocking}
-                className="w-full py-2.5 rounded-[7px] font-bold text-xs bg-welele-surface-2 hover:bg-white/10 text-white border border-white/10 transition-all flex items-center justify-center gap-2"
-              >
-                {isUnlocking ? (
-                  <span className="animate-pulse">Unlocking Episode...</span>
-                ) : (
-                  <>
-                    <span>🪙 Unlock for {currentEpisode.coin_price || 5} Coins</span>
-                    <span className="text-[11px] text-welele-muted">(Bal: {coins})</span>
-                  </>
-                )}
-              </button>
+                  {/* Standard Coin Unlock Button */}
+                  <button
+                    onClick={handleUnlockWithCoins}
+                    disabled={isUnlocking}
+                    className="w-full py-2.5 rounded-[7px] font-bold text-xs bg-welele-surface-2 hover:bg-white/10 text-white border border-white/10 transition-all flex items-center justify-center gap-2"
+                  >
+                    {isUnlocking ? (
+                      <span className="animate-pulse">Unlocking Episode...</span>
+                    ) : (
+                      <>
+                        <span>🪙 Unlock for {currentEpisode.coin_price || 5} Coins</span>
+                        <span className="text-[11px] text-welele-muted">(Bal: {coins})</span>
+                      </>
+                    )}
+                  </button>
+                </>
+              )}
             </div>
 
             {/* Airtime SIM & Coin Topup Link */}
