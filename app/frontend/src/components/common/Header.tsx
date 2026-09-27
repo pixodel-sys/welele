@@ -108,20 +108,22 @@ export const Header: React.FC = () => {
             </select>
           </div>
 
-          {/* Coin Pill */}
-          <button
-            onClick={() => setIsCoinModalOpen(true)}
-            className="flex items-center gap-1.5 bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-pink-500/20 hover:from-amber-500/30 hover:to-pink-500/30 border border-welele-gold/40 px-2.5 sm:px-3 py-1.5 rounded-[7px] transition-all group shadow-sm"
-          >
-            <div className="w-5 h-5 rounded-[7px] bg-gradient-to-tr from-amber-500 to-yellow-300 flex items-center justify-center text-[10px] text-black font-bold shadow">
-              🪙
-            </div>
-            <span className="font-bold text-xs text-welele-gold">{coins}</span>
-            <span className="hidden sm:inline text-[11px] text-welele-muted font-medium">Coins</span>
-            <span className="w-4 h-4 rounded-[7px] bg-welele-orange/30 text-welele-orange flex items-center justify-center text-xs font-bold ml-0.5 group-hover:scale-110 transition-transform">
-              +
-            </span>
-          </button>
+          {/* Coin Pill — Only visible to logged-in accounts */}
+          {isLoggedIn && (
+            <button
+              onClick={() => setIsCoinModalOpen(true)}
+              className="flex items-center gap-1.5 bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-pink-500/20 hover:from-amber-500/30 hover:to-pink-500/30 border border-welele-gold/40 px-2.5 sm:px-3 py-1.5 rounded-[7px] transition-all group shadow-sm"
+            >
+              <div className="w-5 h-5 rounded-[7px] bg-gradient-to-tr from-amber-500 to-yellow-300 flex items-center justify-center text-[10px] text-black font-bold shadow">
+                🪙
+              </div>
+              <span className="font-bold text-xs text-welele-gold">{coins}</span>
+              <span className="hidden sm:inline text-[11px] text-welele-muted font-medium">Coins</span>
+              <span className="w-4 h-4 rounded-[7px] bg-welele-orange/30 text-welele-orange flex items-center justify-center text-xs font-bold ml-0.5 group-hover:scale-110 transition-transform">
+                +
+              </span>
+            </button>
+          )}
 
           {/* User Sign In / Profile Avatar & Role Badge */}
           {isLoggedIn && user.role !== 'viewer' ? (
