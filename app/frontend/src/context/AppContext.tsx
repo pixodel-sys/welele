@@ -82,7 +82,7 @@ const DEFAULT_GUEST_USER: UserProfile = {
   id: 'guest_za_01',
   name: 'Guest Viewer',
   phone: '',
-  avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+  avatar: '',
   city: 'Johannesburg, South Africa',
   role: 'viewer',
   permissions: ['stream:episode:free', 'stream:episode:unlock', 'wallet:recharge'],
@@ -117,8 +117,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Wallet & Monetization
   const [coins, setCoins] = useState<number>(() => {
+    if (localStorage.getItem('welele_logged_in') !== 'true') return 0;
     const saved = localStorage.getItem('welele_coins');
-    return saved ? parseInt(saved, 10) : 60;
+    return saved ? parseInt(saved, 10) : 50;
   });
   const [currency, setCurrency] = useState<string>(() => {
     return localStorage.getItem('welele_currency') || 'ZAR';
@@ -226,6 +227,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.removeItem('welele_auth_token');
     localStorage.removeItem('welele_user_profile');
     localStorage.removeItem('welele_sa_phone');
+    localStorage.removeItem('welele_coins');
+    setCoins(0);
     setUserPhoneNumberState('');
     setUser(DEFAULT_GUEST_USER);
     setModeState('viewer');
