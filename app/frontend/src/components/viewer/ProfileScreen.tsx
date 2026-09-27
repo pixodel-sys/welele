@@ -199,30 +199,26 @@ export const ProfileScreen: React.FC = () => {
           </button>
         </div>
 
-        {/* Live Airtime Balance Widget */}
-        <div className="flex items-center justify-between p-3.5 rounded-[7px] bg-black/40 border border-white/5">
-          <div>
-            <span className="text-[10px] text-welele-muted block font-medium">SIM Airtime Available</span>
-            <div className="text-2xl font-black text-emerald-300 font-cinematic">
-              R{airtimeBalance.toFixed(2)}
+        {/* Direct Carrier Billing (DCB) Active Rail Status */}
+        <div className="p-3.5 rounded-[7px] bg-black/40 border border-white/5 space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-base">📶</span>
+              <div>
+                <span className="text-[10px] text-welele-muted block font-medium">Carrier Airtime Billing</span>
+                <span className="text-xs font-bold text-emerald-300">
+                  {carrierLabels[selectedCarrier]?.name || 'Vodacom SA'} (Direct Billing Ready)
+                </span>
+              </div>
             </div>
-            <span className="text-[10px] text-welele-muted">Number: {userPhoneNumber}</span>
+            <span className="px-2 py-0.5 rounded-[5px] text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+              <CheckCircle2 className="w-3 h-3" />
+              <span>CONNECTED</span>
+            </span>
           </div>
-
-          <div className="flex flex-col items-end gap-1.5">
-            <span className="text-[10px] font-bold text-emerald-400">Quick Recharge:</span>
-            <div className="flex gap-1">
-              {[10, 25, 50].map((amt) => (
-                <button
-                  key={amt}
-                  onClick={() => topupAirtimeBalance(amt)}
-                  className="px-2 py-1 rounded-[7px] bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-[10px] font-bold text-emerald-300 transition-colors"
-                >
-                  +R{amt}
-                </button>
-              ))}
-            </div>
-          </div>
+          <p className="text-[10px] text-welele-muted leading-relaxed">
+            Deductions of R3.00 per cliffhanger are billed directly to your SIM airtime account upon authorization. No bank card required.
+          </p>
         </div>
 
         {/* Carrier Quick Switcher */}
