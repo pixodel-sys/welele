@@ -80,24 +80,42 @@ export const ProfileScreen: React.FC = () => {
             />
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-base font-black text-white">{userName}</h2>
-                <span className="px-2 py-0.5 rounded-[7px] text-[9px] font-bold bg-welele-orange/20 text-welele-orange border border-welele-orange/30">
-                  {market === 'ZA' ? '🇿🇦 MZANSI VIP' : 'VIP VIEWER'}
+                <h2 className="text-base font-black text-white">{isLoggedIn ? (user.name || 'Welele Viewer') : 'Guest Viewer'}</h2>
+                <span className={`px-2 py-0.5 rounded-[7px] text-[9px] font-bold border ${
+                  isLoggedIn
+                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                    : 'bg-welele-orange/20 text-welele-orange border-welele-orange/30'
+                }`}>
+                  {isLoggedIn ? '🇿🇦 VERIFIED SUBSCRIBER' : 'GUEST TRIAL'}
                 </span>
               </div>
               <p className="text-xs text-welele-muted">
-                {user.city || (market === 'ZA' ? 'Johannesburg, South Africa' : 'Lagos, Nigeria')} • {userPhoneNumber}
+                {isLoggedIn 
+                  ? `${user.phone || userPhoneNumber || 'Phone Verified'} • ${user.city || 'Johannesburg, South Africa'}`
+                  : 'Sign in with your mobile number to claim 50 free coins'}
               </p>
             </div>
           </div>
 
-          <button
-            onClick={() => setIsAuthModalOpen(true)}
-            className="p-2 rounded-[7px] bg-white/5 hover:bg-white/10 text-welele-muted hover:text-white transition-colors"
-            title="Switch Account / Sign In"
-          >
-            <User className="w-4 h-4 text-welele-orange" />
-          </button>
+          {isLoggedIn ? (
+            <button
+              onClick={logout}
+              className="px-3 py-1.5 rounded-[7px] bg-red-950/60 hover:bg-red-900 border border-red-500/30 text-red-300 text-xs font-bold flex items-center gap-1 transition-colors"
+              title="Sign Out"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Exit</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => setIsAuthModalOpen(true)}
+              className="px-3 py-1.5 rounded-[7px] bg-gradient-welele text-white text-xs font-bold shadow flex items-center gap-1 hover:opacity-95"
+              title="Sign In with Mobile"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Sign In</span>
+            </button>
+          )}
         </div>
 
         {/* Coin Balance Wallet Card */}

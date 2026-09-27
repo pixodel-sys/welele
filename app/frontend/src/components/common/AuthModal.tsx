@@ -35,7 +35,10 @@ export const AuthModal: React.FC = () => {
 
   // Viewer State
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
-  const [phoneInput, setPhoneInput] = useState<string>(userPhoneNumber || '082 891 2345');
+  const [phoneInput, setPhoneInput] = useState<string>(() => {
+    if (userPhoneNumber && userPhoneNumber !== '082 891 2345') return userPhoneNumber;
+    return '';
+  });
   const [otpCode, setOtpCode] = useState<string>('');
   const [demoHint, setDemoHint] = useState<string | null>(null);
 
@@ -107,11 +110,12 @@ export const AuthModal: React.FC = () => {
       setIsLoading(false);
       login({
         id: res.user?.id || 'usr_viewer_01',
-        name: res.user?.name || (market === 'ZA' ? 'Sipho Dlamini' : 'Temi Adebayo'),
+        name: res.user?.name || (market === 'ZA' ? 'Welele Viewer' : 'Welele Viewer'),
         phone: phoneInput,
         role: 'viewer',
         city: market === 'ZA' ? 'Johannesburg, South Africa' : 'Lagos, Nigeria',
         token: res.access_token,
+        coins: res.user?.coins ?? 50,
       });
       triggerSuccess('viewer');
     } catch (err: any) {
@@ -124,9 +128,10 @@ export const AuthModal: React.FC = () => {
     login({
       id: userType === 'joburg' ? 'usr_joburg_77' : 'usr_lagos_99',
       name: userType === 'joburg' ? 'Sipho Dlamini (Joburg VIP)' : 'Temi Adebayo (Lagos VIP)',
-      phone: userType === 'joburg' ? '082 891 2345' : '+234 803 123 4567',
+      phone: userType === 'joburg' ? '+27828912345' : '+2348031234567',
       role: 'viewer',
       city: userType === 'joburg' ? 'Johannesburg, South Africa' : 'Lagos, Nigeria',
+      coins: 50,
     });
     triggerSuccess('viewer');
   };

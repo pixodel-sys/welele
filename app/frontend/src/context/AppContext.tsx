@@ -14,6 +14,7 @@ interface UserProfile {
   creator_id?: string;
   permissions?: string[];
   token?: string;
+  coins?: number;
 }
 
 interface AppContextType {
@@ -80,7 +81,7 @@ interface AppContextType {
 const DEFAULT_GUEST_USER: UserProfile = {
   id: 'guest_za_01',
   name: 'Guest Viewer',
-  phone: '082 891 2345',
+  phone: '',
   avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
   city: 'Johannesburg, South Africa',
   role: 'viewer',
@@ -132,7 +133,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return saved !== null ? parseFloat(saved) : 55.0;
   });
   const [userPhoneNumber, setUserPhoneNumberState] = useState<string>(() => {
-    return localStorage.getItem('welele_sa_phone') || '082 891 2345';
+    return localStorage.getItem('welele_sa_phone') || '';
   });
   const [autoAirtimeUnlock, setAutoAirtimeUnlockState] = useState<boolean>(() => {
     return localStorage.getItem('welele_auto_airtime') === 'true';
@@ -213,6 +214,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       localStorage.setItem('welele_auth_token', userData.token);
     }
     if (userData.phone) setUserPhoneNumber(userData.phone);
+    if (userData.coins !== undefined) {
+      setCoins(userData.coins);
+      localStorage.setItem('welele_coins', userData.coins.toString());
+    }
   };
 
   const logout = () => {
@@ -220,6 +225,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.removeItem('welele_logged_in');
     localStorage.removeItem('welele_auth_token');
     localStorage.removeItem('welele_user_profile');
+    localStorage.removeItem('welele_sa_phone');
+    setUserPhoneNumberState('');
     setUser(DEFAULT_GUEST_USER);
     setModeState('viewer');
   };
@@ -230,19 +237,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (m === 'ZA') {
       setCurrency('ZAR');
       localStorage.setItem('welele_currency', 'ZAR');
-      setUserPhoneNumberState('082 891 2345');
     } else if (m === 'NG') {
       setCurrency('NGN');
       localStorage.setItem('welele_currency', 'NGN');
-      setUserPhoneNumberState('+234 803 123 4567');
     } else if (m === 'KE') {
       setCurrency('KES');
       localStorage.setItem('welele_currency', 'KES');
-      setUserPhoneNumberState('+254 712 345 678');
     } else if (m === 'GHS') {
       setCurrency('GHS');
       localStorage.setItem('welele_currency', 'GHS');
-      setUserPhoneNumberState('+233 24 123 4567');
     } else {
       setCurrency('USD');
       localStorage.setItem('welele_currency', 'USD');
