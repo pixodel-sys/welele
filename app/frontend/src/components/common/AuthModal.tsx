@@ -101,12 +101,13 @@ export const AuthModal: React.FC = () => {
     }
   };
 
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Execute OTP Verification & Session Establishment
+  const executeVerification = async (codeToVerify: string) => {
+    if (!codeToVerify || codeToVerify.length < 4 || isLoading) return;
     setIsLoading(true);
     setErrorMessage(null);
     try {
-      const res = await authApi.verifyOtp(phoneInput, otpCode);
+      const res = await authApi.verifyOtp(phoneInput, codeToVerify);
       setIsLoading(false);
       login({
         id: res.user?.id || 'usr_viewer_01',
@@ -123,6 +124,38 @@ export const AuthModal: React.FC = () => {
       setErrorMessage(err?.response?.data?.detail || 'Verification failed. Please check your code and try again.');
     }
   };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await executeVerification(otpCode);
+  };
+
+  // WebOTP API: Native Android SMS Auto-Detection & Verification
+  useEffect(() => {
+    if (!isAuthModalOpen || activeTab !== 'viewer' || step !== 'otp') return;
+
+    if ('OTPCredential' in window && typeof navigator !== 'undefined' && 'credentials' in navigator) {
+      const ac = new AbortController();
+      (navigator.credentials as any).get({
+        otp: { transport: ['sms'] },
+        signal: ac.signal,
+      }).then((content: any) => {
+        if (content && content.code) {
+          const digits = content.code.replace(/\D/g, '').slice(0, 4);
+          if (digits.length === 4) {
+            setOtpCode(digits);
+            executeVerification(digits);
+          }
+        }
+      }).catch(() => {
+        // Silently handled if user cancels or timeouts
+      });
+
+      return () => {
+        ac.abort();
+      };
+    }
+  }, [isAuthModalOpen, activeTab, step, phoneInput]);
 
   const handleQuickDemoViewer = (userType: 'joburg' | 'lagos') => {
     login({
@@ -388,13 +421,27 @@ export const AuthModal: React.FC = () => {
                   </label>
                   <input
                     type="text"
+                    id="sms-otp-input"
+                    name="one-time-code"
+                    autoComplete="one-time-code"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     maxLength={4}
                     value={otpCode}
-                    onChange={(e) => setOtpCode(e.target.value)}
-                    placeholder="5542"
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, '').slice(0, 4);
+                      setOtpCode(val);
+                      if (val.length === 4) {
+                        executeVerification(val);
+                      }
+                    }}
+                    placeholder="••••"
                     className="w-full bg-welele-surface-2 py-2.5 text-center tracking-[0.5em] text-lg font-black text-white rounded-[7px] border border-white/10 focus:border-welele-orange focus:outline-none font-mono"
                     autoFocus
                   />
+                  <span className="text-[10px] text-welele-muted block text-center mt-1">
+                    📲 Android SMS auto-fill & 1-tap keyboard assist enabled
+                  </span>
                 </div>
 
                 <button
