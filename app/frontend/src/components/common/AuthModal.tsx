@@ -377,6 +377,12 @@ export const AuthModal: React.FC = () => {
                   )}
                 </button>
 
+                {/* POPIA & WASPA Data Protection Consent Notice */}
+                <p className="text-[10.5px] text-welele-muted text-center leading-relaxed px-1">
+                  By continuing, you consent to secure OTP verification under South Africa's{' '}
+                  <strong className="text-white/80">POPIA</strong> &amp; WASPA guidelines. Your cell number is strictly used for authentication and account balance security.
+                </p>
+
                 {/* Quick Demo — DEV / TEST ONLY. Bypasses real auth. Remove or hide before public launch. */}
                 <div className="pt-2 border-t border-white/10 space-y-1.5">
                   <span className="text-[10px] text-amber-500/80 block text-center uppercase font-bold tracking-wider">
@@ -609,7 +615,7 @@ export const AuthModal: React.FC = () => {
 
         <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-center gap-1.5 text-[10px] text-welele-muted">
           <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-          <span>Role-Based Access Control • Cryptographically Signed JWT</span>
+          <span>POPIA &amp; WASPA Compliant • Cryptographically Signed JWT</span>
         </div>
       </div>
     </div>
