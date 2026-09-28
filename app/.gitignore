@@ -48,6 +48,7 @@ media_storage/
 # backend/data/ remain tracked — only the live store is excluded.
 backend/data/welele_store.json
 backend/data/.welele_store_*.tmp
+backend/data/.otp_store*
 
 # Scratch & Debug artifacts
 scratch/

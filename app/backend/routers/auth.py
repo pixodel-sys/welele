@@ -62,6 +62,17 @@ def send_phone_otp(req: PhoneAuthRequest):
         region_code=req.region_code or "ZA"
     )
     
+    env = (settings.ENVIRONMENT or "").lower()
+    is_prod = env in ("production", "prod")
+
+    # In production, fail closed with honest 502 Bad Gateway if carrier SMS delivery failed
+    if is_prod and not sms_sent:
+        logger.error("[send_phone_otp] SMS delivery failed in production for %s: %s", req.phone_number, err_msg)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"SMS Gateway Error: {err_msg or 'Failed to deliver SMS to carrier.'}"
+        )
+
     resp = {
         "status": "success",
         "message": f"Verification code sent to {req.phone_number}",
@@ -74,9 +85,13 @@ def send_phone_otp(req: PhoneAuthRequest):
         logger.warning("[send_phone_otp] SMS notice for %s: %s", req.phone_number, err_msg)
         resp["warning"] = err_msg
 
-    # In development mode, provide demo_hint for testing convenience
-    if not settings.IS_PRODUCTION_OR_STAGING:
-        resp["demo_hint"] = f"Dev mode OTP: {code}"
+    # In development and staging environments, supply demo_hint so QA and testing are never blocked
+    if not is_prod:
+        if not sms_sent:
+            resp["demo_hint"] = f"{code} (SMS: {err_msg})"
+        else:
+            resp["demo_hint"] = f"OTP: {code}"
+            
     return resp
 
 @router.post("/phone/verify-otp")
@@ -88,8 +103,11 @@ def verify_phone_otp(req: VerifyOtpRequest):
         region_code=req.region_code or "ZA"
     )
     
-    # Allow legacy dev demo code '5542' strictly in non-production environments
-    if not is_valid and not settings.IS_PRODUCTION_OR_STAGING and req.otp_code == "5542":
+    env = (settings.ENVIRONMENT or "").lower()
+    is_prod = env in ("production", "prod")
+
+    # Allow QA demo bypass code '5542' in non-production environments (development, staging, test)
+    if not is_valid and not is_prod and req.otp_code == "5542":
         is_valid = True
         
     if not is_valid:

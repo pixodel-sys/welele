@@ -14,14 +14,76 @@ import logging
 import urllib.request
 import urllib.error
 import json
+import threading
 from typing import Dict, Any, Optional, Tuple
 from config import settings
 
 logger = logging.getLogger("welele.sms")
 
-# In-memory store for OTPs:
+
+class PersistentOTPStore:
+    """
+    Multi-worker persistent OTP store.
+    Saves state to disk atomically so that multiple Uvicorn workers
+    or container processes share identical OTP state and rate limits.
+    """
+    def __init__(self, filepath: Optional[str] = None):
+        self._lock = threading.Lock()
+        base_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
+        self._path = filepath or os.path.join(base_dir, ".otp_store.json")
+        self._cache: Dict[str, Dict[str, Any]] = {}
+        self._load()
+
+    def _load(self):
+        try:
+            if os.path.exists(self._path):
+                with open(self._path, "r", encoding="utf-8") as f:
+                    self._cache = json.load(f)
+        except Exception as e:
+            logger.debug("[OTPStore] Load fallback: %s", e)
+
+    def _save(self):
+        try:
+            os.makedirs(os.path.dirname(self._path), exist_ok=True)
+            tmp_path = f"{self._path}.tmp.{os.getpid()}_{threading.get_ident()}"
+            with open(tmp_path, "w", encoding="utf-8") as f:
+                json.dump(self._cache, f)
+            os.replace(tmp_path, self._path)
+        except Exception as e:
+            logger.debug("[OTPStore] Save fallback: %s", e)
+
+    def __getitem__(self, key: str) -> Dict[str, Any]:
+        with self._lock:
+            self._load()
+            return self._cache[key]
+
+    def __setitem__(self, key: str, value: Dict[str, Any]):
+        with self._lock:
+            self._load()
+            self._cache[key] = value
+            self._save()
+
+    def __contains__(self, key: str) -> bool:
+        with self._lock:
+            self._load()
+            return key in self._cache
+
+    def get(self, key: str, default: Any = None) -> Any:
+        with self._lock:
+            self._load()
+            return self._cache.get(key, default)
+
+    def pop(self, key: str, default: Any = None) -> Any:
+        with self._lock:
+            self._load()
+            val = self._cache.pop(key, default)
+            self._save()
+            return val
+
+
+# Persistent multi-worker store for OTPs:
 # normalized_phone -> { "code": str, "expires_at": float, "attempts": int, "last_sent_at": float }
-_otp_store: Dict[str, Dict[str, Any]] = {}
+_otp_store = PersistentOTPStore()
 
 OTP_EXPIRY_SECONDS = 300  # 5 minutes
 MAX_VERIFY_ATTEMPTS = 5
@@ -184,8 +246,9 @@ class SMSService:
             _otp_store.pop(normalized, None)
             return True, "Verification successful."
 
-        # Increment attempts on mismatch
+        # Increment attempts on mismatch and persist
         entry["attempts"] = entry.get("attempts", 0) + 1
+        _otp_store[normalized] = entry
         remaining = MAX_VERIFY_ATTEMPTS - entry["attempts"]
         return False, f"Invalid verification code. {remaining} attempt(s) remaining."
 

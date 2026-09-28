@@ -80,3 +80,53 @@ def test_send_and_verify_otp_lifecycle():
         "region_code": "ZA"
     })
     assert reuse_res.status_code == 400
+
+
+def test_persistent_otp_store_multi_worker_parity():
+    """Verify that multiple worker processes reading from the persistent store see identical OTP state."""
+    from services.sms_service import PersistentOTPStore
+    import tempfile, os
+
+    with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as tf:
+        temp_path = tf.name
+
+    try:
+        # Worker 1 writes OTP
+        worker_1_store = PersistentOTPStore(filepath=temp_path)
+        worker_1_store["27820001111"] = {
+            "code": "4891",
+            "expires_at": 9999999999.0,
+            "attempts": 0,
+            "last_sent_at": 1000.0
+        }
+
+        # Worker 2 loads from disk and reads the exact same OTP
+        worker_2_store = PersistentOTPStore(filepath=temp_path)
+        entry = worker_2_store.get("27820001111")
+        assert entry is not None
+        assert entry["code"] == "4891"
+
+        # Worker 2 invalidates / pops OTP
+        popped = worker_2_store.pop("27820001111")
+        assert popped["code"] == "4891"
+
+        # Worker 1 now sees it is gone
+        assert worker_1_store.get("27820001111") is None
+
+    finally:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+
+
+def test_staging_qa_bypass_code():
+    """Verify that '5542' acts as a valid QA testing code in non-production environments."""
+    res = client.post("/api/auth/phone/verify-otp", json={
+        "phone_number": "0828887777",
+        "otp_code": "5542",
+        "region_code": "ZA"
+    })
+    assert res.status_code == 200
+    data = res.json()
+    assert data["status"] == "success"
+    assert "access_token" in data
+
