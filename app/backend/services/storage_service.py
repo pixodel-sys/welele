@@ -34,7 +34,10 @@ class StorageService:
         self.account_id = os.getenv("R2_ACCOUNT_ID") or getattr(settings, "R2_ACCOUNT_ID", None) or ""
         self.access_key = os.getenv("R2_ACCESS_KEY_ID") or getattr(settings, "R2_ACCESS_KEY_ID", None) or ""
         self.secret_key = os.getenv("R2_SECRET_ACCESS_KEY") or getattr(settings, "R2_SECRET_ACCESS_KEY", None) or ""
-        self.storage_bucket = os.getenv("R2_BUCKET_NAME") or os.getenv("STORAGE_BUCKET") or getattr(settings, "R2_BUCKET_NAME", None) or getattr(settings, "STORAGE_BUCKET", None) or ("welele-vod-staging" if getattr(settings, "ENVIRONMENT", "") == "staging" else "welele-vod-masters")
+        if getattr(settings, "ENVIRONMENT", "") == "staging" or os.getenv("ENVIRONMENT") == "staging":
+            self.storage_bucket = "welele-vod-staging"
+        else:
+            self.storage_bucket = os.getenv("R2_BUCKET_NAME") or os.getenv("STORAGE_BUCKET") or getattr(settings, "R2_BUCKET_NAME", None) or getattr(settings, "STORAGE_BUCKET", None) or "welele-vod-masters"
         self.cdn_base_url = (os.getenv("CDN_BASE_URL") or getattr(settings, "CDN_BASE_URL", None) or "https://cdn.welele.media").rstrip("/")
         self.supported_formats = ["video/mp4", "video/quicktime", "application/x-mpegURL"]
 

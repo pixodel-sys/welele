@@ -154,12 +154,15 @@ class Settings:
         self.ADMIN_2FA_CODE: str = os.getenv("ADMIN_2FA_CODE", "")
 
         # Cloud Object Storage (Pillar 4 / Cloudflare R2)
-        default_bucket = "welele-vod-staging" if self.ENVIRONMENT == "staging" else "welele-vod-masters"
-        self.STORAGE_BUCKET: str = os.getenv("STORAGE_BUCKET") or os.getenv("R2_BUCKET_NAME") or default_bucket
+        if self.ENVIRONMENT == "staging":
+            self.STORAGE_BUCKET = "welele-vod-staging"
+            self.R2_BUCKET_NAME = "welele-vod-staging"
+        else:
+            self.STORAGE_BUCKET = os.getenv("STORAGE_BUCKET") or os.getenv("R2_BUCKET_NAME", "welele-vod-masters")
+            self.R2_BUCKET_NAME = os.getenv("R2_BUCKET_NAME") or self.STORAGE_BUCKET
         self.R2_ACCOUNT_ID: str = os.getenv("R2_ACCOUNT_ID") or ""
         self.R2_ACCESS_KEY_ID: str = os.getenv("R2_ACCESS_KEY_ID") or ""
         self.R2_SECRET_ACCESS_KEY: str = os.getenv("R2_SECRET_ACCESS_KEY") or ""
-        self.R2_BUCKET_NAME: str = os.getenv("R2_BUCKET_NAME") or self.STORAGE_BUCKET
 
         # Google Gemini AI (Pillar 8)
         self.GEMINI_API_KEY: str = (
@@ -245,11 +248,12 @@ class Settings:
 
     # Cloud Object Storage (Pillar 4 / Cloudflare R2)
     CDN_BASE_URL: str = os.getenv("CDN_BASE_URL", "https://cdn.welele.media").rstrip("/")
-    STORAGE_BUCKET: str = os.getenv("STORAGE_BUCKET") or os.getenv("R2_BUCKET_NAME", "welele-vod-masters")
+    _env_val = os.getenv("ENVIRONMENT", "").strip().lower()
+    STORAGE_BUCKET: str = "welele-vod-staging" if _env_val == "staging" else (os.getenv("STORAGE_BUCKET") or os.getenv("R2_BUCKET_NAME", "welele-vod-masters"))
     R2_ACCOUNT_ID: str = os.getenv("R2_ACCOUNT_ID") or ""
     R2_ACCESS_KEY_ID: str = os.getenv("R2_ACCESS_KEY_ID") or ""
     R2_SECRET_ACCESS_KEY: str = os.getenv("R2_SECRET_ACCESS_KEY") or ""
-    R2_BUCKET_NAME: str = os.getenv("R2_BUCKET_NAME") or STORAGE_BUCKET
+    R2_BUCKET_NAME: str = "welele-vod-staging" if _env_val == "staging" else (os.getenv("R2_BUCKET_NAME") or STORAGE_BUCKET)
 
     # Google Gemini AI (Pillar 8)
     GEMINI_API_KEY: str = (
