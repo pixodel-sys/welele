@@ -113,13 +113,13 @@ class OneVoucherAdapter(BasePaymentAdapter):
             self.token_url = f"{self.SANDBOX_BASE_URL}/token"
 
         # Explicit Mock Mode Flag: When live Flash sandbox credentials have not yet been provisioned
-        has_credentials = bool(self.account_number and self.client_id and self.client_secret)
+        self.has_credentials_configured = bool(self.account_number and self.client_id and self.client_secret)
 
         # CRITICAL PRODUCTION SECURITY GUARDRAIL:
         # Never allow silent fallback to mock mode in a production environment!
         is_prod = (self.environment in ("production", "prod")) or (os.getenv("ENVIRONMENT", "").lower() in ("production", "prod"))
         if is_prod:
-            if not has_credentials:
+            if not self.has_credentials_configured:
                 raise RuntimeError(
                     "CRITICAL SECURITY CONFIGURATION HALT: Flash credentials (account number, client ID, client secret) "
                     "are missing in PRODUCTION environment. Silent fallback to mock payment mode in production is strictly prohibited."
@@ -130,14 +130,24 @@ class OneVoucherAdapter(BasePaymentAdapter):
                     "Mock payment simulation in production is strictly prohibited."
                 )
 
-        self.is_mock_mode = (os.getenv("FLASH_MOCK_MODE", "false").lower() in ("true", "1", "yes")) or (not has_credentials)
+        self.is_mock_mode = (os.getenv("FLASH_MOCK_MODE", "false").lower() in ("true", "1", "yes"))
 
         self.token_manager = OAuth2TokenManager(
             token_url=self.token_url,
             client_id=self.client_id,
             client_secret=self.client_secret,
-            is_mock=self.is_mock_mode
+            is_mock=self.is_mock_mode or (not self.has_credentials_configured)
         )
+
+    @property
+    def has_credentials(self) -> bool:
+        return self.has_credentials_configured
+
+    @property
+    def sandbox_status(self) -> str:
+        if self.has_credentials_configured:
+            return "CONFIGURED"
+        return "BLOCKED / NOT_CONFIGURED"
 
     @property
     def provider_id(self) -> str:
@@ -214,6 +224,49 @@ class OneVoucherAdapter(BasePaymentAdapter):
             status=status
         )
 
+    def parse_response(
+        self,
+        status_code: int,
+        response_data: Dict[str, Any],
+        reference: str,
+        user_id: str = "viewer",
+        masked_pin: str = "****",
+        pin_hash: Optional[str] = None
+    ) -> Tuple[bool, str, Dict[str, Any]]:
+        """
+        Interprets a Flash Partner API v4 response payload per Section 1.2.1.1 (Page 5).
+        - HTTP status alone is NOT treated as success.
+        - responseCode == 0 is successful redemption.
+        - responseCode in (2210, 2211) represents a timeout / ambiguous outcome.
+        - Any other non-zero responseCode represents an explicit provider failure.
+        """
+        res_code = response_data.get("responseCode", -1)
+        result = dict(response_data)
+        result["reference"] = reference
+        result["user_id"] = user_id
+        result["masked_pin"] = masked_pin
+        if pin_hash:
+            result["pin_hash"] = pin_hash
+
+        # Success requires BOTH HTTP 200 and integer responseCode == 0 per Section 1.2.1.1 (Page 5)
+        if status_code == 200 and res_code == 0:
+            amount_cents = int(response_data.get("amount", 0))
+            amount_zar = round(amount_cents / float(CENTS_PER_ZAR), 2)
+            coins_grant = int(amount_zar * COINS_PER_ZAR)
+            result["coins_grant"] = coins_grant
+            result["amount_zar"] = amount_zar
+            result["is_timeout"] = False
+            return True, f"Successfully redeemed R{amount_zar:.2f} 1Voucher (+{coins_grant} Coins)!", result
+        elif res_code in (2210, 2211) or status_code in (408, 504):
+            err_msg = response_data.get("responseMessage", "A timeout occurred connecting to Flash switch. Please resubmit using the same reference.")
+            result["is_timeout"] = True
+            result["requires_retry_with_same_reference"] = True
+            return False, err_msg, result
+        else:
+            err_msg = response_data.get("responseMessage", f"Voucher redemption declined by provider (Code {res_code}).")
+            result["is_timeout"] = False
+            return False, err_msg, result
+
     def execute_redemption(
         self,
         voucher_pin: str,
@@ -250,9 +303,30 @@ class OneVoucherAdapter(BasePaymentAdapter):
         masked_pin = self.mask_pin(cleaned_pin)
 
         # --------------------------------------------------------------------
-        # 1. Flash Contract Mock Simulator (Active until Flash credentials arrive)
+        # Provider Credentials Boundary (Milestone 5A Phase 9)
         # --------------------------------------------------------------------
-        if self.is_mock_mode:
+        is_test_mock = (os.getenv("ENVIRONMENT") == "test") and (os.getenv("FLASH_MOCK_MODE", "false").lower() in ("true", "1", "yes"))
+        if not self.has_credentials_configured and not is_test_mock:
+            logger.warning(
+                f"[1Voucher:ProviderBoundary] FlashPay sandbox credentials not configured. "
+                f"Redemption BLOCKED for reference {reference} (FLASH_SANDBOX_STATUS=BLOCKED / NOT_CONFIGURED)."
+            )
+            return False, (
+                "1Voucher redemption is unavailable: Partner sandbox credentials have not yet been supplied "
+                "(FLASH_SANDBOX_STATUS=BLOCKED / NOT_CONFIGURED)."
+            ), {
+                "responseCode": 5031,
+                "responseMessage": "FlashPay provider credentials not configured",
+                "reference": reference,
+                "status": "BLOCKED_PENDING_CREDENTIALS",
+                "sandbox_status": "BLOCKED / NOT_CONFIGURED",
+                "is_mock": False
+            }
+
+        # --------------------------------------------------------------------
+        # 1. Flash Contract Mock Simulator (Active ONLY in isolated test env)
+        # --------------------------------------------------------------------
+        if self.is_mock_mode or is_test_mock:
             logger.info(f"[1Voucher:ContractMock] Simulating v4 contract redemption for PIN {masked_pin} (Ref: {reference})")
 
             # Documented Error Code 2401: Voucher already used (Section 4, Page 51)
@@ -401,6 +475,12 @@ class OneVoucherAdapter(BasePaymentAdapter):
                     resp_json["coins_grant"] = coins_grant
                     resp_json["is_mock"] = False
                     return True, f"Successfully redeemed R{amount_zar:.2f} 1Voucher (+{coins_grant} Coins)!", resp_json
+                elif res_code in (2210, 2211):
+                    err_msg = resp_json.get("responseMessage", "A timeout occurred, please resubmit the request")
+                    resp_json["is_timeout"] = True
+                    resp_json["requires_retry_with_same_reference"] = True
+                    resp_json["is_mock"] = False
+                    return False, err_msg, resp_json
                 else:
                     err_msg = resp_json.get("responseMessage", f"Voucher redemption declined (Code {res_code}).")
                     resp_json["is_mock"] = False
@@ -415,10 +495,13 @@ class OneVoucherAdapter(BasePaymentAdapter):
             except Exception:
                 err_json = {"raw": error_body}
                 msg = f"Provider error: HTTP {e.code}"
+            is_timeout_http = e.code in (408, 504) or err_json.get("responseCode") in (2210, 2211)
             return False, msg, {
                 "http_code": e.code,
                 "responseCode": err_json.get("responseCode", e.code),
                 "reference": reference,
+                "is_timeout": is_timeout_http,
+                "requires_retry_with_same_reference": is_timeout_http,
                 "is_mock": False
             }
 

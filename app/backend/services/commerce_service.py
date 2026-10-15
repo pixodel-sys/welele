@@ -213,6 +213,16 @@ class CommerceService(BaseRepository):
         ref_id = event_dict.get("provider_transaction_id") or event_dict.get("idempotency_key")
         masked_pin = adapter.mask_pin(cleaned_pin)
 
+        # Ambiguous timeout protection: if provider outcome was ambiguous (never confirmed SUCCESS),
+        # coins_to_grant is 0. NEVER blindly credit coins without confirmed provider settlement!
+        if coins_to_grant <= 0:
+            return False, "Voucher redemption outcome is ambiguous (timeout) and requires partner reconciliation before coins can be credited.", {
+                "event_id": event_dict["id"],
+                "status": "NEEDS_RECONCILIATION",
+                "reference": ref_id,
+                "error_code": "PROVIDER_OUTCOME_AMBIGUOUS_RECONCILIATION_REQUIRED"
+            }
+
         ok_ledger, msg_ledger, ledger_entry = ledger_repository.credit_coins_atomic(
             user_id=user_id,
             base_coins=coins_to_grant,
@@ -275,7 +285,26 @@ class CommerceService(BaseRepository):
         if not adapter or not isinstance(adapter, OneVoucherAdapter):
             adapter = onevoucher_adapter
 
+        # Phase 2 — Strict Request Validation (Fail before touching DB or external provider)
+        if not user_id or not str(user_id).strip():
+            return False, "User ID cannot be null or empty.", {
+                "status": "INVALID_USER",
+                "error_code": "USER_ID_REQUIRED"
+            }
+
         cleaned_pin = adapter.clean_pin(voucher_pin)
+        if not cleaned_pin or len(cleaned_pin) != 16:
+            return False, "Invalid voucher PIN. 1Voucher PIN must be exactly 16 numeric digits.", {
+                "status": "INVALID_PIN",
+                "error_code": "VOUCHER_PIN_INVALID_FORMAT"
+            }
+
+        if idempotency_key and not adapter.validate_reference(idempotency_key):
+            return False, "Invalid reference format. Only alphanumeric, '-', '.', and '=' characters allowed (max 50 chars).", {
+                "status": "INVALID_REFERENCE",
+                "error_code": "IDEMPOTENCY_KEY_INVALID_FORMAT"
+            }
+
         pin_hash = adapter.hash_pin(cleaned_pin)
         idemp = idempotency_key or f"1v_idemp_{uuid.uuid4().hex[:12]}"
 
@@ -304,10 +333,19 @@ class CommerceService(BaseRepository):
                                     "coins_credited_now": 0,
                                     "original_coins_granted": ev.get("coins_grant", 0),
                                     "amount_zar": float(ev.get("amount_fiat") or 0.0),
-                                    "reference": ev.get("provider_transaction_id") or idemp
+                                    "reference": ev.get("provider_transaction_id") or idemp,
+                                    "idempotency_key": ev.get("idempotency_key") or idemp
                                 }
                             elif ev.get("processing_status") == "NEEDS_RECONCILIATION":
                                 return self._recover_uncredited_voucher(ev, user_id, cleaned_pin, adapter)
+                            elif ev.get("processing_status") in ("PROVIDER_DECLINED", "FAILED"):
+                                return False, "Voucher redemption previously declined by provider for this reference", {
+                                    "event_id": ev["id"],
+                                    "status": "PROVIDER_DECLINED",
+                                    "reference": idemp,
+                                    "idempotency_key": idemp,
+                                    "error_code": "PREVIOUSLY_DECLINED"
+                                }
                 except Exception as e:
                     logger.warning(f"[CommerceService:DB] Remote idempotency check error: {e}")
 
@@ -329,10 +367,19 @@ class CommerceService(BaseRepository):
                             "coins_credited_now": 0,
                             "original_coins_granted": e.get("coins_grant", 0),
                             "amount_zar": float(e.get("amount_fiat") or 0.0),
-                            "reference": e.get("provider_transaction_id") or idemp
+                            "reference": e.get("provider_transaction_id") or idemp,
+                            "idempotency_key": e.get("idempotency_key") or idemp
                         }
                     elif e.get("processing_status") == "NEEDS_RECONCILIATION":
                         return self._recover_uncredited_voucher(e, user_id, cleaned_pin, adapter)
+                    elif e.get("processing_status") in ("PROVIDER_DECLINED", "FAILED"):
+                        return False, "Voucher redemption previously declined by provider for this reference", {
+                            "event_id": e["id"],
+                            "status": "PROVIDER_DECLINED",
+                            "reference": idemp,
+                            "idempotency_key": idemp,
+                            "error_code": "PREVIOUSLY_DECLINED"
+                        }
 
             # 2. Record in-flight INITIATED event before provider call
             initiated_pe = {
@@ -378,8 +425,16 @@ class CommerceService(BaseRepository):
             if not ok:
                 norm_event = adapter.normalize_payload(tx_data, signature_verified=True)
                 norm_event.user_id = user_id
+                
+                is_timeout = bool(
+                    tx_data.get("is_timeout") or 
+                    tx_data.get("requires_retry_with_same_reference") or 
+                    tx_data.get("responseCode") in (2210, 2211)
+                )
+                new_status = "NEEDS_RECONCILIATION" if is_timeout else "PROVIDER_DECLINED"
+
                 self._update_payment_event(initiated_pe["id"], {
-                    "processing_status": "PROVIDER_DECLINED",
+                    "processing_status": new_status,
                     "normalized_payload": norm_event.model_dump(),
                     "provider_transaction_id": norm_event.provider_transaction_id
                 })

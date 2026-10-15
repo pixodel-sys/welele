@@ -259,6 +259,30 @@ def get_payment_events_log(limit: int = 50):
     events = commerce_service.get_payment_events(limit=limit)
     return {"total_events": len(events), "events": events}
 
+@router.get("/1voucher/status")
+def get_1voucher_provider_status():
+    """
+    Returns the FlashPay / 1Voucher provider configuration boundary status (Milestone 5A).
+    Reports FLASH_SANDBOX_STATUS without exposing any secrets.
+    """
+    from services.payment_adapters.onevoucher_adapter import onevoucher_adapter
+    return {
+        "provider": "1voucher_flash",
+        "flash_sandbox_status": onevoucher_adapter.sandbox_status,
+        "environment": onevoucher_adapter.environment,
+        "sandbox_base_url": onevoucher_adapter.SANDBOX_BASE_URL,
+        "production_base_url": onevoucher_adapter.PRODUCTION_BASE_URL,
+        "token_endpoint": onevoucher_adapter.token_url,
+        "redeem_endpoint": f"{onevoucher_adapter.base_url}/aggregation/4.0/1voucher/redeem",
+        "timeout_seconds": 15,
+        "credentials_configured": onevoucher_adapter.has_credentials_configured,
+        "message": (
+            "FlashPay sandbox credentials not yet provisioned. Integration ready; "
+            "verification blocked pending partner sandbox access."
+            if not onevoucher_adapter.has_credentials_configured else "FlashPay credentials configured."
+        )
+    }
+
 @router.post("/1voucher/redeem")
 @router.post("/voucher/redeem")
 def redeem_1voucher_pin(
@@ -269,6 +293,12 @@ def redeem_1voucher_pin(
     Synchronously redeems a 16-digit 1Voucher cash PIN against FlashPay switch,
     clears the transaction via double-entry accounting, and instantly credits user coins.
     """
+    if not req.voucher_pin or not str(req.voucher_pin).strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Voucher PIN is required."
+        )
+
     target_user_id = auth_user["sub"]
     user_role = auth_user.get("role", "viewer")
     if req.user_id and user_role == "admin":
@@ -298,5 +328,6 @@ def redeem_1voucher_pin(
         "message": message,
         "transaction": data
     }
+
 
 
