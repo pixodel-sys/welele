@@ -40,16 +40,17 @@ def get_episode_stream(
             raise HTTPException(status_code=404, detail="Series not found")
 
     # Authoritative episode lookup: hydrated list, direct DB lookup, or fallback
+    ep_uuid = to_uuid(episode_id)
     episode = None
     if story.get("episodes"):
-        episode = next((ep for ep in story["episodes"] if ep.get("id") == episode_id or ep.get("slug") == episode_id), None)
+        episode = next((ep for ep in story["episodes"] if ep.get("id") in [episode_id, ep_uuid] or ep.get("slug") in [episode_id, ep_uuid]), None)
     if not episode:
         episodes_for_series = series_repository.get_episodes_for_series(series_id)
-        episode = next((ep for ep in episodes_for_series if ep.get("id") == episode_id or ep.get("slug") == episode_id), None)
+        episode = next((ep for ep in episodes_for_series if ep.get("id") in [episode_id, ep_uuid] or ep.get("slug") in [episode_id, ep_uuid]), None)
     if not episode:
         all_episodes = series_repository.local_get("episodes") or []
         target_s_id = str(story.get("id", series_id))
-        episode = next((ep for ep in all_episodes if (ep.get("id") == episode_id or ep.get("slug") == episode_id) and (ep.get("series_id") in [series_id, target_s_id])), None)
+        episode = next((ep for ep in all_episodes if (ep.get("id") in [episode_id, ep_uuid] or ep.get("slug") in [episode_id, ep_uuid]) and (ep.get("series_id") in [series_id, target_s_id, to_uuid(series_id)])), None)
     if not episode:
         raise HTTPException(status_code=404, detail="Episode not found")
 
@@ -142,6 +143,8 @@ def get_episode_stream(
     media = series_repository.get_media_asset_for_episode(str(episode.get("id", episode_id)))
     if not media and episode_id != episode.get("id"):
         media = series_repository.get_media_asset_for_episode(episode_id)
+    if not media:
+        media = series_repository.get_media_asset_for_episode(ep_uuid)
     master_video = (media.get("master_video_url") if media else None) or episode.get("video_url", "")
     storage_key = (media.get("storage_key") if media else None) or episode.get("storage_key")
     
@@ -149,7 +152,7 @@ def get_episode_stream(
     has_durable_r2_object = bool(storage_key and storage_service.object_exists(storage_key))
     has_verified_master = bool(
         has_durable_r2_object or (
-            master_video and not master_video.startswith("/videos/welele_placeholder")
+            master_video and not "welele_placeholder" in master_video
         )
     )
 

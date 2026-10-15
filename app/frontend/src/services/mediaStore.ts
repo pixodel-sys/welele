@@ -12,6 +12,8 @@ const STORE_NAME = 'media_blobs';
 const GENERIC_STALE_KEYS = new Set([
   '/videos/welele_placeholder.mp4',
   '/videos/welele_ident.mp4',
+  '/api/storage/stream/videos/welele_placeholder.mp4',
+  '/api/storage/stream/videos/welele_ident_v2.mp4',
   'welele_placeholder.mp4',
   'welele_ident.mp4',
   'placeholder',

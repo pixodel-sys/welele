@@ -371,7 +371,7 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
             const primaryUrl = streamObj.primary_url;
             const hlsUrl = streamObj.hls_manifest;
 
-            if (primaryUrl && !primaryUrl.includes('/videos/welele_placeholder.mp4')) {
+            if (primaryUrl && !primaryUrl.includes('welele_placeholder')) {
               finalUrl = primaryUrl;
               isHls = false;
               streamType = 'CANONICAL_CDN_STREAM';
@@ -379,7 +379,7 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
               decisionReason = streamData.is_unlocked
                 ? 'Authorised canonical production stream resolved from backend'
                 : 'Canonical production preview stream resolved from backend';
-            } else if (hlsUrl && !hlsUrl.includes('/videos/welele_placeholder')) {
+            } else if (hlsUrl && !hlsUrl.includes('welele_placeholder')) {
               finalUrl = hlsUrl;
               isHls = true;
               streamType = 'HLS_MANIFEST';
@@ -840,7 +840,7 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
           const storageKey = streamData.storage_key || `masters/${currentStory.id}/${currentEpisode.id}.mp4`;
           const isHls = Boolean(canonicalUrl?.endsWith('.m3u8'));
 
-          if (canonicalUrl && !canonicalUrl.includes('/videos/welele_placeholder.mp4')) {
+          if (canonicalUrl && !canonicalUrl.includes('welele_placeholder')) {
             console.log(
               `%c[VerticalPlayer:MediaDecision:PostUnlock] ${currentEpisode.title} (Ep #${currentEpisode.episode_number})`,
               'background: #00E676; color: #000; font-weight: bold; padding: 2px 6px;',
@@ -963,7 +963,7 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
           const storageKey = streamData.storage_key || `masters/${currentStory.id}/${currentEpisode.id}.mp4`;
           const isHls = Boolean(canonicalUrl?.endsWith('.m3u8'));
 
-          if (canonicalUrl && !canonicalUrl.includes('/videos/welele_placeholder.mp4')) {
+          if (canonicalUrl && !canonicalUrl.includes('welele_placeholder')) {
             console.log(
               `%c[VerticalPlayer:MediaDecision:PostUnlock] ${currentEpisode.title} (Ep #${currentEpisode.episode_number})`,
               'background: #00E676; color: #000; font-weight: bold; padding: 2px 6px;',
@@ -1132,7 +1132,14 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
             <div className="absolute inset-0 z-50 bg-black flex items-center justify-center">
               <video
                 ref={identVideoRef}
-                src={brandConfig.brand_ident_url || brandConfig.asset?.url || '/videos/welele_ident.mp4'}
+                src={(() => {
+                  const raw = brandConfig.brand_ident_url || brandConfig.asset?.url || '/api/storage/stream/videos/welele_ident_v2.mp4';
+                  if (raw.startsWith('/api/')) {
+                    const apiBase = (import.meta.env.VITE_API_BASE_URL as string)?.replace(/\/api\/?$/, '') || '';
+                    return `${apiBase}${raw}`;
+                  }
+                  return raw;
+                })()}
                 className="w-full h-full object-cover"
                 playsInline
                 muted={isIdentMuted}

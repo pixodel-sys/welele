@@ -100,7 +100,7 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
 
   // STEP 2: VIDEO & ARTWORK
   const [videoFile, setVideoFile] = useState<File | null>(null);
-  const [videoUrl, setVideoUrl] = useState<string>('/videos/welele_placeholder.mp4');
+  const [videoUrl, setVideoUrl] = useState<string>('/api/storage/stream/videos/welele_placeholder.mp4');
   const [thumbnailUrl, setThumbnailUrl] = useState<string>('/posters/blood_ties.jpg');
   const [durationSeconds, setDurationSeconds] = useState<number>(64);
   const [aspectRatioLabel, setAspectRatioLabel] = useState<string>('1080 × 1920 (9:16)');
@@ -269,7 +269,7 @@ export const EpisodePipelineModal: React.FC<EpisodePipelineModalProps> = ({
 
       // 1. Upload physical binary to Object Storage (Pillar 4 Ingestion Contract)
       let canonicalStorageKey: string | undefined;
-      let canonicalVideoUrl = videoUrl.startsWith('blob:') ? '/videos/welele_placeholder.mp4' : videoUrl;
+      let canonicalVideoUrl = videoUrl.startsWith('blob:') ? '/api/storage/stream/videos/welele_placeholder.mp4' : videoUrl;
 
       if (videoFile) {
         try {

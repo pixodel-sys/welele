@@ -5,6 +5,7 @@ Direct Presigned Upload URL generation for S3 / Cloudflare R2 / Supabase Storage
 
 from typing import Optional, Dict, Any, List
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 from services.storage_service import storage_service
 from services.rbac_service import require_role
@@ -82,6 +83,22 @@ def verify_storage_asset(storage_key: str):
         "bucket": storage_service.storage_bucket,
         "provider": f"Cloudflare R2 Storage ({storage_service.storage_bucket})" if storage_service.s3_client else "Local"
     }
+
+
+@router.get("/stream/{storage_key:path}")
+def stream_storage_object(storage_key: str):
+    """
+    Direct streaming redirect endpoint: Resolves an object storage key to a secure presigned R2 download URL
+    and issues an HTTP 307 Temporary Redirect.
+    Allows standard HTML5 <video src="..."> elements, brand idents, trailers, and public assets
+    to stream directly from Cloudflare R2 without local filesystem dependencies.
+    """
+    clean_key = storage_service._clean_key(storage_key)
+    if not storage_service.object_exists(clean_key):
+        raise HTTPException(status_code=404, detail=f"Media asset '{clean_key}' not found in object storage")
+    presigned = storage_service.generate_presigned_download_url(clean_key, expires_in_seconds=3600)
+    return RedirectResponse(url=presigned["download_url"], status_code=307)
+
 
 
 class PresignedUploadRequest(BaseModel):

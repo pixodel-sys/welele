@@ -4,7 +4,7 @@ import { DEFAULT_STORIES } from '../services/mockData';
 
 export const DEFAULT_BRAND_IDENT_CONFIG: BrandIdentConfig = {
   play_brand_ident: true,
-  brand_ident_url: '/videos/welele_ident_v2.mp4',
+  brand_ident_url: '/api/storage/stream/videos/welele_ident_v2.mp4',
   brand_ident_duration: 5.2,
   ident_frequency: 5, // Launch default: 5 (First episode of session + every 5th subsequent)
   failsafe_buffer: 1.0, // Configurable failsafe watchdog margin
@@ -13,7 +13,7 @@ export const DEFAULT_BRAND_IDENT_CONFIG: BrandIdentConfig = {
     id: 'welele-brand-ident-v2',
     asset_type: 'sonic_visual_ident',
     name: 'Welele Sonic Visual Ident v2',
-    url: '/videos/welele_ident_v2.mp4',
+    url: '/api/storage/stream/videos/welele_ident_v2.mp4',
     version: 2,
     active: true,
     duration: 5.2,
@@ -60,7 +60,7 @@ export function hydrateManifest(
         artwork_overrides: {
           mobile_9_16: item.artwork_overrides?.mobile_9_16 || story?.vertical_poster || story?.cover_image || '/posters/blood_ties.jpg',
           desktop_16_9: item.artwork_overrides?.desktop_16_9 || story?.cover_image || story?.vertical_poster || '/banners/blood_ties_banner.jpg',
-          trailer_video_url: item.artwork_overrides?.trailer_video_url || story?.episodes?.[0]?.video_url || '/videos/ocean_waves.mp4',
+          trailer_video_url: item.artwork_overrides?.trailer_video_url || story?.episodes?.[0]?.video_url || '/api/storage/stream/videos/ocean_waves.mp4',
         },
       };
     });
@@ -176,7 +176,7 @@ export function getDefaultExperienceManifest(
       artwork_overrides: {
         mobile_9_16: s.vertical_poster || s.cover_image,
         desktop_16_9: s.cover_image || s.vertical_poster || '/banners/blood_ties_banner.jpg',
-        trailer_video_url: s.episodes?.[0]?.video_url || '/videos/ocean_waves.mp4',
+        trailer_video_url: s.episodes?.[0]?.video_url || '/api/storage/stream/videos/ocean_waves.mp4',
       },
       is_active: true,
     };

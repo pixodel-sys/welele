@@ -5,8 +5,6 @@ const STATIC_ASSETS = [
   '/manifest.json',
   '/welele_logo_mark.jpg',
   '/splash_story_bg.jpg',
-  '/videos/welele_ident_v2.mp4',
-  '/videos/welele_ident.mp4',
 ];
 
 // Install: Cache critical shell assets and global brand ident

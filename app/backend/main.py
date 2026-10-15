@@ -236,6 +236,15 @@ def system_canary():
     run_runtime_startup_canary()
     return {"status": "ok", "canary": "passed", "runtime": "sterile"}
 
+@app.get("/videos/{filename:path}")
+def redirect_legacy_video_path(filename: str):
+    """
+    Backward compatibility redirect: Routes legacy /videos/... paths
+    directly to canonical R2 object storage streaming endpoint.
+    """
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url=f"/api/storage/stream/videos/{filename}", status_code=307)
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)

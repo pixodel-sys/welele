@@ -375,7 +375,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               // Preserve active local media reference if available, while updating server metadata
               return {
                 ...found,
-                video_url: prevEp.video_url && !prevEp.video_url.includes('/videos/welele_placeholder.mp4')
+                video_url: prevEp.video_url && !prevEp.video_url.includes('welele_placeholder')
                   ? prevEp.video_url
                   : found.video_url,
               };

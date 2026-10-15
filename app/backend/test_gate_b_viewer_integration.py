@@ -589,7 +589,7 @@ def test_5_vertical_player_integrity(gate_b_environment):
     assert "brand_config" in manifest
     brand = manifest["brand_config"]
     assert brand["play_brand_ident"] is True
-    assert brand["brand_ident_url"] == "/videos/welele_ident_v2.mp4"
+    assert "welele_ident_v2.mp4" in brand["brand_ident_url"]
     assert brand["asset"]["name"] == "Welele Sonic Visual Ident v2"
 
 

@@ -571,7 +571,7 @@ INSERT INTO public.experience_layouts (
         ),
         'brand_config', jsonb_build_object(
             'play_brand_ident', true,
-            'brand_ident_url', '/videos/welele_ident_v2.mp4',
+            'brand_ident_url', '/api/storage/stream/videos/welele_ident_v2.mp4',
             'brand_ident_duration', 5.2,
             'ident_frequency', 5,
             'failsafe_buffer', 1.0,
@@ -580,7 +580,7 @@ INSERT INTO public.experience_layouts (
                 'id', 'welele-brand-ident-v2',
                 'asset_type', 'sonic_visual_ident',
                 'name', 'Welele Sonic Visual Ident v2',
-                'url', '/videos/welele_ident_v2.mp4',
+                'url', '/api/storage/stream/videos/welele_ident_v2.mp4',
                 'version', 2,
                 'active', true,
                 'duration', 5.2
