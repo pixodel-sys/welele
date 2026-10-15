@@ -1035,6 +1035,24 @@ class SeriesRepository(BaseRepository):
         eps.sort(key=lambda x: x.get("episode_number", 0))
         return eps
 
+    def get_media_asset_for_episode(self, episode_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Retrieves authoritative media_asset record for an episode from Supabase PostgreSQL,
+        falling back to local store if offline.
+        """
+        target_uuid = to_uuid(episode_id)
+        if self.is_live:
+            try:
+                res = self.get_table("media_assets").select("*").eq(
+                    "episode_id", target_uuid
+                ).limit(1).execute()
+                if res and res.data:
+                    return res.data[0]
+            except Exception as e:
+                logger.warning(f"[SeriesRepository:DB] get_media_asset_for_episode remote lookup failed: {e}")
+        all_media = self.local_get("media_assets") or []
+        return next((m for m in all_media if str(m.get("episode_id")) in [episode_id, target_uuid]), None)
+
     def get_creator_series(self, creator_id: Optional[str] = None) -> List[Dict[str, Any]]:
         """
         Creator-facing Series roster returning ALL episodes across all lifecycle states

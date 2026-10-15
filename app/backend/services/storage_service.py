@@ -31,11 +31,11 @@ except ImportError:
 
 class StorageService:
     def __init__(self):
-        self.account_id = os.getenv("R2_ACCOUNT_ID") or ""
-        self.access_key = os.getenv("R2_ACCESS_KEY_ID") or ""
-        self.secret_key = os.getenv("R2_SECRET_ACCESS_KEY") or ""
-        self.storage_bucket = os.getenv("R2_BUCKET_NAME") or os.getenv("STORAGE_BUCKET", "welele-vod-masters")
-        self.cdn_base_url = os.getenv("CDN_BASE_URL", "https://cdn.welele.media").rstrip("/")
+        self.account_id = os.getenv("R2_ACCOUNT_ID") or getattr(settings, "R2_ACCOUNT_ID", None) or ""
+        self.access_key = os.getenv("R2_ACCESS_KEY_ID") or getattr(settings, "R2_ACCESS_KEY_ID", None) or ""
+        self.secret_key = os.getenv("R2_SECRET_ACCESS_KEY") or getattr(settings, "R2_SECRET_ACCESS_KEY", None) or ""
+        self.storage_bucket = os.getenv("R2_BUCKET_NAME") or os.getenv("STORAGE_BUCKET") or getattr(settings, "R2_BUCKET_NAME", None) or getattr(settings, "STORAGE_BUCKET", None) or ("welele-vod-staging" if getattr(settings, "ENVIRONMENT", "") == "staging" else "welele-vod-masters")
+        self.cdn_base_url = (os.getenv("CDN_BASE_URL") or getattr(settings, "CDN_BASE_URL", None) or "https://cdn.welele.media").rstrip("/")
         self.supported_formats = ["video/mp4", "video/quicktime", "application/x-mpegURL"]
 
         # Local physical disk backing for local dev & object verification
@@ -69,8 +69,9 @@ class StorageService:
         content_type: str = "video/mp4"
     ) -> Dict[str, Any]:
         """
-        Ingests real binary video payload into object storage (R2 or local persistent store).
-        Returns the authoritative storage_key and stream delivery URL.
+        Ingests real binary video payload into object storage (Cloudflare R2).
+        Fails closed in staging/production if durable R2 storage is unavailable.
+        Returns the authoritative storage_key and signed stream delivery URL.
         """
         if not file_bytes:
             raise ValueError("Cannot ingest empty binary payload into object storage.")
@@ -85,15 +86,14 @@ class StorageService:
         else:
             storage_key = f"masters/{story_id}/master_{uuid.uuid4().hex[:8]}{clean_ext}"
 
-        # 1. Store to local disk for persistence / verification
-        local_target_path = os.path.join(self.local_storage_dir, *storage_key.split("/"))
-        os.makedirs(os.path.dirname(local_target_path), exist_ok=True)
-        with open(local_target_path, "wb") as f:
-            f.write(file_bytes)
-
-        # 2. Store to Cloudflare R2 / S3 if client exists
+        # 1. Authoritative Cloudflare R2 Durable Storage
         provider = "Local Object Storage"
-        if self.s3_client:
+        if getattr(settings, "IS_PRODUCTION_OR_STAGING", False):
+            if not self.s3_client:
+                raise RuntimeError(
+                    f"CRITICAL STORAGE HALT: Cloudflare R2 client is uninitialized in {getattr(settings, 'ENVIRONMENT', 'unknown')}. "
+                    "Ephemeral Railway disk storage is strictly prohibited for durable media in staging/production."
+                )
             try:
                 self.s3_client.put_object(
                     Bucket=self.storage_bucket,
@@ -101,11 +101,41 @@ class StorageService:
                     Body=file_bytes,
                     ContentType=content_type
                 )
-                provider = "Cloudflare R2 Storage (Direct Ingestion)"
+                provider = f"Cloudflare R2 Storage ({self.storage_bucket})"
             except Exception as e:
-                print(f"[StorageService] Failed writing to R2 bucket: {e}")
+                raise RuntimeError(
+                    f"CRITICAL STORAGE HALT: Failed writing durable object to R2 bucket '{self.storage_bucket}' (key: '{storage_key}'): {e}"
+                )
+        elif self.s3_client:
+            try:
+                self.s3_client.put_object(
+                    Bucket=self.storage_bucket,
+                    Key=storage_key,
+                    Body=file_bytes,
+                    ContentType=content_type
+                )
+                provider = f"Cloudflare R2 Storage ({self.storage_bucket})"
+            except Exception as e:
+                print(f"[StorageService:Dev] Failed writing to R2 bucket: {e}")
 
-        stream_url = self.get_stream_url(storage_key, adaptive_hls=False)
+        # 2. Local disk backing (dev verification only)
+        local_target_path = os.path.join(self.local_storage_dir, *storage_key.split("/"))
+        try:
+            os.makedirs(os.path.dirname(local_target_path), exist_ok=True)
+            with open(local_target_path, "wb") as f:
+                f.write(file_bytes)
+        except Exception:
+            pass
+
+        # 3. Generate delivery URL (signed presigned URL if R2 available)
+        if self.s3_client:
+            try:
+                presigned = self.generate_presigned_download_url(storage_key, expires_in_seconds=3600)
+                stream_url = presigned["download_url"]
+            except Exception:
+                stream_url = self.get_stream_url(storage_key, adaptive_hls=False)
+        else:
+            stream_url = self.get_stream_url(storage_key, adaptive_hls=False)
 
         return {
             "storage_key": storage_key,
@@ -116,28 +146,56 @@ class StorageService:
             "local_path": local_target_path
         }
 
+    @staticmethod
+    def _clean_key(storage_key: str) -> str:
+        k = (storage_key or "").strip().lstrip("/")
+        if k.startswith("media/"):
+            k = k[6:]
+        return k
+
+    def object_exists(self, storage_key: str) -> bool:
+        """
+        Verifies whether an object exists durably in Cloudflare R2.
+        """
+        if not storage_key or storage_key.startswith("blob:"):
+            return False
+        clean_key = self._clean_key(storage_key)
+        if self.s3_client:
+            try:
+                self.s3_client.head_object(Bucket=self.storage_bucket, Key=clean_key)
+                return True
+            except Exception:
+                return False
+        if not getattr(settings, "IS_PRODUCTION_OR_STAGING", False):
+            local_target_path = os.path.join(self.local_storage_dir, *clean_key.split("/"))
+            return os.path.exists(local_target_path) and os.path.isfile(local_target_path)
+        return False
+
     def get_stored_binary(self, storage_key: str) -> Optional[bytes]:
         """
         Retrieves actual binary bytes from storage for integrity & playback verification.
+        In staging/production, retrieval is strictly from Cloudflare R2.
         """
-        if storage_key.startswith("blob:"):
+        if not storage_key or storage_key.startswith("blob:"):
             raise ValueError(f"Cannot retrieve binary from ephemeral browser blob reference: {storage_key}")
 
-        clean_key = storage_key.lstrip("/").replace("media/", "")
-        
-        # Check local disk
-        local_target_path = os.path.join(self.local_storage_dir, *clean_key.split("/"))
-        if os.path.exists(local_target_path) and os.path.isfile(local_target_path):
-            with open(local_target_path, "rb") as f:
-                return f.read()
+        clean_key = self._clean_key(storage_key)
 
-        # Check R2 / S3
+        # 1. Authoritative check: Cloudflare R2
         if self.s3_client:
             try:
                 response = self.s3_client.get_object(Bucket=self.storage_bucket, Key=clean_key)
                 return response['Body'].read()
             except Exception as e:
-                print(f"[StorageService] Failed reading from R2 bucket for {clean_key}: {e}")
+                if getattr(settings, "IS_PRODUCTION_OR_STAGING", False):
+                    return None
+
+        # 2. Local disk fallback permitted ONLY in local development
+        if not getattr(settings, "IS_PRODUCTION_OR_STAGING", False):
+            local_target_path = os.path.join(self.local_storage_dir, *clean_key.split("/"))
+            if os.path.exists(local_target_path) and os.path.isfile(local_target_path):
+                with open(local_target_path, "rb") as f:
+                    return f.read()
 
         return None
 
@@ -245,7 +303,7 @@ class StorageService:
         if not storage_key or storage_key.startswith("blob:"):
             raise ValueError(f"Invalid storage key for download signing: '{storage_key}'")
 
-        clean_key = storage_key.lstrip("/").replace("media/", "")
+        clean_key = self._clean_key(storage_key)
 
         # 1. Live Cloudflare R2 Presigned Download URL
         if self.s3_client:
@@ -261,14 +319,21 @@ class StorageService:
                 return {
                     "download_url": presigned_url,
                     "storage_key": clean_key,
-                    "provider": "Cloudflare R2 Storage (Direct CDN)",
+                    "provider": f"Cloudflare R2 Storage ({self.storage_bucket})",
                     "bucket": self.storage_bucket,
                     "expires_in_seconds": expires_in_seconds
                 }
             except Exception as e:
-                print(f"[StorageService] Failed generating live R2 presigned download URL: {e}")
+                if getattr(settings, "IS_PRODUCTION_OR_STAGING", False):
+                    raise RuntimeError(f"CRITICAL STORAGE HALT: Failed generating R2 presigned download URL for '{clean_key}': {e}")
+                print(f"[StorageService:Dev] Failed generating live R2 presigned download URL: {e}")
 
-        # 2. Local / Standard Streaming Fallback URL
+        if getattr(settings, "IS_PRODUCTION_OR_STAGING", False):
+            raise RuntimeError(
+                f"CRITICAL STORAGE HALT: Cannot generate secure download URL: Cloudflare R2 client is uninitialized in {getattr(settings, 'ENVIRONMENT', 'unknown')}."
+            )
+
+        # 2. Local / Standard Streaming Fallback URL (Local development only)
         stream_url = self.get_stream_url(clean_key, adaptive_hls=False)
         return {
             "download_url": stream_url,

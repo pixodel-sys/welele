@@ -18,6 +18,7 @@ class BinaryUploadResponse(BaseModel):
     file_size_bytes: int
     content_type: str
     provider: str
+    media_asset_id: Optional[str] = None
 
 @router.post("/upload-binary", response_model=BinaryUploadResponse, dependencies=[Depends(require_role(["creator", "admin"]))])
 async def upload_binary_master(
@@ -43,18 +44,44 @@ async def upload_binary_master(
             filename=file.filename or "master.mp4",
             content_type=file.content_type or "video/mp4"
         )
+        
+        # Attach media asset in authoritative database if episode_id provided
+        media_asset_id = None
+        if episode_id:
+            from repositories.series_repository import series_repository
+            media_asset = series_repository.attach_media_asset(
+                episode_id=episode_id,
+                storage_key=result["storage_key"],
+                master_url=result["public_cdn_url"],
+                duration_seconds=None
+            )
+            media_asset_id = media_asset.get("id")
+
         return {
             "success": True,
             "storage_key": result["storage_key"],
             "public_cdn_url": result["public_cdn_url"],
             "file_size_bytes": result["file_size_bytes"],
             "content_type": result["content_type"],
-            "provider": result["provider"]
+            "provider": result["provider"],
+            "media_asset_id": media_asset_id
         }
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/verify-asset/{storage_key:path}")
+def verify_storage_asset(storage_key: str):
+    """Verifies that an object exists durably in Cloudflare R2."""
+    exists = storage_service.object_exists(storage_key)
+    return {
+        "storage_key": storage_key,
+        "exists": exists,
+        "bucket": storage_service.storage_bucket,
+        "provider": f"Cloudflare R2 Storage ({storage_service.storage_bucket})" if storage_service.s3_client else "Local"
+    }
 
 
 class PresignedUploadRequest(BaseModel):

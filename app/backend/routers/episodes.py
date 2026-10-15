@@ -115,10 +115,10 @@ def get_episode_stream(
             try:
                 u_uuid = to_uuid(effective_user_id)
                 ep_uuid = to_uuid(episode_id)
-                res = ledger_repository.get_table("unlocked_episodes").select("id").or_(
-                    f"user_id.eq.{effective_user_id},user_id.eq.{u_uuid}"
-                ).or_(
-                    f"episode_id.eq.{episode_id},episode_id.eq.{ep_uuid}"
+                res = ledger_repository.get_table("unlocked_episodes").select("id").eq(
+                    "user_id", u_uuid
+                ).eq(
+                    "episode_id", ep_uuid
                 ).limit(1).execute()
                 if res and res.data:
                     is_unlocked = True
@@ -139,13 +139,18 @@ def get_episode_stream(
     readiness = episode.get("readiness_state", "PRODUCTION_READY" if episode.get("status") == "published" else "DRAFT_EMPTY")
     lifecycle = episode.get("lifecycle_state", episode.get("status", "DRAFT")).upper()
 
-    all_media = series_repository.local_get("media_assets")
-    media = next((m for m in all_media if m.get("episode_id") == episode_id), None)
+    media = series_repository.get_media_asset_for_episode(str(episode.get("id", episode_id)))
+    if not media and episode_id != episode.get("id"):
+        media = series_repository.get_media_asset_for_episode(episode_id)
     master_video = (media.get("master_video_url") if media else None) or episode.get("video_url", "")
+    storage_key = (media.get("storage_key") if media else None) or episode.get("storage_key")
     
+    # Check if durable media exists in R2 or if verified master exists
+    has_durable_r2_object = bool(storage_key and storage_service.object_exists(storage_key))
     has_verified_master = bool(
-        master_video and
-        not master_video.startswith("/videos/welele_placeholder")
+        has_durable_r2_object or (
+            master_video and not master_video.startswith("/videos/welele_placeholder")
+        )
     )
 
     lifecycle_ok = lifecycle in ["SCHEDULED", "PUBLISHED", "READY", "INTERNAL_TEST"]
@@ -189,19 +194,25 @@ def get_episode_stream(
 
     # Resolve media asset identity & storage lineage
     media_asset_id = media.get("id") if media else episode.get("media_asset_id", f"media_{episode_id}")
-    storage_key = media.get("storage_key") if media else episode.get("storage_key", f"masters/{series_id}/{episode_id}.mp4")
 
-    # Authoritative stream resolution hierarchy:
-    # 1. Development Seed Media: Bundled demo media (/videos/...) for seeded prototype catalog
-    # 2. Production Masters: Physical binaries in Object Storage (R2 / local store via storage_key)
-    # 3. Canonical External CDN Streams
-    if master_video and (master_video.startswith("/videos/") or master_video.startswith("/media/")):
-        stream_url = master_video
-    elif storage_key and storage_service.get_stored_binary(storage_key) is not None:
-        stream_url = storage_service.get_stream_url(storage_key, adaptive_hls=False)
-    elif master_video and not master_video.startswith("blob:"):
+    # Protected Playback Delivery Resolution:
+    # 1. Cloudflare R2 Durable Masters: Generate time-bounded signed presigned download URL
+    if storage_key and (storage_service.object_exists(storage_key) or (storage_service.s3_client and not storage_key.startswith("/videos/"))):
+        presigned = storage_service.generate_presigned_download_url(storage_key, expires_in_seconds=900)
+        stream_url = presigned["download_url"]
+    # 2. Canonical external streams (non-static)
+    elif master_video and not master_video.startswith("/videos/") and not master_video.startswith("blob:"):
         stream_url = storage_service.get_stream_url(master_video, adaptive_hls=False)
+    # 3. For free/public episodes only, allow verified demo prototype stream
+    elif is_free and master_video:
+        stream_url = master_video
+    # 4. Paid media without durable R2 object strictly forbids static public fallback
     else:
+        if not is_free:
+            raise HTTPException(
+                status_code=404,
+                detail="Durable media asset for this paid episode is not available in object storage."
+            )
         stream_url = storage_service.get_stream_url(storage_key or f"masters/{series_id}/{episode_id}.mp4", adaptive_hls=False)
 
     renditions = storage_service.generate_adaptive_renditions(stream_url)

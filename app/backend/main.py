@@ -10,6 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from config import settings
 from seed_data import seed_database_if_empty
 from repositories.series_repository import series_repository
+from services.storage_service import storage_service
 
 
 # Canonical Domain Routers (Manifesto Specification 5.1 & Digital IP Spine)
@@ -214,9 +215,13 @@ def health():
     elif not series_repository.is_live:
         db_status = "offline_fixtures"
 
+    r2_status = "connected" if storage_service.s3_client else ("unconfigured" if not settings.IS_PRODUCTION_OR_STAGING else "uninitialized")
+
     resp = {
         "status": "degraded" if series_repository.is_degraded else "healthy",
         "database": db_status,
+        "r2_storage": r2_status,
+        "storage_bucket": storage_service.storage_bucket if storage_service.s3_client else None,
         "engine": "Welele Digital IP Engine v2.0",
         "version": settings.VERSION,
         "canary": "passed",
