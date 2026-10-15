@@ -63,6 +63,7 @@ def test_production_starts_cleanly_with_valid_custom_secrets(monkeypatch):
     monkeypatch.setenv("ENVIRONMENT", "production")
     monkeypatch.setenv("ADMIN_MASTER_KEY", "xK9#mQ2$vL8*wP5!nZ4^enterprise_prod_master")
     monkeypatch.setenv("ADMIN_2FA_CODE", "839201")
+    monkeypatch.setenv("JWT_SECRET", "super_secure_enterprise_jwt_secret_key_12345")
 
     prod_settings = Settings()
     # Must not raise

@@ -7,12 +7,15 @@ cliffhanger detection, and subtitles.
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Query, Depends, Header
 from database import db
+import logging
 from repositories.ledger_repository import ledger_repository
-from repositories.series_repository import series_repository
+from repositories.series_repository import series_repository, to_uuid
 from services.storage_service import storage_service
 from services.ledger_service import ledger_service
 from services.rbac_service import require_role, get_current_user, enforce_tenant_access, require_authenticated_user
 from services.audit_service import audit_service
+
+logger = logging.getLogger("welele.episodes")
 
 router = APIRouter(prefix="/episodes", tags=["Episodes & Streaming"])
 
@@ -20,22 +23,56 @@ router = APIRouter(prefix="/episodes", tags=["Episodes & Streaming"])
 def get_episode_stream(
     series_id: str,
     episode_id: str,
-    user_id: Optional[str] = "user_sa_01",
+    user_id: Optional[str] = Query(None, description="Optional target user ID for administrators"),
     internal_test: Optional[bool] = False,
-    x_welele_internal_test: Optional[str] = Header(None, alias="X-Welele-Internal-Test")
+    x_welele_internal_test: Optional[str] = Header(None, alias="X-Welele-Internal-Test"),
+    auth_user: dict = Depends(get_current_user)
 ):
-    all_episodes = series_repository.local_get("episodes")
-    all_series = series_repository.local_get("series")
-    story = next((s for s in all_series if s["id"] == series_id), None)
+    # Look up series from authoritative database (supporting UUIDs, slugs, and legacy keys)
+    story = series_repository.get_series_detail(series_id) or series_repository.get_series(series_id)
     if not story:
-        stories = db.get("stories")
-        story = next((s for s in stories if s["id"] == series_id), None)
+        stories = db.get("stories") or []
+        story = next((s for s in stories if s.get("id") == series_id), None)
+        if not story:
+            all_series = series_repository.local_get("series") or []
+            story = next((s for s in all_series if s.get("id") == series_id or s.get("slug") == series_id), None)
         if not story:
             raise HTTPException(status_code=404, detail="Series not found")
-    
-    episode = next((ep for ep in all_episodes if ep["id"] == episode_id and ep.get("series_id") == series_id), None)
+
+    # Authoritative episode lookup: hydrated list, direct DB lookup, or fallback
+    episode = None
+    if story.get("episodes"):
+        episode = next((ep for ep in story["episodes"] if ep.get("id") == episode_id or ep.get("slug") == episode_id), None)
+    if not episode:
+        episodes_for_series = series_repository.get_episodes_for_series(series_id)
+        episode = next((ep for ep in episodes_for_series if ep.get("id") == episode_id or ep.get("slug") == episode_id), None)
+    if not episode:
+        all_episodes = series_repository.local_get("episodes") or []
+        target_s_id = str(story.get("id", series_id))
+        episode = next((ep for ep in all_episodes if (ep.get("id") == episode_id or ep.get("slug") == episode_id) and (ep.get("series_id") in [series_id, target_s_id])), None)
     if not episode:
         raise HTTPException(status_code=404, detail="Episode not found")
+
+
+    # Check unlock status across ledger repository and relational store
+    free_count = story.get("free_episodes", story.get("free_episodes_count", 0))
+    is_free = episode.get("is_free", False) or (episode.get("episode_number", 1) <= free_count if free_count > 0 else False)
+
+    # Authoritative session identity resolution
+    caller_id = auth_user.get("sub") if auth_user.get("is_authenticated") else None
+    caller_role = auth_user.get("role", "viewer")
+
+    if user_id and caller_role == "admin":
+        effective_user_id = user_id
+    elif user_id and user_id != caller_id:
+        if not is_free:
+            raise HTTPException(
+                status_code=403,
+                detail="Forbidden: You cannot inspect stream entitlements for another user."
+            )
+        effective_user_id = caller_id or user_id
+    else:
+        effective_user_id = caller_id
 
     # Internal Proving & Critical Content Boundary Rule (Jellyfish):
     # Jellyfish is strictly internal test material. Public viewers cannot stream it.
@@ -48,10 +85,14 @@ def get_episode_stream(
 
     if is_internal_item:
         is_test_auth = bool(
-            internal_test or
-            x_welele_internal_test == "1" or
-            user_id in ["system_tester", "admin_supervisor", "test_viewer_golden"] or
-            (user_id and user_id.startswith("test_"))
+            (internal_test or x_welele_internal_test == "1") and
+            (
+                caller_role == "admin" or
+                (effective_user_id and (
+                    effective_user_id in ["system_tester", "admin_supervisor", "test_viewer_golden"] or
+                    effective_user_id.startswith("test_")
+                ))
+            )
         )
         if not is_test_auth:
             raise HTTPException(
@@ -60,12 +101,29 @@ def get_episode_stream(
             )
     
     # Check unlock status across ledger repository and relational store
-    free_count = story.get("free_episodes", story.get("free_episodes_count", 0))
-    is_free = episode.get("is_free", False) or (episode.get("episode_number", 1) <= free_count if free_count > 0 else False)
-    ledger_unlocks = ledger_repository.local_get("unlocked_episodes") or []
-    db_unlocks = db.get("unlocked_episodes") or []
-    all_unlocks = ledger_unlocks + db_unlocks
-    is_unlocked = is_free or any(u.get("user_id") == user_id and u.get("episode_id") == episode_id for u in all_unlocks)
+    is_unlocked = is_free
+    if not is_unlocked and effective_user_id:
+        ledger_unlocks = ledger_repository.local_get("unlocked_episodes") or []
+        db_unlocks = db.get("unlocked_episodes") or []
+        all_unlocks = ledger_unlocks + db_unlocks
+        is_unlocked = any(
+            (u.get("user_id") in [effective_user_id, to_uuid(effective_user_id)]) and
+            (u.get("episode_id") in [episode_id, to_uuid(episode_id)])
+            for u in all_unlocks
+        )
+        if not is_unlocked and ledger_repository.is_live:
+            try:
+                u_uuid = to_uuid(effective_user_id)
+                ep_uuid = to_uuid(episode_id)
+                res = ledger_repository.get_table("unlocked_episodes").select("id").or_(
+                    f"user_id.eq.{effective_user_id},user_id.eq.{u_uuid}"
+                ).or_(
+                    f"episode_id.eq.{episode_id},episode_id.eq.{ep_uuid}"
+                ).limit(1).execute()
+                if res and res.data:
+                    is_unlocked = True
+            except Exception as e:
+                logger.warning(f"[Episodes:DB] Remote unlock check error: {e}")
 
     # Commercial & Lifecycle Policy Gate for Archived Content:
     # If episode is ARCHIVED, playback is permitted ONLY IF the viewer holds an existing paid entitlement.
@@ -78,7 +136,7 @@ def get_episode_stream(
     # Availability Truth Invariant:
     # AVAILABLE = (lifecycle permits distribution) AND (readiness permits distribution) AND (authoritative master exists)
     is_empty_draft = bool(episode.get("is_empty_draft", False))
-    readiness = episode.get("readiness_state", "DRAFT_EMPTY")
+    readiness = episode.get("readiness_state", "PRODUCTION_READY" if episode.get("status") == "published" else "DRAFT_EMPTY")
     lifecycle = episode.get("lifecycle_state", episode.get("status", "DRAFT")).upper()
 
     all_media = series_repository.local_get("media_assets")
@@ -87,8 +145,7 @@ def get_episode_stream(
     
     has_verified_master = bool(
         master_video and
-        not master_video.startswith("/videos/welele_placeholder") and
-        not master_video.startswith("/videos/ocean_waves")
+        not master_video.startswith("/videos/welele_placeholder")
     )
 
     lifecycle_ok = lifecycle in ["SCHEDULED", "PUBLISHED", "READY", "INTERNAL_TEST"]
@@ -108,6 +165,26 @@ def get_episode_stream(
             "stream": None,
             "fallback_media_permitted": False,
             "cliffhanger": None
+        }
+
+    # Entitlement Gate: If episode is paid and viewer holds NO valid entitlement, WITHHOLD raw stream and media binaries
+    if not is_unlocked:
+        sanitized_ep = dict(episode)
+        sanitized_ep["video_url"] = None
+        return {
+            "series_id": series_id,
+            "episode": sanitized_ep,
+            "media_asset_id": None,
+            "storage_key": None,
+            "is_unlocked": False,
+            "is_available": is_available,
+            "status_label": "Locked — Coins Required",
+            "stream": None,
+            "fallback_media_permitted": False,
+            "cliffhanger": {
+                "timestamp_seconds": episode.get("cliffhanger_time", episode.get("cliffhanger_time_seconds", 65)),
+                "hook_text": episode.get("cliffhanger_hook", "The confrontation begins now...")
+            }
         }
 
     # Resolve media asset identity & storage lineage
@@ -156,10 +233,23 @@ def get_episode_stream(
 def unlock_episode(
     series_id: str,
     episode_id: str,
+    user_id: Optional[str] = Query(None, description="Optional target user ID"),
     method: str = Query("COINS", description="Unlock method: COINS, AIRTIME_DCB, VIP_PASS"),
     auth_user: dict = Depends(require_authenticated_user)
 ):
-    user_id = auth_user["sub"]
+    caller_id = auth_user["sub"]
+    caller_role = auth_user.get("role", "viewer")
+
+    if user_id and caller_role == "admin":
+        target_user = user_id
+    elif user_id and user_id != caller_id:
+        raise HTTPException(
+            status_code=403,
+            detail="Forbidden: You cannot unlock episodes on behalf of another user."
+        )
+    else:
+        target_user = caller_id
+
     all_episodes = series_repository.local_get("episodes")
     all_series = series_repository.local_get("series")
     story = next((s for s in all_series if s["id"] == series_id), None)
@@ -185,7 +275,7 @@ def unlock_episode(
         # Verify user has an active completed VIP pass
         transactions = db.get("transactions") + db.get("payment_transactions")
         has_active_pass = any(
-            t.get("user_id") == user_id and 
+            t.get("user_id") == target_user and 
             t.get("status") == "COMPLETED" and 
             ("pass" in str(t.get("type", "")).lower() or "pass" in str(t.get("charge_type", "")).lower())
             for t in transactions
@@ -199,7 +289,7 @@ def unlock_episode(
         # Verify carrier airtime transaction was settled for this episode
         transactions = db.get("transactions") + db.get("payment_transactions")
         has_settled_tx = any(
-            t.get("user_id") == user_id and
+            t.get("user_id") == target_user and
             t.get("target_id") == episode_id and
             t.get("status") == "COMPLETED"
             for t in transactions
@@ -212,7 +302,7 @@ def unlock_episode(
 
     coin_price = episode.get("coin_price", 5) if method == "COINS" else 0
     success, message, unlock_record = ledger_service.unlock_episode(
-        user_id=user_id,
+        user_id=target_user,
         episode_id=episode_id,
         story_id=series_id,
         unlock_method=method,
@@ -231,7 +321,7 @@ def unlock_episode(
             new_coins = creator.get("coin_earnings", 0) + coin_price
             db.update("creators", creator_id, {"coin_earnings": new_coins})
 
-    balance = ledger_service.get_balance(user_id)
+    balance = ledger_service.get_balance(target_user)
     return {
         "success": True,
         "message": message,

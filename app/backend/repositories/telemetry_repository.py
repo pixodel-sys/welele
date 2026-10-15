@@ -18,18 +18,33 @@ class TelemetryRepository(BaseRepository):
         if not event_dict.get("ingested_at"):
             event_dict["ingested_at"] = datetime.now(timezone.utc).isoformat()
         
-        saved = self.local_insert("viewer_telemetry_events", event_dict)
+        saved = self.local_insert("telemetry_events", event_dict)
         return saved
+
+    def _get_all_events(self) -> List[Dict[str, Any]]:
+        """Returns unified telemetry events from local storage, prioritizing canonical telemetry_events."""
+        te = self.local_get("telemetry_events") or []
+        vte = self.local_get("viewer_telemetry_events") or []
+        seen_ids = set()
+        unified = []
+        for e in list(te) + list(vte):
+            eid = e.get("event_id") or e.get("id")
+            if eid:
+                if eid in seen_ids:
+                    continue
+                seen_ids.add(eid)
+            unified.append(e)
+        return unified
 
     def find_event_by_id(self, event_id: str) -> Optional[Dict[str, Any]]:
         """Finds an event by its unique deterministic or UUID identifier for deduplication."""
-        events = self.local_get("viewer_telemetry_events") or []
-        return next((e for e in events if e.get("event_id") == event_id), None)
+        events = self._get_all_events()
+        return next((e for e in events if e.get("event_id") == event_id or e.get("id") == event_id), None)
 
     def get_session_events(self, session_id: str) -> List[Dict[str, Any]]:
         """Returns all events for a given session sorted chronologically by occurred_at."""
-        events = self.local_get("viewer_telemetry_events") or []
-        session_events = [e for e in events if e.get("session_id") == session_id]
+        events = self._get_all_events()
+        session_events = [e for e in events if e.get("session_id") == session_id or e.get("client_session_id") == session_id]
         session_events.sort(key=lambda x: x.get("occurred_at", ""))
         return session_events
 
@@ -44,11 +59,11 @@ class TelemetryRepository(BaseRepository):
         Checks if a specific milestone (e.g. 25, 50, 75, 90, 100) has already been emitted
         for the given content item within the session.
         """
-        events = self.local_get("viewer_telemetry_events") or []
+        events = self._get_all_events()
         return any(
-            e.get("session_id") == session_id and
-            e.get("content_id") == content_id and
-            e.get("event_type") == "PLAYBACK_PROGRESS" and
+            (e.get("session_id") == session_id or e.get("client_session_id") == session_id) and
+            (e.get("content_id") == content_id or e.get("episode_id") == content_id) and
+            (e.get("event_type") == "PLAYBACK_PROGRESS" or e.get("event_name") == "PLAYBACK_PROGRESS") and
             e.get("milestone_pct") == milestone_pct
             for e in events
         )
@@ -60,21 +75,23 @@ class TelemetryRepository(BaseRepository):
         exclude_session_id: Optional[str] = None
     ) -> List[str]:
         """Returns distinct prior session IDs recorded for this viewer or device."""
-        events = self.local_get("viewer_telemetry_events") or []
+        events = self._get_all_events()
         prior_sessions = set()
         for e in events:
-            if exclude_session_id and e.get("session_id") == exclude_session_id:
+            sess = e.get("session_id") or e.get("client_session_id")
+            if exclude_session_id and sess == exclude_session_id:
                 continue
             
-            matches_viewer = viewer_id and e.get("viewer_id") == viewer_id
+            matches_viewer = viewer_id and (e.get("viewer_id") == viewer_id or e.get("user_id") == viewer_id)
             matches_anon = anonymous_id and e.get("anonymous_id") == anonymous_id
             if matches_viewer or matches_anon:
-                prior_sessions.add(e.get("session_id"))
+                if sess:
+                    prior_sessions.add(sess)
         return list(prior_sessions)
 
     def list_all_events(self) -> List[Dict[str, Any]]:
         """Returns all recorded telemetry events."""
-        return self.local_get("viewer_telemetry_events") or []
+        return self._get_all_events()
 
     def list_events(
         self,
@@ -82,7 +99,7 @@ class TelemetryRepository(BaseRepository):
         session_id: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         """Returns telemetry events optionally filtered by episode_id or session_id."""
-        events = self.local_get("viewer_telemetry_events") or []
+        events = self._get_all_events()
         if episode_id:
             events = [e for e in events if e.get("episode_id") == episode_id or e.get("content_id") == episode_id]
         if session_id:
@@ -90,13 +107,9 @@ class TelemetryRepository(BaseRepository):
         return events
 
     def get_events_for_episode(self, episode_id: str) -> List[Dict[str, Any]]:
-        """Returns all events associated with a specific episode (checking both legacy and canonical storage)."""
-        events_p6 = self.local_get("viewer_telemetry_events") or []
-        events_legacy = self.local_get("telemetry_events") or []
-        
-        matches = [e for e in events_p6 if e.get("episode_id") == episode_id or e.get("content_id") == episode_id]
-        legacy_matches = [e for e in events_legacy if e.get("episode_id") == episode_id]
-        return matches + legacy_matches
+        """Returns all events associated with a specific episode."""
+        events = self._get_all_events()
+        return [e for e in events if e.get("episode_id") == episode_id or e.get("content_id") == episode_id]
 
     def get_episode_retention(self, series_id: str, episode_id: str):
         """

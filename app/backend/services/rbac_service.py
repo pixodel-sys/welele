@@ -17,7 +17,15 @@ from services.audit_service import audit_service
 
 security = HTTPBearer(auto_error=False)
 
-JWT_SECRET = settings.JWT_SECRET or settings.SUPABASE_JWT_SECRET or "welele_dev_secret_key_local_only"
+if settings.IS_PRODUCTION_OR_STAGING:
+    JWT_SECRET = settings.JWT_SECRET or settings.SUPABASE_JWT_SECRET
+    if not JWT_SECRET:
+        raise RuntimeError(
+            f"CRITICAL CONFIGURATION ERROR: JWT_SECRET or SUPABASE_JWT_SECRET must be configured in {settings.ENVIRONMENT}. "
+            "Dev secret fallback is strictly prohibited in production and staging."
+        )
+else:
+    JWT_SECRET = settings.JWT_SECRET or settings.SUPABASE_JWT_SECRET or "welele_dev_secret_key_local_only"
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_SECONDS = 60 * 60 * 24 * 7  # 7 Days
 

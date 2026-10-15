@@ -18,14 +18,18 @@ from seed_data import seed_database_if_empty
 from database import db
 
 url = os.getenv("SUPABASE_URL") or os.getenv("NEXT_PUBLIC_SUPABASE_URL")
-key = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY")
+key = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_KEY")
 
 if not url or not key:
     print("[ERROR] Supabase credentials not found in environment!")
     sys.exit(1)
 
+from target_validator import validate_database_target, extract_project_ref
+validate_database_target(os.getenv("ENVIRONMENT"), url)
+
 client = create_client(url, key)
-print(f"Connecting and seeding live Supabase PostgreSQL at {url}...")
+target_ref = extract_project_ref(url)
+print(f"Connecting and seeding live Supabase PostgreSQL (target ref: {target_ref})...")
 
 # Helper to deterministically convert string IDs into valid PostgreSQL UUIDs
 def to_uuid(name: str) -> str:

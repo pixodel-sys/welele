@@ -43,12 +43,12 @@ export const AuthModal: React.FC = () => {
   const [demoHint, setDemoHint] = useState<string | null>(null);
 
   // Creator State
-  const [creatorId, setCreatorId] = useState<string>('creator_zola');
-  const [studioPin, setStudioPin] = useState<string>('1234');
+  const [creatorId, setCreatorId] = useState<string>('');
+  const [studioPin, setStudioPin] = useState<string>('');
 
   // Admin State
-  const [adminKey, setAdminKey] = useState<string>('admin_master_welele_2026');
-  const [twoFactorCode, setTwoFactorCode] = useState<string>('999888');
+  const [adminKey, setAdminKey] = useState<string>('');
+  const [twoFactorCode, setTwoFactorCode] = useState<string>('');
 
   // Common State
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -155,18 +155,6 @@ export const AuthModal: React.FC = () => {
     }
   }, [isAuthModalOpen, activeTab, step, phoneInput]);
 
-  const handleQuickDemoViewer = (userType: 'joburg' | 'lagos') => {
-    login({
-      id: userType === 'joburg' ? 'usr_joburg_77' : 'usr_lagos_99',
-      name: userType === 'joburg' ? 'Sipho Dlamini (Joburg VIP)' : 'Temi Adebayo (Lagos VIP)',
-      phone: userType === 'joburg' ? '+27828912345' : '+2348031234567',
-      role: 'viewer',
-      city: userType === 'joburg' ? 'Johannesburg, South Africa' : 'Lagos, Nigeria',
-      coins: 50,
-    });
-    triggerSuccess('viewer');
-  };
-
   // --- CREATOR AUTH HANDLERS ---
   const handleCreatorLogin = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -178,7 +166,7 @@ export const AuthModal: React.FC = () => {
       login({
         id: res.user?.id || `usr_${creatorId}`,
         creator_id: res.user?.creator_id || creatorId,
-        name: res.user?.name || 'Zola Dlamini',
+        name: res.user?.name || 'Showrunner',
         role: 'creator',
         city: 'Johannesburg, South Africa',
         token: res?.access_token,
@@ -188,19 +176,6 @@ export const AuthModal: React.FC = () => {
       triggerSuccess('creator');
     } catch (err: any) {
       setIsLoading(false);
-      if ((creatorId === 'creator_zola' || !creatorId.trim()) && (studioPin === '1234' || studioPin === 'welele_studio_pass_2026')) {
-        login({
-          id: 'usr_creator_zola',
-          creator_id: 'creator_zola',
-          name: 'Zola Dlamini',
-          role: 'creator',
-          city: 'Johannesburg, South Africa',
-          permissions: ['series:create', 'episode:upload', 'ai:storyforge:execute', 'analytics:read:own'],
-        });
-        setMode('creator');
-        triggerSuccess('creator');
-        return;
-      }
       setErrorMessage(err.response?.data?.detail || 'Invalid Showrunner Studio PIN or credentials.');
     }
   };
@@ -225,18 +200,6 @@ export const AuthModal: React.FC = () => {
       triggerSuccess('admin');
     } catch (err: any) {
       setIsLoading(false);
-      if (adminKey === 'admin_master_welele_2026' && (!twoFactorCode || twoFactorCode === '999888')) {
-        login({
-          id: 'usr_admin_ops',
-          name: 'Platform Supervisor',
-          role: 'admin',
-          city: 'Johannesburg (HQ)',
-          permissions: ['*'],
-        });
-        setMode('admin');
-        triggerSuccess('admin');
-        return;
-      }
       setErrorMessage(err.response?.data?.detail || 'Invalid Enterprise Admin Key or 2FA MFA Token.');
     }
   };
@@ -382,30 +345,6 @@ export const AuthModal: React.FC = () => {
                   By continuing, you consent to secure OTP verification under South Africa's{' '}
                   <strong className="text-white/80">POPIA</strong> &amp; WASPA guidelines. Your cell number is strictly used for authentication and account balance security.
                 </p>
-
-                {/* Quick Demo — DEV / TEST ONLY. Bypasses real auth. Remove or hide before public launch. */}
-                <div className="pt-2 border-t border-white/10 space-y-1.5">
-                  <span className="text-[10px] text-amber-500/80 block text-center uppercase font-bold tracking-wider">
-                    ⚠ Dev / Demo Only — Bypasses Auth
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => handleQuickDemoViewer('joburg')}
-                    className="w-full py-2 px-3 rounded-[7px] bg-amber-950/40 hover:bg-amber-900/40 text-left border border-amber-500/20 text-xs font-semibold flex items-center justify-between transition-colors"
-                  >
-                    <span className="text-white/70">🇿🇦 Sipho Dlamini (Joburg — Demo)</span>
-                    <span className="text-[10px] text-amber-400 font-bold">DEMO</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleQuickDemoViewer('lagos')}
-                    className="w-full py-2 px-3 rounded-[7px] bg-amber-950/40 hover:bg-amber-900/40 text-left border border-amber-500/20 text-xs font-semibold flex items-center justify-between transition-colors"
-                  >
-                    <span className="text-white/70">🇳🇬 Temi Adebayo (Lagos — Demo)</span>
-                    <span className="text-[10px] text-amber-400 font-bold">DEMO</span>
-                  </button>
-                </div>
               </form>
             ) : (
               <form onSubmit={handleVerifyOtp} className="mt-4 space-y-3.5">
@@ -507,9 +446,6 @@ export const AuthModal: React.FC = () => {
                 placeholder="••••"
                 className="w-full bg-welele-surface-2 px-3 py-2 rounded-[7px] border border-white/10 text-xs font-bold text-white focus:border-welele-pink focus:outline-none font-mono"
               />
-              <span className="text-[10px] text-welele-muted mt-1 block">
-                Demo Studio PIN: <strong className="text-white font-mono">1234</strong>
-              </span>
             </div>
 
             <button
@@ -526,22 +462,6 @@ export const AuthModal: React.FC = () => {
                 </>
               )}
             </button>
-
-            {/* Quick 1-Tap Showrunner */}
-            <div className="pt-2 border-t border-white/10">
-              <button
-                type="button"
-                onClick={() => {
-                  setCreatorId('creator_zola');
-                  setStudioPin('1234');
-                  handleCreatorLogin();
-                }}
-                className="w-full py-2 px-3 rounded-[7px] bg-welele-surface-2 hover:bg-white/10 text-left border border-white/5 text-xs font-semibold flex items-center justify-between transition-colors"
-              >
-                <span>🎬 Quick Demo: Zola Dlamini (Mzansi Epic)</span>
-                <span className="text-[10px] text-welele-pink font-bold">1-Tap</span>
-              </button>
-            </div>
           </form>
         )}
 
@@ -572,12 +492,9 @@ export const AuthModal: React.FC = () => {
                 type="text"
                 value={twoFactorCode}
                 onChange={(e) => setTwoFactorCode(e.target.value)}
-                placeholder="999888"
+                placeholder="••••••"
                 className="w-full bg-welele-surface-2 px-3 py-2 rounded-[7px] border border-white/10 text-xs font-bold text-white focus:border-emerald-500 focus:outline-none font-mono tracking-wider"
               />
-              <span className="text-[10px] text-welele-muted mt-1 block">
-                Master Key: <strong className="text-white font-mono">admin_master_welele_2026</strong> | 2FA: <strong className="text-white font-mono">999888</strong>
-              </span>
             </div>
 
             <button
@@ -594,22 +511,6 @@ export const AuthModal: React.FC = () => {
                 </>
               )}
             </button>
-
-            {/* Quick 1-Tap Supervisor */}
-            <div className="pt-2 border-t border-white/10">
-              <button
-                type="button"
-                onClick={() => {
-                  setAdminKey('admin_master_welele_2026');
-                  setTwoFactorCode('999888');
-                  handleAdminLogin();
-                }}
-                className="w-full py-2 px-3 rounded-[7px] bg-welele-surface-2 hover:bg-white/10 text-left border border-white/5 text-xs font-semibold flex items-center justify-between transition-colors"
-              >
-                <span>🛡️ Quick Demo: Platform Supervisor (Ops HQ)</span>
-                <span className="text-[10px] text-emerald-400 font-bold">1-Tap</span>
-              </button>
-            </div>
           </form>
         )}
 

@@ -34,17 +34,23 @@ def test_system_compliance():
     assert res.status_code == 200
     auth_data = res.json()
     user_id = auth_data["user"]["id"]
+    token = auth_data["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
     print(f"[PASS] Pillar 3 (Transactional Core): Guest {user_id} created with {auth_data['wallet']['balance']} coins.")
 
     # 4. Double-Entry Coin Ledger
-    res = client.get(f"/api/wallet/ledger?user_id={user_id}")
+    res = client.get(f"/api/wallet/ledger?user_id={user_id}", headers=headers)
     assert res.status_code == 200
     ledger_entries = res.json().get("ledger", [])
     assert len(ledger_entries) > 0
     print(f"[PASS] Pillar 3 (Double-Entry Ledger): {len(ledger_entries)} immutable transaction audit logs verified.")
 
     # 5. Pillar 4: Object Storage Pre-signed Upload & Renditions
-    res = client.post("/api/storage/presigned-upload", json={"story_id": series[0]["id"], "episode_number": 1, "filename": "scene_01.mp4"})
+    c_res = client.post("/api/auth/creator/login", json={"creator_id": "creator_zola", "studio_pin": "1234"})
+    assert c_res.status_code == 200
+    c_token = c_res.json()["access_token"]
+    creator_headers = {"Authorization": f"Bearer {c_token}"}
+    res = client.post("/api/storage/presigned-upload", json={"story_id": series[0]["id"], "episode_number": 1, "filename": "scene_01.mp4"}, headers=creator_headers)
     assert res.status_code == 200
     upload_info = res.json()["upload"]
     assert "upload_url" in upload_info
@@ -58,7 +64,7 @@ def test_system_compliance():
     print(f"[PASS] Pillar 6 (Regional Monetisation SA_001): Carrier auto-detection resolved: {carrier_info['name']}.")
 
     # 7. Episode Playback & Stream Resolution
-    ep_res = client.get(f"/api/episodes/{series[0]['id']}/{series[0]['episodes'][0]['id']}?user_id={user_id}")
+    ep_res = client.get(f"/api/episodes/{series[0]['id']}/{series[0]['episodes'][0]['id']}?user_id={user_id}", headers=headers)
     assert ep_res.status_code == 200
     stream_info = ep_res.json()["stream"]
     assert stream_info["format"] == "9:16 Canonical Vertical"

@@ -146,7 +146,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [unlockedEpisodes, setUnlockedEpisodes] = useState<Set<string>>(() => {
     const saved = localStorage.getItem('welele_unlocked_eps');
-    return saved ? new Set(JSON.parse(saved)) : new Set(['ep_ah_1', 'ep_ah_2', 'ep_js_1', 'ep_js_2', 'ep_kn_1']);
+    return saved ? new Set(JSON.parse(saved)) : new Set<string>();
   });
 
   // Stories

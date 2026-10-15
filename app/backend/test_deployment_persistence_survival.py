@@ -105,17 +105,17 @@ def test_full_lifecycle_and_deployment_survival():
     print(f"[4/7] Approved & Published Episode via Admin Moderation: {ep_id}")
 
     # 5. User Unlocks Episode (Double-Entry Coin Ledger)
-    wallet_before = client.get(f"/api/wallet/balance?user_id={user_id}").json()
+    wallet_before = client.get(f"/api/wallet/balance?user_id={user_id}", headers=viewer_headers).json()
     initial_balance = wallet_before.get("total_usable_coins", 0)
 
     unlock_res = client.post(f"/api/episodes/{series_id}/{ep_id}/unlock?user_id={user_id}&method=COINS", headers=viewer_headers)
     assert unlock_res.status_code == 200, f"Unlock failed: {unlock_res.text}"
-    wallet_after = client.get(f"/api/wallet/balance?user_id={user_id}").json()
+    wallet_after = client.get(f"/api/wallet/balance?user_id={user_id}", headers=viewer_headers).json()
     assert wallet_after.get("total_usable_coins") == initial_balance - 5, "Coin deduction discrepancy in atomic ledger."
     print(f"[5/7] Unlocked Episode with 5 Coins. User balance: {initial_balance} -> {wallet_after.get('total_usable_coins')}")
 
     # 6. Verify Authoritative Playback Stream
-    stream_res = client.get(f"/api/episodes/{series_id}/{ep_id}?user_id={user_id}")
+    stream_res = client.get(f"/api/episodes/{series_id}/{ep_id}?user_id={user_id}", headers=viewer_headers)
     assert stream_res.status_code == 200, f"Stream playback failed: {stream_res.text}"
     stream_data = stream_res.json()
     assert stream_data.get("is_unlocked") is True
@@ -176,12 +176,12 @@ def test_full_lifecycle_and_deployment_survival():
     print("  [PASS] Moderation state preserved: PUBLISHED")
 
     # 5. Coins/Ledger intact?
-    balance_check = client.get(f"/api/wallet/balance?user_id={user_id}").json()
+    balance_check = client.get(f"/api/wallet/balance?user_id={user_id}", headers=viewer_headers).json()
     assert balance_check.get("total_usable_coins") == initial_balance - 5, "FAIL: Ledger balance reset after deploy."
     print("  [PASS] Coins & Ledger balance preserved:", balance_check.get("total_usable_coins"))
 
     # 6. Playback stream still authorized and functional?
-    post_deploy_stream = client.get(f"/api/episodes/{series_id}/{ep_id}?user_id={user_id}").json()
+    post_deploy_stream = client.get(f"/api/episodes/{series_id}/{ep_id}?user_id={user_id}", headers=viewer_headers).json()
     assert post_deploy_stream.get("is_unlocked") is True
     assert post_deploy_stream.get("stream") is not None
     print("  [PASS] Playback stream verified post-deployment:", post_deploy_stream["stream"].get("primary_url"))

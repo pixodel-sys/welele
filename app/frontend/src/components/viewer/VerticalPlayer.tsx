@@ -115,6 +115,7 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
   const [storedDbKeys, setStoredDbKeys] = useState<string[]>([]);
   const [resolvedSourceKey, setResolvedSourceKey] = useState<string>('');
   const [showDebugHud, setShowDebugHud] = useState<boolean>(true);
+  const [serverIsUnlocked, setServerIsUnlocked] = useState<boolean | null>(null);
 
   // Workstream 4: Playback Resumption State & Persistence Ref
   const lastResumeSaveRef = useRef<number>(0);
@@ -153,7 +154,9 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
 
   const episodeId = currentEpisode?.id;
   const isUnlocked =
-    currentEpisode?.is_free || (episodeId ? unlockedEpisodes.has(episodeId) : true);
+    serverIsUnlocked !== null
+      ? serverIsUnlocked
+      : Boolean(currentEpisode?.is_free || (episodeId && unlockedEpisodes.has(episodeId)));
 
   // Active interaction gate: Keeps controls alive when user actively interacts with drawers/menus
   const isUserActivelyInteracting =
@@ -339,6 +342,9 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
         // ==========================================
         try {
           const streamData = await episodesApi.getStream(sId, epId, userId);
+          if (typeof streamData?.is_unlocked === 'boolean') {
+            setServerIsUnlocked(streamData.is_unlocked);
+          }
           if (streamData && streamData.is_available === false) {
             setIsEpisodeAvailable(false);
             setAvailabilityStatusLabel(streamData.status_label || 'Coming Soon');
@@ -347,6 +353,14 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
             streamType = 'GATED_COMING_SOON';
             mediaSource = 'episodesApi.getStream (Gated Availability)';
             decisionReason = 'Episode is not available / in production (DRAFT_EMPTY). Gated truthfully without fallback media.';
+            setMediaError(null);
+          } else if (streamData && streamData.is_unlocked === false) {
+            setIsEpisodeAvailable(true);
+            finalUrl = '';
+            setResolvedVideoUrl('');
+            streamType = 'LOCKED_COINS_REQUIRED';
+            mediaSource = 'Server Entitlement Gate';
+            decisionReason = 'Server enforced: Paid episode requires coin unlock before streaming';
             setMediaError(null);
           } else if (streamData && streamData.stream) {
             setIsEpisodeAvailable(true);
@@ -421,7 +435,7 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
           }
         } catch (apiErr: any) {
           console.warn('[VerticalPlayer] Backend stream API unavailable (Network/Staging):', apiErr);
-          if (currentEpisode.video_url && !currentEpisode.video_url.includes('placeholder') && !currentEpisode.video_url.includes('ocean_waves')) {
+          if (isUnlocked && currentEpisode.video_url && !currentEpisode.video_url.includes('placeholder') && !currentEpisode.video_url.includes('ocean_waves')) {
             setIsEpisodeAvailable(true);
             finalUrl = currentEpisode.video_url;
             streamType = 'CATALOG_VERIFIED_STREAM';
@@ -577,6 +591,7 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
   // Load comments & reset playback whenever episode changes (Direct selection & auto-advance)
   useEffect(() => {
     if (episodeId) {
+      setServerIsUnlocked(null);
       loadEpisodeComments(episodeId);
       setProgress(0);
       setCurrentTime(0);
@@ -795,6 +810,7 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
     try {
       // 1. Call canonical unlock endpoint with double-entry ledger verification
       await episodesApi.unlock(currentStory.id, currentEpisode.id, userId, 'COINS');
+      setServerIsUnlocked(true);
       unlockEpisodeLocal(currentEpisode.id, cost);
 
       // Phase 3A: Authoritative Content Unlocked Telemetry
@@ -911,6 +927,7 @@ export const VerticalPlayer: React.FC<VerticalPlayerProps> = ({
     try {
       // 1. Deduct airtime and establish entitlement
       await quickAirtimeUnlock(currentEpisode.id, currentStory.id, 3.0, 5);
+      setServerIsUnlocked(true);
 
       // Phase 3A: Authoritative Content Unlocked Telemetry
       telemetryService.track({

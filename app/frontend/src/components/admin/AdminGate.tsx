@@ -7,8 +7,8 @@ import { authApi } from '../../services/api';
 
 export const AdminGate: React.FC = () => {
   const { login, setMode } = useApp();
-  const [adminKey, setAdminKey] = useState<string>('admin_master_welele_2026');
-  const [twoFactorCode, setTwoFactorCode] = useState<string>('999888');
+  const [adminKey, setAdminKey] = useState<string>('');
+  const [twoFactorCode, setTwoFactorCode] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -36,23 +36,6 @@ export const AdminGate: React.FC = () => {
       setMode('admin');
     } catch (err: any) {
       setIsLoading(false);
-      if (adminKey === 'admin_master_welele_2026' && (!twoFactorCode || twoFactorCode === '999888')) {
-        login({
-          id: 'usr_admin_ops',
-          name: 'Platform Supervisor',
-          role: 'admin',
-          city: 'Johannesburg (HQ)',
-          permissions: ['*'],
-        });
-        confetti({
-          particleCount: 80,
-          spread: 60,
-          origin: { y: 0.6 },
-          colors: ['#10B981', '#059669', '#34D399'],
-        });
-        setMode('admin');
-        return;
-      }
       setErrorMessage(err.response?.data?.detail || 'Invalid Enterprise Admin Key or 2FA MFA Token.');
     }
   };
@@ -126,12 +109,9 @@ export const AdminGate: React.FC = () => {
               type="text"
               value={twoFactorCode}
               onChange={(e) => setTwoFactorCode(e.target.value)}
-              placeholder="999888"
+              placeholder="••••••"
               className="w-full bg-welele-surface-2 px-3.5 py-2.5 rounded-[7px] border border-white/10 text-xs font-bold text-white focus:border-emerald-500 focus:outline-none font-mono tracking-wider"
             />
-            <span className="text-[10px] text-welele-muted mt-1 block">
-              Master Key: <strong className="text-white font-mono">admin_master_welele_2026</strong> | 2FA: <strong className="text-white font-mono">999888</strong>
-            </span>
           </div>
 
           <button
@@ -148,22 +128,6 @@ export const AdminGate: React.FC = () => {
               </>
             )}
           </button>
-
-          {/* Quick 1-Tap Demo Supervisor */}
-          <div className="pt-2 border-t border-white/10">
-            <button
-              type="button"
-              onClick={() => {
-                setAdminKey('admin_master_welele_2026');
-                setTwoFactorCode('999888');
-                handleLogin();
-              }}
-              className="w-full py-2 px-3 rounded-[7px] bg-welele-surface-2 hover:bg-white/10 text-left border border-white/5 text-xs font-semibold flex items-center justify-between transition-colors"
-            >
-              <span>🛡️ Quick Demo: Platform Supervisor (Ops HQ)</span>
-              <span className="text-[10px] text-emerald-400 font-bold">1-Tap</span>
-            </button>
-          </div>
         </form>
 
         <div className="mt-5 pt-3 border-t border-white/10 flex items-center justify-center gap-1.5 text-[10px] text-welele-muted">

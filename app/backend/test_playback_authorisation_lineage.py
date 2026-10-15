@@ -58,7 +58,8 @@ def test_playback_authorisation_lineage():
     upload_res = client.post(
         "/api/storage/upload-binary",
         files={"file": file_tuple},
-        data={"series_id": "story_blood_ties", "episode_number": 6}
+        data={"series_id": "story_blood_ties", "episode_number": 6},
+        headers=creator_headers
     )
     assert upload_res.status_code == 200, f"Binary upload failed: {upload_res.text}"
     upload_data = upload_res.json()
@@ -121,7 +122,7 @@ def test_playback_authorisation_lineage():
     # -------------------------------------------------------------------------
     # Gate 5: Pre-unlock getStream() is locked
     # -------------------------------------------------------------------------
-    pre_stream_res = client.get(f"/api/episodes/story_blood_ties/{episode_id}?user_id=viewer_test_99")
+    pre_stream_res = client.get(f"/api/episodes/story_blood_ties/{episode_id}?user_id=viewer_test_99", headers=viewer_headers)
     assert pre_stream_res.status_code == 200
     pre_stream_data = pre_stream_res.json()
     assert pre_stream_data["is_unlocked"] is False
@@ -130,14 +131,14 @@ def test_playback_authorisation_lineage():
     # -------------------------------------------------------------------------
     # Gate 6: Unlock Episode via double-entry ledger
     # -------------------------------------------------------------------------
-    unlock_res = client.post(f"/api/episodes/story_blood_ties/{episode_id}/unlock?user_id=viewer_test_99&method=COINS")
+    unlock_res = client.post(f"/api/episodes/story_blood_ties/{episode_id}/unlock?user_id=viewer_test_99&method=COINS", headers=viewer_headers)
     assert unlock_res.status_code == 200, f"Unlock failed: {unlock_res.text}"
     assert unlock_res.json()["success"] is True
 
     # -------------------------------------------------------------------------
     # Gate 7: Canonical getStream() Authorised Stream Resolution
     # -------------------------------------------------------------------------
-    post_stream_res = client.get(f"/api/episodes/story_blood_ties/{episode_id}?user_id=viewer_test_99")
+    post_stream_res = client.get(f"/api/episodes/story_blood_ties/{episode_id}?user_id=viewer_test_99", headers=viewer_headers)
     assert post_stream_res.status_code == 200, f"getStream failed: {post_stream_res.text}"
     stream_payload = post_stream_res.json()
 

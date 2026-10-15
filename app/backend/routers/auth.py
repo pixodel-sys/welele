@@ -5,6 +5,7 @@ Enterprise Admin 2FA, Session Introspection, and emits comprehensive AUTH domain
 """
 
 import os
+import hmac
 import uuid
 import datetime
 from typing import Optional, List
@@ -106,8 +107,8 @@ def verify_phone_otp(req: VerifyOtpRequest):
     env = (settings.ENVIRONMENT or "").lower()
     is_prod = env in ("production", "prod")
 
-    # Allow QA demo bypass code '5542' in non-production environments (development, staging, test)
-    if not is_valid and not is_prod and req.otp_code == "5542":
+    # Allow test harness bypass code '5542' strictly in automated unit test environment (ENVIRONMENT=test)
+    if not is_valid and env == "test" and req.otp_code == "5542":
         is_valid = True
         
     if not is_valid:
@@ -210,12 +211,12 @@ def creator_login(req: CreatorLoginRequest):
     configured_key = os.getenv("CREATOR_STUDIO_KEY")
     
     is_valid = False
-    if expected_pin and req.studio_pin and req.studio_pin == expected_pin:
+    if expected_pin and req.studio_pin and hmac.compare_digest(str(req.studio_pin), str(expected_pin)):
         is_valid = True
-    elif configured_key and req.password and req.password == configured_key:
+    elif configured_key and req.password and hmac.compare_digest(str(req.password), str(configured_key)):
         is_valid = True
-    elif not settings.IS_PRODUCTION_OR_STAGING and (req.studio_pin == "1234" or req.password == "welele_dev_pass"):
-        # Explicitly allowed ONLY in non-staging local development mock environments
+    elif not settings.IS_PRODUCTION_OR_STAGING and settings.ENVIRONMENT in ("development", "test") and (req.studio_pin == "1234" or req.password == "welele_dev_pass"):
+        # Explicitly allowed ONLY in non-staging local development / test mock environments
         is_valid = True
 
     if not is_valid:
@@ -287,11 +288,11 @@ def admin_login(req: AdminLoginRequest):
             detail="Admin authentication is disabled: ADMIN_MASTER_KEY environment variable is not configured."
         )
 
-    is_key_valid = bool(req.admin_key == master_key)
+    is_key_valid = bool(req.admin_key and master_key and hmac.compare_digest(str(req.admin_key), str(master_key)))
     
     # 2FA Enforcement: When configured or in production/staging, 2FA must match strictly
     if settings.IS_PRODUCTION_OR_STAGING or expected_2fa:
-        is_2fa_valid = bool(expected_2fa and req.two_factor_code == expected_2fa)
+        is_2fa_valid = bool(expected_2fa and req.two_factor_code and hmac.compare_digest(str(req.two_factor_code), str(expected_2fa)))
     else:
         is_2fa_valid = True  # Optional only in local dev if ADMIN_2FA_CODE is unset
 

@@ -7,8 +7,11 @@ Guarantees persistence across local development, staging, and production environ
 import os
 import threading
 from typing import Dict, Any, List, Optional
+import logging
 from config import settings
 from database import db
+
+logger = logging.getLogger("welele.repository")
 
 class BaseRepository:
     _lock = threading.RLock()
@@ -18,16 +21,25 @@ class BaseRepository:
         self._init_client()
 
     def _init_client(self):
+        if settings.ENVIRONMENT == "test":
+            self._supabase = None
+            return
+
         if settings.SUPABASE_URL and settings.SUPABASE_KEY:
+            from target_validator import validate_database_target, extract_project_ref
+            validate_database_target(settings.ENVIRONMENT, settings.SUPABASE_URL)
             try:
                 from supabase import create_client
                 self._supabase = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
+                ref = extract_project_ref(settings.SUPABASE_URL)
+                logger.info(f"[BaseRepository] Client connected (project ref: {ref})")
             except Exception as e:
                 if settings.IS_PRODUCTION_OR_STAGING:
                     raise RuntimeError(
                         f"CRITICAL ARCHITECTURAL HALT: Failed to connect to authoritative PostgreSQL database in {settings.ENVIRONMENT}: {e}. "
                         "Silent fallback to ephemeral storage is strictly prohibited in staging/production."
                     )
+                logger.warning(f"[BaseRepository:Dev] Supabase connection failed, falling back to local persistent store: {e}")
                 self._supabase = None
         else:
             if settings.IS_PRODUCTION_OR_STAGING:
@@ -39,12 +51,15 @@ class BaseRepository:
 
     @property
     def is_live(self) -> bool:
-        return self._supabase is not None
+        return self._supabase is not None and settings.ENVIRONMENT != "test"
 
     def get_table(self, table_name: str):
         if self._supabase:
             return self._supabase.table(table_name)
         return None
+
+    def get_client(self):
+        return self._supabase
 
     def local_get(self, table: str) -> List[Dict[str, Any]]:
         return db.get(table)

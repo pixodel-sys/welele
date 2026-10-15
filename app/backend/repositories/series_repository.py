@@ -4,9 +4,50 @@ Normalized relational data access for Series, Episodes, decoupled Media Assets, 
 """
 
 import uuid
+import logging
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
+from config import settings
 from .base_repository import BaseRepository
+
+logger = logging.getLogger("welele.series")
+
+def to_uuid(name: str) -> str:
+    """Deterministically maps any string identifier into a valid PostgreSQL UUID5."""
+    try:
+        uuid.UUID(str(name))
+        return str(name)
+    except Exception:
+        return str(uuid.uuid5(uuid.NAMESPACE_DNS, f"welele.media.{name}"))
+
+
+KNOWN_SERIES_SLUGS = [
+    "story_blood_ties",
+    "story_queen_of_jozi",
+    "story_ceo_wife",
+    "story_umembeso",
+    "story_lagos_confidential",
+    "story_zulu_love",
+    "story_broken_vows",
+    "story_the_hustlers",
+    "story_campus_royals",
+    "story_barrio_billionaire",
+    "story_heist_game",
+    "story_sandton_nights",
+    "story_durban_heat",
+    "story_the_spaza_king",
+]
+SERIES_UUID_TO_SLUG = {to_uuid(slug): slug for slug in KNOWN_SERIES_SLUGS}
+
+KNOWN_EPISODE_SLUGS = [
+    "ep_bt_1", "ep_bt_2", "ep_bt_3",
+    "ep_qj_1", "ep_qj_2",
+    "ep_ceo_1", "ep_ceo_2",
+    "ep_um_1", "ep_lc_1", "ep_zl_1", "ep_bv_1", "ep_th_1",
+    "ep_cr_1", "ep_bb_1", "ep_hg_1", "ep_sn_1", "ep_dh_1", "ep_sk_1"
+]
+EPISODE_UUID_TO_SLUG = {to_uuid(ep_slug): ep_slug for ep_slug in KNOWN_EPISODE_SLUGS}
+
 
 class SeriesRepository(BaseRepository):
     def __init__(self):
@@ -793,12 +834,69 @@ class SeriesRepository(BaseRepository):
             })
 
 
-    def list_feed(self, genre: Optional[str] = None, language: Optional[str] = None) -> List[Dict[str, Any]]:
-        all_series = self.local_get("series")
-        all_episodes = self.local_get("episodes")
-        all_media = self.local_get("media_assets")
+    @property
+    def is_degraded(self) -> bool:
+        return getattr(self, "_is_degraded", False)
 
-        media_map = {m["episode_id"]: m for m in all_media}
+    @property
+    def degraded_reason(self) -> Optional[str]:
+        return getattr(self, "_degraded_reason", None)
+
+    @property
+    def catalog_source(self) -> str:
+        if self.is_degraded:
+            return "local_fallback (DEGRADED)"
+        if self.is_live:
+            return "supabase_postgres"
+        return "offline_fixtures"
+
+    def _fetch_live_catalog(self) -> Optional[tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]]]]:
+        """Safely queries authoritative PostgreSQL tables in Supabase staging/production."""
+        if not self.is_live:
+            return None
+        try:
+            s_res = self.get_table("series").select("*").execute()
+            if not s_res or not s_res.data:
+                if settings.IS_PRODUCTION_OR_STAGING:
+                    logger.warning("[SeriesRepository:DEGRADED] Database connected but public.series table has 0 rows. Serving fallback.")
+                    self._is_degraded = True
+                    self._degraded_reason = "Empty database table: public.series has 0 rows"
+                return None
+            
+            ep_res = self.get_table("episodes").select("*").execute()
+            episodes = ep_res.data if ep_res and ep_res.data else []
+
+            m_res = self.get_table("media_assets").select("*").execute()
+            media = m_res.data if m_res and m_res.data else []
+
+            self._is_degraded = False
+            self._degraded_reason = None
+            return (s_res.data, episodes, media)
+        except Exception as e:
+            logger.error(f"[SeriesRepository:DEGRADED] Remote Supabase catalogue query failed: {e}. Serving fallback.")
+            if settings.IS_PRODUCTION_OR_STAGING:
+                self._is_degraded = True
+                self._degraded_reason = f"Database read exception: {str(e)}"
+            return None
+
+    def list_feed(self, genre: Optional[str] = None, language: Optional[str] = None) -> List[Dict[str, Any]]:
+        live_data = self._fetch_live_catalog()
+        if live_data:
+            all_series, all_episodes, all_media = live_data
+        else:
+            all_series = self.local_get("series") or []
+            all_episodes = self.local_get("episodes") or []
+            all_media = self.local_get("media_assets") or []
+
+        # Build media lookup by episode_id (support both string/UUID and slug)
+        media_map = {}
+        for m in all_media:
+            ep_id = str(m.get("episode_id", ""))
+            if ep_id:
+                media_map[ep_id] = m
+                slug = EPISODE_UUID_TO_SLUG.get(ep_id)
+                if slug:
+                    media_map[slug] = m
 
         result = []
         for s in all_series:
@@ -809,9 +907,34 @@ class SeriesRepository(BaseRepository):
                 continue
 
             s_copy = dict(s)
+            s_id = str(s.get("id", ""))
+            s_slug = s.get("slug") or SERIES_UUID_TO_SLUG.get(s_id)
+            if s_slug:
+                s_copy["slug"] = s_slug
+
+            # Ensure creator metadata is populated for display
+            if not s_copy.get("creator_name"):
+                s_copy["creator_name"] = "Zola Dlamini" if ("blood" in str(s_copy.get("title", "")).lower() or "queen" in str(s_copy.get("title", "")).lower()) else "Amaka Okafor"
+            if not s_copy.get("creator_id"):
+                s_copy["creator_id"] = "creator_zola" if s_copy.get("creator_name") == "Zola Dlamini" else "creator_amaka"
+            if not s_copy.get("creator_avatar"):
+                s_copy["creator_avatar"] = "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80"
+            if "is_original" not in s_copy:
+                s_copy["is_original"] = True
+            if "is_trending" not in s_copy:
+                s_copy["is_trending"] = float(s_copy.get("rating", 0)) >= 4.95
+
+            # Find episodes matching series_id (by UUID, string ID, or slug)
+            valid_series_ids = {s_id}
+            if s_slug:
+                valid_series_ids.add(s_slug)
+            valid_series_ids.add(to_uuid(s_id))
+            if s_slug:
+                valid_series_ids.add(to_uuid(s_slug))
+
             s_episodes = [
                 e for e in all_episodes 
-                if e.get("series_id") == s["id"] 
+                if str(e.get("series_id", "")) in valid_series_ids 
                 and e.get("status") == "published"
                 and not e.get("is_internal_test", False)
                 and e.get("lifecycle_state") != "INTERNAL_TEST"
@@ -821,16 +944,36 @@ class SeriesRepository(BaseRepository):
             hydrated_eps = []
             for ep in s_episodes:
                 ep_copy = dict(ep)
-                media = media_map.get(ep["id"])
+                ep_id_str = str(ep.get("id", ""))
+                ep_slug = ep.get("slug") or EPISODE_UUID_TO_SLUG.get(ep_id_str)
+                if ep_slug:
+                    ep_copy["slug"] = ep_slug
+
+                is_ep_free = ep_copy.get("is_free", False) or (ep_copy.get("episode_number", 1) <= s_copy.get("free_episodes", 2) if s_copy.get("free_episodes", 2) > 0 else False)
+                ep_copy["is_free"] = is_ep_free
+
+                media = media_map.get(ep_id_str) or (media_map.get(ep_slug) if ep_slug else None)
                 if media:
-                    ep_copy["video_url"] = media.get("master_video_url", "/videos/welele_placeholder.mp4")
-                    ep_copy["hls_url"] = media.get("hls_master_manifest_url")
                     ep_copy["thumbnail_url"] = media.get("thumbnail_url", s_copy.get("vertical_poster"))
-                    ep_copy["renditions"] = media.get("renditions_json")
                     ep_copy["media_asset_id"] = media.get("id")
-                    ep_copy["storage_key"] = media.get("storage_key")
+                    if is_ep_free:
+                        ep_copy["video_url"] = media.get("master_video_url", "/videos/welele_placeholder.mp4")
+                        ep_copy["hls_url"] = media.get("hls_master_manifest_url")
+                        ep_copy["renditions"] = media.get("renditions_json")
+                        ep_copy["storage_key"] = media.get("storage_key")
+                    else:
+                        ep_copy["video_url"] = None
+                        ep_copy["hls_url"] = None
+                        ep_copy["renditions"] = None
+                        ep_copy["storage_key"] = None
                 else:
-                    ep_copy["video_url"] = "/videos/welele_placeholder.mp4"
+                    ep_copy["video_url"] = "/videos/welele_placeholder.mp4" if is_ep_free else None
+                    ep_copy["hls_url"] = None
+                    ep_copy["renditions"] = None
+                    ep_copy["storage_key"] = None
+                
+                if "cliffhanger_time" not in ep_copy:
+                    ep_copy["cliffhanger_time"] = ep_copy.get("cliffhanger_time_seconds", 65)
                 hydrated_eps.append(ep_copy)
 
             s_copy["episodes"] = hydrated_eps
@@ -840,20 +983,55 @@ class SeriesRepository(BaseRepository):
         return result
 
     def get_series_detail(self, series_id: str) -> Optional[Dict[str, Any]]:
-        if not self.local_get("series"):
-            self.seed_if_missing()
         all_series = self.list_feed()
-        return next((s for s in all_series if s["id"] == series_id), None)
+        target_uuid = to_uuid(series_id)
+        for s in all_series:
+            s_id = str(s.get("id", ""))
+            s_slug = str(s.get("slug", ""))
+            if s_id == series_id or s_slug == series_id or s_id == target_uuid or to_uuid(s_id) == target_uuid:
+                return s
+        
+        # Check local store if not found in list_feed (e.g., drafts or offline)
+        raw_series = self.local_get("series") or []
+        for s in raw_series:
+            s_id = str(s.get("id", ""))
+            s_slug = str(s.get("slug", ""))
+            if s_id == series_id or s_slug == series_id or s_id == target_uuid or to_uuid(s_id) == target_uuid:
+                return s
+        return None
 
     def get_series(self, series_id: str) -> Optional[Dict[str, Any]]:
-        if not self.local_get("series"):
-            self.seed_if_missing()
+        target_uuid = to_uuid(series_id)
+        if self.is_live:
+            try:
+                res = self.get_table("series").select("*").or_(f"id.eq.{series_id},id.eq.{target_uuid}").execute()
+                if res and res.data:
+                    row = res.data[0]
+                    row["slug"] = SERIES_UUID_TO_SLUG.get(str(row.get("id")))
+                    return row
+            except Exception as e:
+                logger.warning(f"[SeriesRepository] get_series remote lookup failed: {e}")
         all_series = self.local_get("series") or []
-        return next((s for s in all_series if s.get("id") == series_id), None)
+        for s in all_series:
+            s_id = str(s.get("id", ""))
+            s_slug = str(s.get("slug", ""))
+            if s_id == series_id or s_slug == series_id or s_id == target_uuid or to_uuid(s_id) == target_uuid:
+                return s
+        return None
 
     def get_episodes_for_series(self, series_id: str) -> List[Dict[str, Any]]:
+        target_uuid = to_uuid(series_id)
+        if self.is_live:
+            try:
+                res = self.get_table("episodes").select("*").or_(f"series_id.eq.{series_id},series_id.eq.{target_uuid}").order("episode_number").execute()
+                if res and res.data:
+                    for ep in res.data:
+                        ep["slug"] = EPISODE_UUID_TO_SLUG.get(str(ep.get("id")))
+                    return res.data
+            except Exception as e:
+                logger.warning(f"[SeriesRepository] get_episodes_for_series remote lookup failed: {e}")
         all_episodes = self.local_get("episodes") or []
-        eps = [e for e in all_episodes if e.get("series_id") == series_id]
+        eps = [e for e in all_episodes if e.get("series_id") in [series_id, target_uuid] or to_uuid(str(e.get("series_id", ""))) == target_uuid]
         eps.sort(key=lambda x: x.get("episode_number", 0))
         return eps
 
@@ -862,25 +1040,55 @@ class SeriesRepository(BaseRepository):
         Creator-facing Series roster returning ALL episodes across all lifecycle states
         (draft, under_review, changes_requested, approved, published) with full media hydration.
         """
-        all_series = self.local_get("series")
-        all_episodes = self.local_get("episodes")
-        all_media = self.local_get("media_assets")
+        live_data = self._fetch_live_catalog()
+        if live_data:
+            all_series, all_episodes, all_media = live_data
+        else:
+            all_series = self.local_get("series") or []
+            all_episodes = self.local_get("episodes") or []
+            all_media = self.local_get("media_assets") or []
 
-        media_map = {m["episode_id"]: m for m in all_media}
+        media_map = {}
+        for m in all_media:
+            ep_id = str(m.get("episode_id", ""))
+            if ep_id:
+                media_map[ep_id] = m
+                slug = EPISODE_UUID_TO_SLUG.get(ep_id)
+                if slug:
+                    media_map[slug] = m
 
         result = []
         for s in all_series:
-            if creator_id and s.get("creator_id") != creator_id:
+            s_id = str(s.get("id", ""))
+            s_slug = s.get("slug") or SERIES_UUID_TO_SLUG.get(s_id)
+            c_id = s.get("creator_id")
+
+            if creator_id and c_id and c_id != creator_id and to_uuid(c_id) != to_uuid(creator_id):
                 continue
 
             s_copy = dict(s)
-            s_episodes = [e for e in all_episodes if e.get("series_id") == s["id"]]
+            if s_slug:
+                s_copy["slug"] = s_slug
+
+            valid_series_ids = {s_id}
+            if s_slug:
+                valid_series_ids.add(s_slug)
+            valid_series_ids.add(to_uuid(s_id))
+            if s_slug:
+                valid_series_ids.add(to_uuid(s_slug))
+
+            s_episodes = [e for e in all_episodes if str(e.get("series_id", "")) in valid_series_ids]
             s_episodes.sort(key=lambda x: x.get("episode_number", 0))
 
             hydrated_eps = []
             for ep in s_episodes:
                 ep_copy = dict(ep)
-                media = media_map.get(ep["id"])
+                ep_id_str = str(ep.get("id", ""))
+                ep_slug = ep.get("slug") or EPISODE_UUID_TO_SLUG.get(ep_id_str)
+                if ep_slug:
+                    ep_copy["slug"] = ep_slug
+
+                media = media_map.get(ep_id_str) or (media_map.get(ep_slug) if ep_slug else None)
                 if media:
                     ep_copy["video_url"] = media.get("master_video_url", "/videos/welele_placeholder.mp4")
                     ep_copy["hls_url"] = media.get("hls_master_manifest_url")
@@ -914,6 +1122,68 @@ class SeriesRepository(BaseRepository):
         all_series = self.get_creator_series()
         return next((s for s in all_series if s["id"] == series_id), None)
 
+    def create_series(self, series_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Authoritatively creates a new Series across local store and PostgreSQL.
+        Enforces fail-closed semantics in staging/production when live database is active.
+        """
+        series_id = series_data.get("id") or f"story_{uuid.uuid4().hex[:8]}"
+        now_ts = datetime.now(timezone.utc).isoformat()
+        
+        series_record = {
+            "id": series_id,
+            "ip_id": series_data.get("ip_id", "ip_blood_ties"),
+            "season_number": series_data.get("season_number", 1),
+            "title": series_data["title"],
+            "tagline": series_data.get("tagline", ""),
+            "synopsis": series_data.get("synopsis", ""),
+            "cover_image": series_data.get("cover_image", ""),
+            "vertical_poster": series_data.get("vertical_poster", ""),
+            "genre": series_data.get("genre", "Drama"),
+            "rating": series_data.get("rating", 5.0),
+            "total_episodes": series_data.get("total_episodes", 0),
+            "free_episodes": series_data.get("free_episodes", 2),
+            "coin_price_per_episode": series_data.get("coin_price_per_episode", 5),
+            "is_published": series_data.get("is_published", True),
+            "creator_id": series_data.get("creator_id", "creator_zola"),
+            "creator_name": series_data.get("creator_name", "Zola Dlamini"),
+            "creator_avatar": series_data.get("creator_avatar", ""),
+            "available_languages": series_data.get("available_languages", ["isiZulu", "English"]),
+            "tags": series_data.get("tags", []),
+            "created_at": series_data.get("created_at", now_ts),
+            "updated_at": series_data.get("updated_at", now_ts)
+        }
+        self.local_insert("series", series_record)
+        
+        if self.is_live:
+            try:
+                db_record = {
+                    "id": to_uuid(series_id),
+                    "ip_id": to_uuid(series_record["ip_id"]),
+                    "season_number": series_record["season_number"],
+                    "title": series_record["title"],
+                    "tagline": series_record["tagline"],
+                    "synopsis": series_record["synopsis"],
+                    "cover_image": series_record["cover_image"],
+                    "vertical_poster": series_record["vertical_poster"],
+                    "genre": series_record["genre"],
+                    "rating": series_record["rating"],
+                    "total_episodes": series_record["total_episodes"],
+                    "free_episodes": series_record["free_episodes"],
+                    "coin_price_per_episode": series_record["coin_price_per_episode"],
+                    "is_published": series_record["is_published"],
+                    "available_languages": series_record["available_languages"],
+                    "tags": series_record["tags"],
+                    "created_at": series_record["created_at"],
+                    "updated_at": series_record["updated_at"]
+                }
+                self.get_table("series").upsert(db_record).execute()
+            except Exception as e:
+                logger.error(f"[SeriesRepository:DB] Series remote persistence error: {e}")
+                if settings.IS_PRODUCTION_OR_STAGING:
+                    raise RuntimeError(f"Database write failure: Unable to persist series '{series_id}' to authoritative database: {e}")
+        return series_record
+
     def create_episode_draft(
         self,
         series_id: str,
@@ -945,6 +1215,28 @@ class SeriesRepository(BaseRepository):
             "updated_at": now_ts
         }
         self.local_insert("episodes", ep_record)
+        if self.is_live:
+            try:
+                db_record = {
+                    "id": to_uuid(ep_id),
+                    "series_id": to_uuid(series_id),
+                    "episode_number": ep_record["episode_number"],
+                    "title": ep_record["title"],
+                    "synopsis": ep_record["synopsis"],
+                    "duration_seconds": ep_record["duration_seconds"],
+                    "is_free": ep_record["is_free"],
+                    "coin_price": ep_record["coin_price"],
+                    "cliffhanger_time_seconds": ep_record["cliffhanger_time_seconds"],
+                    "cliffhanger_hook": ep_record["cliffhanger_hook"],
+                    "status": ep_record["status"],
+                    "created_at": ep_record["created_at"],
+                    "updated_at": ep_record["updated_at"]
+                }
+                self.get_table("episodes").upsert(db_record).execute()
+            except Exception as e:
+                logger.error(f"[SeriesRepository:DB] Episode draft remote persistence error: {e}")
+                if settings.IS_PRODUCTION_OR_STAGING:
+                    raise RuntimeError(f"Database write failure: Unable to persist episode draft '{ep_id}' to authoritative database: {e}")
         return ep_record
 
     def attach_media_asset(
@@ -979,6 +1271,24 @@ class SeriesRepository(BaseRepository):
             "updated_at": now_ts
         }
         self.local_insert("media_assets", media_record)
+        if self.is_live:
+            try:
+                db_media = {
+                    "id": to_uuid(media_id),
+                    "episode_id": to_uuid(episode_id),
+                    "storage_key": storage_key,
+                    "master_video_url": master_url,
+                    "thumbnail_url": thumbnail_url,
+                    "duration_seconds": duration_seconds,
+                    "transcoding_status": "READY",
+                    "created_at": now_ts,
+                    "updated_at": now_ts
+                }
+                self.get_table("media_assets").upsert(db_media).execute()
+            except Exception as e:
+                logger.error(f"[SeriesRepository:DB] Media asset remote persistence error: {e}")
+                if settings.IS_PRODUCTION_OR_STAGING:
+                    raise RuntimeError(f"Database write failure: Unable to persist media asset '{media_id}' to authoritative database: {e}")
         return media_record
 
     def register_media_asset(
@@ -1005,6 +1315,14 @@ class SeriesRepository(BaseRepository):
             "submitted_at": now_ts,
             "updated_at": now_ts
         })
+        if self.is_live:
+            try:
+                self.get_table("episodes").update({
+                    "status": "under_review",
+                    "updated_at": now_ts
+                }).or_(f"id.eq.{episode_id},id.eq.{to_uuid(episode_id)}").execute()
+            except Exception as e:
+                logger.warning(f"[SeriesRepository:DB] submit_for_moderation remote persistence error: {e}")
         return updated
 
     def review_episode(
@@ -1032,10 +1350,20 @@ class SeriesRepository(BaseRepository):
         if decision == "approved":
             update_payload["lifecycle_state"] = "PUBLISHED"
             update_payload["readiness_state"] = "PRODUCTION_READY"
+
             update_payload["is_empty_draft"] = False
 
         updated = self.local_update("episodes", "id", episode_id, update_payload)
+        if self.is_live:
+            try:
+                self.get_table("episodes").update({
+                    "status": target_status,
+                    "updated_at": now_ts
+                }).or_(f"id.eq.{episode_id},id.eq.{to_uuid(episode_id)}").execute()
+            except Exception as e:
+                logger.warning(f"[SeriesRepository:DB] review_episode remote persistence error: {e}")
         return updated
+
 
     def archive_episode(
         self,

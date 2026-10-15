@@ -255,9 +255,16 @@ class MerchandisingPolicyService:
 
         # Step 1: In MANUAL mode, preserve explicitly configured editorial items
         if mode == "manual":
-            # If explicit items exist, respect them
+            # If explicit items exist, respect them and hydrate story metadata
             if explicit_items:
-                return explicit_items[:max_items]
+                resolved = []
+                for item in explicit_items[:max_items]:
+                    item_copy = dict(item)
+                    cid = item.get("content_id")
+                    if cid and cid in all_stories:
+                        item_copy["story"] = all_stories[cid]
+                    resolved.append(item_copy)
+                return resolved
             # If no items defined but pinned_ids exist, populate pinned
             resolved = []
             seen = set()

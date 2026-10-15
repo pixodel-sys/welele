@@ -1,6 +1,20 @@
 -- ============================================================================
--- Welele Media™ — Security & Trust Foundation Database Schema & RLS Policies
--- Institutional Trust Infrastructure: Append-Only Audit Ledger & Strict Data Isolation
+-- WARNING: LEGACY DEPRECATED SCRIPT — UNSAFE FOR PRODUCTION OR STAGING APPLICATION
+-- ============================================================================
+-- AUDIT NOTICE (October 2026):
+-- DO NOT EXECUTE OR APPLY THIS SCRIPT TO ANY HOSTED OR STAGING DATABASE.
+-- Confirmed critical security defects identified during security audit:
+-- 1. SEC-002: Overbroad 'FOR ALL' policy 'episodes_tenant_policy' (lines 90-99)
+--    allows unauthenticated/public users to UPDATE and DELETE any published episode.
+-- 2. SEC-007: Omits 'ALTER TABLE users ENABLE ROW LEVEL SECURITY;', leaving user PII unprotected.
+-- 3. SEC-011: Unrestricted 'WITH CHECK (TRUE)' allows arbitrary client insertion into audit ledger.
+--
+-- This script is superseded by:
+-- - backend/supabase_security_hardening_v3.sql
+-- - backend/migrations/02_operational_and_production_contracts.sql
+-- Preserve for archival lineage only. Do not execute in CI/CD or production.
+-- ============================================================================
+-- Welele Media™ — Security & Trust Foundation Database Schema & RLS Policies (LEGACY ARCHIVE)
 -- ============================================================================
 
 -- 1. APPEND-ONLY SECURITY AUDIT LEDGER

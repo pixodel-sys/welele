@@ -3,7 +3,7 @@ Welele Media™ — Experience Engine Core Service (WEE Layer 2: Logic)
 Handles Slot Ingestion, Catalog Hydration, Temporal Gatekeeping, and Publishing Lifecycle.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
 import copy
 from database import db
@@ -293,7 +293,31 @@ class ExperienceEngine:
 
     @classmethod
     def get_stored_manifest(cls, page_id: str, state: str = "published") -> Dict[str, Any]:
-        """Fetch saved manifest from database or initialize default."""
+        """Fetch saved manifest from persistent PostgreSQL database or fallback to local store/default."""
+        if series_repository.is_live:
+            try:
+                res = series_repository.get_table("experience_layouts").select("*").eq("page_id", page_id).eq("status", state).execute()
+                if res and res.data:
+                    row = res.data[0]
+                    manifest = row.get("manifest_json")
+                    if manifest and isinstance(manifest, dict):
+                        manifest_copy = copy.deepcopy(manifest)
+                        manifest_copy["page_id"] = row.get("page_id", page_id)
+                        manifest_copy["status"] = row.get("status", state)
+                        manifest_copy["version"] = row.get("version", manifest_copy.get("version", "1.0.0"))
+                        manifest_copy["_catalog_source"] = "supabase_postgres"
+                        return manifest_copy
+                else:
+                    if settings.IS_PRODUCTION_OR_STAGING:
+                        logger.warning(f"[ExperienceEngine:DEGRADED] public.experience_layouts has no rows for {page_id}/{state}. Serving fallback.")
+                        series_repository._is_degraded = True
+                        series_repository._degraded_reason = f"Missing layout in database: {page_id}/{state}"
+            except Exception as e:
+                logger.error(f"[ExperienceEngine:DEGRADED] Remote experience_layouts query failed: {e}. Serving fallback.")
+                if settings.IS_PRODUCTION_OR_STAGING:
+                    series_repository._is_degraded = True
+                    series_repository._degraded_reason = f"Experience layout read exception: {str(e)}"
+
         layouts = db.get("experience_layouts")
         match = None
         for l in layouts:
@@ -369,6 +393,18 @@ class ExperienceEngine:
         new_layouts.append(layout_data)
         db.set("experience_layouts", new_layouts)
 
+        if series_repository.is_live:
+            try:
+                series_repository.get_table("experience_layouts").upsert({
+                    "page_id": layout_data.get("page_id"),
+                    "status": layout_data.get("status", "published"),
+                    "version": layout_data.get("version", "1.0.0"),
+                    "manifest_json": layout_data,
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }, on_conflict="page_id,status").execute()
+            except Exception as e:
+                pass
+
     @classmethod
     def resolve_manifest(
         cls, 
@@ -383,10 +419,14 @@ class ExperienceEngine:
         3. Algorithmic fallback filling
         """
         raw_manifest = cls.get_stored_manifest(page_id, state=state)
-        now_dt = eval_time or datetime.utcnow()
+        now_dt = eval_time or datetime.now(timezone.utc)
 
         feed = series_repository.list_feed()
-        all_stories = {s["id"]: s for s in feed}
+        all_stories = {}
+        for s in feed:
+            all_stories[str(s["id"])] = s
+            if s.get("slug"):
+                all_stories[str(s["slug"])] = s
         stories_list = feed
 
         resolved_sections = []

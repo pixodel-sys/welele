@@ -6,8 +6,8 @@ import { authApi } from '../../services/api';
 
 export const ProductionGate: React.FC = () => {
   const { login, setMode } = useApp();
-  const [adminKey, setAdminKey] = useState<string>('admin_master_welele_2026');
-  const [twoFaCode, setTwoFaCode] = useState<string>('999888');
+  const [adminKey, setAdminKey] = useState<string>('');
+  const [twoFaCode, setTwoFaCode] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -28,17 +28,6 @@ export const ProductionGate: React.FC = () => {
       setMode('production');
     } catch (err: any) {
       setIsLoading(false);
-      // Offline fallback: accept known demo admin credentials
-      if (adminKey === 'admin_master_welele_2026' && (twoFaCode === '999888' || !twoFaCode.trim())) {
-        login({
-          id: 'admin_supervisor',
-          name: 'Welele Operations Admin',
-          role: 'admin',
-          permissions: ['*'],
-        });
-        setMode('production');
-        return;
-      }
       setErrorMessage(err.response?.data?.detail || 'Invalid Administrator Key or 2FA Token.');
     }
   };
@@ -116,9 +105,6 @@ export const ProductionGate: React.FC = () => {
               placeholder="••••••"
               className="w-full bg-welele-surface-2 px-3.5 py-2.5 rounded-[7px] border border-white/10 text-xs font-bold text-white focus:border-[#FF6500] focus:outline-none font-mono"
             />
-            <span className="text-[10px] text-welele-muted mt-1 block">
-              Default Demo 2FA: <strong className="text-white font-mono">999888</strong>
-            </span>
           </div>
 
           <button
@@ -135,22 +121,6 @@ export const ProductionGate: React.FC = () => {
               </>
             )}
           </button>
-
-          {/* Quick 1-Tap Demo */}
-          <div className="pt-2 border-t border-white/10">
-            <button
-              type="button"
-              onClick={() => {
-                setAdminKey('admin_master_welele_2026');
-                setTwoFaCode('999888');
-                handleLogin();
-              }}
-              className="w-full py-2 px-3 rounded-[7px] bg-welele-surface-2 hover:bg-white/10 text-left border border-white/5 text-xs font-semibold flex items-center justify-between transition-colors"
-            >
-              <span>🛡️ Quick Demo: Welele Operations Admin</span>
-              <span className="text-[10px] text-[#FF6500] font-bold">1-Tap</span>
-            </button>
-          </div>
         </form>
 
         <div className="mt-5 pt-3 border-t border-white/10 flex items-center justify-center gap-1.5 text-[10px] text-welele-muted">

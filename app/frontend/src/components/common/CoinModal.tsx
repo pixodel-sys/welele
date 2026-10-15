@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { monetizationApi } from '../../services/api';
 import { CoinPack, AirtimePass, SACarrier } from '../../types';
@@ -56,6 +56,9 @@ export const CoinModal: React.FC = () => {
   const [showUssdDialog, setShowUssdDialog] = useState<boolean>(false);
   const [ussdMenuText, setUssdMenuText] = useState<string>('');
   const [detectedCarrierName, setDetectedCarrierName] = useState<string>('Vodacom SA');
+  const [voucherPin, setVoucherPin] = useState<string>('');
+  const [voucherError, setVoucherError] = useState<string | null>(null);
+  const activePinRef = useRef<{ pin: string; reference: string } | null>(null);
 
   // Load packs, passes, and carriers
   useEffect(() => {
@@ -140,7 +143,94 @@ export const CoinModal: React.FC = () => {
     }
   };
 
+  const handleVoucherPinChange = (val: string) => {
+    const digits = val.replace(/\D/g, '').slice(0, 16);
+    const formatted = digits.match(/.{1,4}/g)?.join(' ') || digits;
+    setVoucherPin(formatted);
+    setVoucherError(null);
+    activePinRef.current = null;
+  };
+
+  const getOrCreateClientReference = (pin: string): string => {
+    if (activePinRef.current && activePinRef.current.pin === pin) {
+      return activePinRef.current.reference;
+    }
+    const newRef = `WL-V-${Date.now()}`;
+    activePinRef.current = { pin, reference: newRef };
+    return newRef;
+  };
+
+  const execute1VoucherRedemption = async () => {
+    const rawPin = voucherPin.replace(/\s/g, '');
+    if (rawPin.length !== 16) {
+      setVoucherError('Please enter a valid 16-digit 1Voucher PIN.');
+      return;
+    }
+    setIsProcessing(true);
+    setVoucherError(null);
+    setSuccessMessage(null);
+
+    try {
+      const clientRef = getOrCreateClientReference(rawPin);
+      const res = await monetizationApi.redeem1Voucher({
+        voucher_pin: rawPin,
+        phone_number: userPhoneNumber,
+        idempotency_key: clientRef
+      });
+
+      const tx = res.transaction;
+      if (tx?.status === 'ALREADY_PROCESSED') {
+        // Replay submission: voucher was already cleared previously.
+        // Explicitly credit 0 coins to prevent client-side balance duplication.
+        setSuccessMessage('Voucher already cleared. Your coin balance is up to date.');
+        setVoucherPin('');
+        setTimeout(() => {
+          setSuccessMessage(null);
+          setIsCoinModalOpen(false);
+        }, 2500);
+        return;
+      }
+
+      const coinsAdded = typeof tx?.coins_credited_now === 'number'
+        ? tx.coins_credited_now
+        : (typeof tx?.coins_granted === 'number' ? tx.coins_granted : 0);
+
+      if (coinsAdded > 0) {
+        setCoins((prev) => prev + coinsAdded);
+
+        confetti({
+          particleCount: 120,
+          spread: 80,
+          origin: { y: 0.6 },
+          colors: ['#10B981', '#34D399', '#FF9D00', '#FFC400'],
+        });
+
+        setSuccessMessage(res.message || `Redeemed R${tx?.amount_zar || 50} (+${coinsAdded} Coins)!`);
+      } else {
+        setSuccessMessage(res.message || 'Voucher verified.');
+      }
+
+      setVoucherPin('');
+      activePinRef.current = null;
+      setTimeout(() => {
+        setSuccessMessage(null);
+        setIsCoinModalOpen(false);
+      }, 2500);
+    } catch (err: any) {
+      console.error('1Voucher redemption failed:', err);
+      const detail = err?.response?.data?.detail;
+      const msg = typeof detail === 'string' ? detail : detail?.error || err?.message || '1Voucher redemption failed. Please verify your PIN.';
+      setVoucherError(msg);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const handleInitiatePurchase = () => {
+    if (paymentMethod === 'voucher_1voucher') {
+      execute1VoucherRedemption();
+      return;
+    }
     if (currency === 'ZAR' && paymentMethod.includes('airtime')) {
       // Show realistic carrier consent modal for SA airtime
       setShowCarrierConsent(true);
@@ -558,8 +648,26 @@ export const CoinModal: React.FC = () => {
                 })}
               </div>
 
-              {/* SA Bank EFT Alternative Options */}
-              <div className="grid grid-cols-2 gap-2 pt-1">
+              {/* SA Payment Rails: 1Voucher (Flash) + Alternatives */}
+              <div className="grid grid-cols-3 gap-2 pt-1">
+                <button
+                  onClick={() => setPaymentMethod('voucher_1voucher')}
+                  className={`p-2.5 rounded-[7px] border text-xs font-semibold flex items-center gap-2 transition-all ${
+                    paymentMethod === 'voucher_1voucher'
+                      ? 'border-welele-gold bg-welele-gold/15 text-white shadow-lg scale-[1.02]'
+                      : 'border-white/10 bg-welele-surface-2 text-welele-muted hover:text-white'
+                  }`}
+                >
+                  <Ticket className="w-4 h-4 text-welele-gold shrink-0" />
+                  <div className="text-left">
+                    <div className="font-bold text-white leading-none flex items-center gap-1">
+                      1Voucher
+                      <span className="text-[8px] bg-welele-gold/20 text-welele-gold px-1 rounded uppercase font-extrabold">Flash</span>
+                    </div>
+                    <span className="text-[9px] text-welele-muted">Cash PIN Voucher</span>
+                  </div>
+                </button>
+
                 <button
                   onClick={() => setPaymentMethod('capitec_pay')}
                   className={`p-2.5 rounded-[7px] border text-xs font-semibold flex items-center gap-2 transition-all ${
@@ -569,9 +677,9 @@ export const CoinModal: React.FC = () => {
                   }`}
                 >
                   <span className="text-base">🏦</span>
-                  <div>
-                    <div className="font-bold text-white leading-none">Capitec Pay / Ozow</div>
-                    <span className="text-[9px] text-welele-muted">Instant SA Bank EFT</span>
+                  <div className="text-left">
+                    <div className="font-bold text-white leading-none">Capitec / EFT</div>
+                    <span className="text-[9px] text-welele-muted">Instant SA EFT</span>
                   </div>
                 </button>
 
@@ -583,10 +691,10 @@ export const CoinModal: React.FC = () => {
                       : 'border-white/10 bg-welele-surface-2 text-welele-muted hover:text-white'
                   }`}
                 >
-                  <CreditCard className="w-4 h-4 text-welele-muted" />
-                  <div>
-                    <div className="font-bold text-white leading-none">Visa / Mastercard</div>
-                    <span className="text-[9px] text-welele-muted">Debit or Credit Card</span>
+                  <CreditCard className="w-4 h-4 text-welele-muted shrink-0" />
+                  <div className="text-left">
+                    <div className="font-bold text-white leading-none">Card</div>
+                    <span className="text-[9px] text-welele-muted">Visa / Mastercard</span>
                   </div>
                 </button>
               </div>
@@ -616,32 +724,70 @@ export const CoinModal: React.FC = () => {
             </div>
           )}
 
-          {/* Mobile Phone Number Input with Carrier Detection */}
-          <div className="mt-3">
-            <div className="flex items-center justify-between mb-1">
-              <label className="text-[11px] text-welele-muted font-medium">
-                {paymentMethod.includes('airtime')
-                  ? 'Mobile Number for Airtime Deduction (e.g. 082 / 083 / 084 / 081):'
-                  : 'Mobile Money Phone Number / Account:'}
-              </label>
-              {currency === 'ZAR' && (
-                <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
-                  <Check className="w-3 h-3" /> Auto-detected: {detectedCarrierName}
+          {/* Conditional input: 1Voucher PIN or Phone Number */}
+          {paymentMethod === 'voucher_1voucher' ? (
+            <div className="mt-3 space-y-2 animate-fade-in">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] text-welele-muted font-medium flex items-center gap-1.5">
+                  <Ticket className="w-3.5 h-3.5 text-welele-gold" />
+                  Enter 16-Digit 1Voucher PIN:
+                </label>
+                <span className="text-[10px] text-welele-gold font-bold">
+                  Full Voucher Value Redeemed
                 </span>
-              )}
-            </div>
+              </div>
 
-            <div className="flex items-center gap-2 bg-welele-surface-2 px-3 py-2.5 rounded-[7px] border border-white/10">
-              <Smartphone className="w-4 h-4 text-welele-orange" />
-              <input
-                type="text"
-                value={userPhoneNumber}
-                onChange={(e) => setUserPhoneNumber(e.target.value)}
-                className="bg-transparent text-xs font-bold text-white w-full focus:outline-none"
-                placeholder={currency === 'ZAR' ? '082 123 4567' : '+234...'}
-              />
+              <div className="flex items-center gap-2 bg-welele-surface-2 px-3 py-2.5 rounded-[7px] border border-welele-gold/40">
+                <Ticket className="w-4 h-4 text-welele-gold shrink-0" />
+                <input
+                  type="text"
+                  value={voucherPin}
+                  onChange={(e) => handleVoucherPinChange(e.target.value)}
+                  className="bg-transparent text-sm font-mono font-bold text-white w-full tracking-widest focus:outline-none"
+                  placeholder="0000 0000 0000 0000"
+                  maxLength={19}
+                />
+              </div>
+
+              {voucherError && (
+                <div className="p-2 rounded-[7px] bg-red-500/10 border border-red-500/30 text-red-400 text-[11px] font-medium flex items-center gap-1.5">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{voucherError}</span>
+                </div>
+              )}
+
+              <p className="text-[10px] text-welele-muted">
+                1Vouchers can be purchased at any Flash spaza shop, Shoprite, Checkers, PEP, Ackermans, Dunns, or online. 100% of voucher value is instantly converted to Welele Coins (R1.00 = 5 Coins).
+              </p>
             </div>
-          </div>
+          ) : (
+            /* Mobile Phone Number Input with Carrier Detection */
+            <div className="mt-3">
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-[11px] text-welele-muted font-medium">
+                  {paymentMethod.includes('airtime')
+                    ? 'Mobile Number for Airtime Deduction (e.g. 082 / 083 / 084 / 081):'
+                    : 'Mobile Money Phone Number / Account:'}
+                </label>
+                {currency === 'ZAR' && (
+                  <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+                    <Check className="w-3 h-3" /> Auto-detected: {detectedCarrierName}
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2 bg-welele-surface-2 px-3 py-2.5 rounded-[7px] border border-white/10">
+                <Smartphone className="w-4 h-4 text-welele-orange" />
+                <input
+                  type="text"
+                  value={userPhoneNumber}
+                  onChange={(e) => setUserPhoneNumber(e.target.value)}
+                  className="bg-transparent text-xs font-bold text-white w-full focus:outline-none"
+                  placeholder={currency === 'ZAR' ? '082 123 4567' : '+234...'}
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Success Alert */}
@@ -664,11 +810,22 @@ export const CoinModal: React.FC = () => {
 
           <button
             onClick={handleInitiatePurchase}
-            disabled={isProcessing || (activeTab === 'packs' ? !selectedPack : !selectedPass)}
+            disabled={
+              isProcessing ||
+              (paymentMethod === 'voucher_1voucher'
+                ? voucherPin.replace(/\s/g, '').length !== 16
+                : activeTab === 'packs'
+                ? !selectedPack
+                : !selectedPass)
+            }
             className="flex-1 max-w-xs py-3 rounded-[7px] font-bold text-xs bg-gradient-welele text-white shadow-xl shadow-orange-500/25 hover:opacity-90 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
           >
             {isProcessing ? (
-              <span className="animate-pulse">Authorizing Carrier...</span>
+              <span className="animate-pulse">
+                {paymentMethod === 'voucher_1voucher' ? 'Redeeming Voucher...' : 'Authorizing Carrier...'}
+              </span>
+            ) : paymentMethod === 'voucher_1voucher' ? (
+              <span>Redeem 1Voucher</span>
             ) : (
               <>
                 <span>

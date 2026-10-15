@@ -81,6 +81,9 @@ def get_viewer_evidence_projection(session_or_viewer_id: str):
 # Deprecated Compatibility Endpoints (Rerouted through Unified Spine Storage)
 # ---------------------------------------------------------------------------
 
+events_router = APIRouter(prefix="/events", tags=["Legacy Events"])
+
+@events_router.post("/track")
 @router.post("/events/track")
 def track_legacy_event(payload: TelemetryEventPayload, background_tasks: BackgroundTasks):
     """
@@ -90,6 +93,7 @@ def track_legacy_event(payload: TelemetryEventPayload, background_tasks: Backgro
     return {"status": "accepted", "event": payload.event_name}
 
 
+@events_router.get("/retention/{series_id}/{episode_id}", response_model=EpisodeRetentionResponse)
 @router.get("/retention/{series_id}/{episode_id}", response_model=EpisodeRetentionResponse)
 def get_legacy_retention(series_id: str, episode_id: str):
     """

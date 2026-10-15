@@ -23,6 +23,13 @@ class EventRepository(BaseRepository):
             data = dict(payload)
         else:
             data = vars(payload)
+
+        if "ip_id" not in data and data.get("series_id"):
+            from .series_repository import series_repository
+            s = series_repository.get_series(data["series_id"])
+            if s and s.get("ip_id"):
+                data["ip_id"] = s["ip_id"]
+
         return telemetry_repository.local_insert("telemetry_events", data)
 
     def get_events_for_episode(self, episode_id: str) -> List[Dict[str, Any]]:

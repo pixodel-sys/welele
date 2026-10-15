@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from config import settings
 from seed_data import seed_database_if_empty
+from repositories.series_repository import series_repository
 
 
 # Canonical Domain Routers (Manifesto Specification 5.1 & Digital IP Spine)
@@ -65,6 +66,9 @@ async def add_security_headers(request: Request, call_next):
     response.headers["X-Frame-Options"] = "SAMEORIGIN"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    response.headers["X-Welele-Catalog-Source"] = series_repository.catalog_source
+    if series_repository.is_degraded:
+        response.headers["X-Welele-Degraded-State"] = "1"
     return response
 
 # Mount local physical object storage directory for media delivery
@@ -92,6 +96,8 @@ app.include_router(admin.router, prefix="/api/v1")
 app.include_router(experience.router, prefix=settings.API_V1_STR)
 app.include_router(telemetry.router, prefix=settings.API_V1_STR)
 app.include_router(telemetry.router, prefix="/api/v1")
+app.include_router(telemetry.events_router, prefix=settings.API_V1_STR)
+app.include_router(telemetry.events_router, prefix="/api/v1")
 app.include_router(intelligence.router, prefix=settings.API_V1_STR)
 app.include_router(content_intelligence.router, prefix=settings.API_V1_STR)
 app.include_router(content_intelligence.router, prefix="/api/v1")
@@ -202,13 +208,23 @@ def root():
 @app.get("/health")
 @app.get("/api/health")
 def health():
-    return {
-        "status": "healthy",
-        "database": "connected",
+    db_status = "connected"
+    if series_repository.is_degraded:
+        db_status = "degraded"
+    elif not series_repository.is_live:
+        db_status = "offline_fixtures"
+
+    resp = {
+        "status": "degraded" if series_repository.is_degraded else "healthy",
+        "database": db_status,
         "engine": "Welele Digital IP Engine v2.0",
         "version": settings.VERSION,
-        "canary": "passed"
+        "canary": "passed",
+        "catalog_source": series_repository.catalog_source
     }
+    if series_repository.is_degraded:
+        resp["degraded_reason"] = series_repository.degraded_reason
+    return resp
 
 @app.get("/api/v1/system/canary")
 def system_canary():

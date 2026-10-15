@@ -1,7 +1,6 @@
 """
 Welele Media™ — Live Supabase Security Gate Verification Tool
-Directly executes verification tests against the live Supabase environment at:
-https://mngyyxqdhjgteezwkxdn.supabase.co
+Directly executes verification tests against an authorized Supabase environment.
 """
 
 import os
@@ -31,12 +30,16 @@ if not url or not anon_key or not service_key:
     print("[ERROR] Live Supabase credentials missing from configuration!")
     sys.exit(1)
 
+from target_validator import validate_database_target, extract_project_ref
+validate_database_target(os.getenv("ENVIRONMENT"), url)
+
 admin_client = create_client(url, service_key)
 anon_client = create_client(url, anon_key)
 
+target_ref = extract_project_ref(url)
 print(f"\n=======================================================")
 print(f"WELELE MEDIA™ — LIVE DATABASE SECURITY VERIFICATION")
-print(f"Target Instance: {url}")
+print(f"Target Project Reference: {target_ref}")
 print(f"=======================================================\n")
 
 results = []

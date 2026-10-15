@@ -4,7 +4,10 @@ import copy
 import threading
 import tempfile
 from typing import Dict, Any, List, Optional
+import logging
 from config import settings
+
+logger = logging.getLogger("welele.database")
 
 class Database:
     _instance = None
@@ -64,18 +67,26 @@ class Database:
         return cls._instance
 
     def _init_supabase(self):
+        if settings.ENVIRONMENT == "test":
+            self._supabase = None
+            logger.debug("[Database:Test] Test environment detected; cloud Supabase client instantiation is disabled.")
+            return
+
         if settings.SUPABASE_URL and settings.SUPABASE_KEY:
+            from target_validator import validate_database_target, extract_project_ref
+            validate_database_target(settings.ENVIRONMENT, settings.SUPABASE_URL)
             try:
                 from supabase import create_client
                 self._supabase = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
-                print(f"[Database] Authoritative PostgreSQL connected at {settings.SUPABASE_URL}")
+                ref = extract_project_ref(settings.SUPABASE_URL)
+                logger.info(f"[Database] Authoritative PostgreSQL connected (project ref: {ref})")
             except Exception as e:
                 if settings.IS_PRODUCTION_OR_STAGING:
                     raise RuntimeError(
                         f"CRITICAL ARCHITECTURAL HALT: Failed to connect to authoritative PostgreSQL database in {settings.ENVIRONMENT}: {e}. "
                         "Silent fallback to ephemeral storage is strictly prohibited in staging/production."
                     )
-                print(f"[Database:Dev] Supabase connection failed, falling back to local persistent store: {e}")
+                logger.warning(f"[Database:Dev] Supabase connection failed, falling back to local persistent store: {e}")
                 self._supabase = None
         else:
             if settings.IS_PRODUCTION_OR_STAGING:
@@ -83,7 +94,7 @@ class Database:
                     f"CRITICAL ARCHITECTURAL HALT: {settings.ENVIRONMENT.upper()} environment detected without SUPABASE_URL / SUPABASE_KEY. "
                     "Silent fallback to ephemeral JSON/memory is strictly prohibited in staging/production."
                 )
-            print(f"[Database:Dev] Running in {settings.ENVIRONMENT} mode using disk-backed store at {settings.DATA_FILE}")
+            logger.info(f"[Database:Dev] Running in {settings.ENVIRONMENT} mode using disk-backed store at {settings.DATA_FILE}")
 
     @property
     def supabase_client(self):
@@ -91,7 +102,7 @@ class Database:
 
     @property
     def is_live(self) -> bool:
-        return self._supabase is not None
+        return self._supabase is not None and settings.ENVIRONMENT != "test"
 
     @property
     def is_isolated_test(self) -> bool:
@@ -203,10 +214,10 @@ class Database:
         with self._lock:
             if collection not in self.data:
                 self.data[collection] = []
-            item_id = item.get("id")
+            item_id = item.get("id") or item.get("event_id")
             if item_id:
                 for idx, existing_item in enumerate(self.data[collection]):
-                    if existing_item.get("id") == item_id:
+                    if existing_item.get("id") == item_id or existing_item.get("event_id") == item_id:
                         self.data[collection][idx] = item
                         self._save()
                         return item
@@ -217,17 +228,175 @@ class Database:
         if self._supabase and not self._is_isolated_test_store:
             try:
                 table_name = collection
+                payload_to_sync = item
+                on_conflict = None
+
                 if collection == "comments":
                     table_name = "bullet_comments"
                 elif collection == "transactions":
                     table_name = "payment_transactions"
-                self._supabase.table(table_name).upsert(item).execute()
+                elif collection in ("viewer_telemetry_events", "telemetry_events"):
+                    table_name = "telemetry_events"
+                    payload_to_sync = self._map_telemetry_for_supabase(item)
+                    on_conflict = "id"
+                elif collection == "security_audit_ledger":
+                    table_name = "security_audit_ledger"
+                    payload_to_sync = self._map_audit_for_supabase(item)
+                    on_conflict = "event_id"
+
+                if on_conflict:
+                    self._supabase.table(table_name).upsert(payload_to_sync, on_conflict=on_conflict).execute()
+                else:
+                    self._supabase.table(table_name).upsert(payload_to_sync).execute()
             except Exception as e:
-                if settings.IS_PRODUCTION_OR_STAGING:
-                    raise RuntimeError(f"Database write failure on table '{collection}': {e}")
-                pass
+                logger.error(f"[Database] Remote sync failed on '{collection}': {e}")
+                raise RuntimeError(f"Database write failure on table '{collection}': {e}") from e
 
         return item
+
+    def _resolve_fk_uuid(self, table: str, raw_val: Optional[Any], slug_prefix: str) -> Optional[str]:
+        """
+        Resolves an ID (UUID string or slug) to a verified foreign key UUID in Supabase.
+        Returns None if not found or invalid to avoid breaking foreign key constraints.
+        """
+        import uuid
+        if not raw_val or not self._supabase:
+            return None
+        val_str = str(raw_val).strip()
+        resolved_uuid = None
+        try:
+            resolved_uuid = str(uuid.UUID(val_str))
+        except (ValueError, AttributeError):
+            resolved_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, f"welele.media.{val_str}"))
+
+        if not hasattr(self, "_fk_cache"):
+            self._fk_cache = {}
+        if table not in self._fk_cache:
+            try:
+                res = self._supabase.table(table).select("id").execute()
+                self._fk_cache[table] = set(r["id"] for r in (res.data or []))
+            except Exception:
+                self._fk_cache[table] = set()
+
+        if resolved_uuid in self._fk_cache[table]:
+            return resolved_uuid
+        return None
+
+    def _map_telemetry_for_supabase(self, item: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Maps the application telemetry event payload to the PostgreSQL telemetry_events schema.
+        Normalizes UUIDs, validates foreign-key references against live catalog entities,
+        and packs all rich telemetry taxonomy & context fields into 'metadata' JSONB.
+        """
+        import uuid
+        from datetime import datetime, timezone
+
+        raw_id = item.get("id") or item.get("event_id")
+        event_uuid = None
+        if raw_id:
+            try:
+                event_uuid = str(uuid.UUID(str(raw_id)))
+            except (ValueError, AttributeError):
+                event_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, f"welele.telemetry.{raw_id}"))
+        else:
+            event_uuid = str(uuid.uuid4())
+
+        raw_name = (
+            item.get("event_name") or
+            item.get("event_type") or
+            item.get("event_family") or
+            "unknown"
+        )
+        if hasattr(raw_name, "value"):
+            raw_name = raw_name.value
+        event_name = str(raw_name)[:64]
+
+        session_id = str(item.get("session_id") or item.get("client_session_id") or "anonymous_session")[:64]
+
+        series_uuid = self._resolve_fk_uuid("series", item.get("series_id"), "story_")
+        ep_candidate = item.get("episode_id") or (item.get("content_id") if item.get("content_type") == "EPISODE" else None)
+        ep_uuid = self._resolve_fk_uuid("episodes", ep_candidate, "ep_")
+        ip_uuid = self._resolve_fk_uuid("digital_ips", item.get("ip_id"), "ip_")
+        user_uuid = self._resolve_fk_uuid("users", item.get("user_id") or item.get("viewer_id"), "user_")
+
+        playback_sec = 0
+        raw_pos = item.get("playback_second") if item.get("playback_second") is not None else item.get("position_seconds")
+        if raw_pos is not None:
+            try:
+                playback_sec = int(round(float(raw_pos)))
+            except (ValueError, TypeError):
+                playback_sec = 0
+
+        region_code = str(item.get("region_code") or "ZA")[:8]
+        device_type = str(item.get("device_type") or item.get("source") or "mobile_pwa")[:32]
+
+        meta = dict(item.get("metadata") or {})
+        preserve_keys = (
+            "event_id", "event_family", "event_type", "occurred_at", "viewer_id",
+            "anonymous_id", "content_type", "content_id", "series_id", "episode_id",
+            "position_seconds", "duration_seconds", "milestone_pct", "event_source",
+            "event_version", "source", "environment", "is_test", "technical_context",
+            "cohort_context", "ingested_at"
+        )
+        for k in preserve_keys:
+            if k in item and k not in meta:
+                v = item[k]
+                if hasattr(v, "value"):
+                    v = v.value
+                meta[k] = v
+
+        created_at = (
+            item.get("created_at") or
+            item.get("occurred_at") or
+            item.get("ingested_at") or
+            datetime.now(timezone.utc).isoformat()
+        )
+
+        return {
+            "id": event_uuid,
+            "event_name": event_name,
+            "session_id": session_id,
+            "series_id": series_uuid,
+            "episode_id": ep_uuid,
+            "ip_id": ip_uuid,
+            "user_id": user_uuid,
+            "playback_second": playback_sec,
+            "region_code": region_code,
+            "device_type": device_type,
+            "metadata": meta,
+            "created_at": created_at
+        }
+
+    def _map_audit_for_supabase(self, item: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Maps the application security audit payload to the PostgreSQL security_audit_ledger schema.
+        Packs before_state, after_state, and metadata into the 'details' JSONB column,
+        maps 'timestamp' to 'created_at', and preserves all hash-chain integrity fields.
+        """
+        from datetime import datetime, timezone
+        details = item.get("details")
+        if not details or not isinstance(details, dict):
+            details = {
+                "before_state": item.get("before_state", {}),
+                "after_state": item.get("after_state", {}),
+                "metadata": item.get("metadata", {})
+            }
+        
+        mapped = {
+            "event_id": item["event_id"],
+            "domain": str(item.get("domain") or "SECURITY").upper()[:32],
+            "event_type": str(item.get("event_type") or "unknown")[:64],
+            "actor_id": str(item.get("actor_id") or "system")[:64],
+            "actor_role": str(item.get("actor_role") or "system")[:32],
+            "target_type": str(item.get("target_type") or "system")[:64],
+            "target_id": str(item.get("target_id") or "system")[:64],
+            "payload_hash": str(item.get("payload_hash") or "0" * 64)[:64],
+            "previous_hash": str(item.get("previous_hash") or "0" * 64)[:64],
+            "entry_hash": str(item.get("entry_hash") or "0" * 64)[:64],
+            "details": details,
+            "created_at": item.get("created_at") or item.get("timestamp") or datetime.now(timezone.utc).isoformat()
+        }
+        return mapped
 
     def update(self, collection: str, item_id: str, updates: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         target_item = None

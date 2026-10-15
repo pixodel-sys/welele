@@ -1,10 +1,25 @@
 """
 Welele Media™ — Universal Pytest Configuration & Test Isolation Fixture
 Enforces strict Architectural Boundary Isolation:
-1. Primary Protection: pytest_configure hook automatically clones state into an ephemeral isolated universe
+1. Environment Guard: Sets ENVIRONMENT='test' before any module, database singleton, or service is imported.
+2. Primary Protection: pytest_configure hook automatically clones state into an ephemeral isolated universe
    before any collection, fixture, or test runs. Each test module starts from a pristine copy of the baseline.
-2. Secondary Protection: Canonical Production Store read-only write guard (RuntimeError on unauthorized writes).
+3. Secondary Protection: Canonical Production Store read-only write guard (RuntimeError on unauthorized writes).
 """
+
+import os
+import sys
+
+# Critical Security Pre-Condition:
+# Test mode must be established BEFORE any application module, database singleton, or service imports.
+os.environ["ENVIRONMENT"] = "test"
+os.environ.pop("APP_ENV", None)
+os.environ.pop("NODE_ENV", None)
+os.environ.pop("SUPABASE_URL", None)
+os.environ.pop("NEXT_PUBLIC_SUPABASE_URL", None)
+os.environ.pop("SUPABASE_SERVICE_ROLE_KEY", None)
+os.environ.pop("SUPABASE_KEY", None)
+os.environ.pop("NEXT_PUBLIC_SUPABASE_ANON_KEY", None)
 
 import pytest
 from database import db

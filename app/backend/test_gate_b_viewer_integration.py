@@ -39,6 +39,7 @@ from story_forge.models import (
 from story_forge.repository import InMemoryStoryForgeRepository
 from story_forge.orchestrator import StoryForgeKernel, ForgeJudge
 from story_forge.api.routes import get_story_package
+from services.rbac_service import create_access_token
 
 client = TestClient(app)
 
@@ -755,6 +756,8 @@ def test_7_session_telemetry_lineage(gate_b_environment):
 def test_8_monetisation_and_ledger_entitlement(gate_b_environment):
     env = gate_b_environment
     viewer_id = f"viewer_pay_{uuid.uuid4().hex[:6]}"
+    viewer_token = create_access_token(user_id=viewer_id, role="viewer")
+    viewer_headers = {"Authorization": f"Bearer {viewer_token}"}
     
     # 1. Initialize wallet to 0 coins for clean unlock test
     wallet = ledger_service.get_or_create_wallet(viewer_id)
@@ -764,13 +767,14 @@ def test_8_monetisation_and_ledger_entitlement(gate_b_environment):
     })
     
     # 2. Check Episode 2 is initially LOCKED
-    stream_check = client.get(f"/api/episodes/{env['series_id']}/{env['ep2_id']}?user_id={viewer_id}")
+    stream_check = client.get(f"/api/episodes/{env['series_id']}/{env['ep2_id']}?user_id={viewer_id}", headers=viewer_headers)
     assert stream_check.status_code == 200
     assert stream_check.json()["is_unlocked"] is False
 
     # 3. Attempt unlock with ZERO balance -> Should fail
     fail_unlock = client.post(
-        f"/api/episodes/{env['series_id']}/{env['ep2_id']}/unlock?user_id={viewer_id}&method=COINS"
+        f"/api/episodes/{env['series_id']}/{env['ep2_id']}/unlock?user_id={viewer_id}&method=COINS",
+        headers=viewer_headers
     )
     assert fail_unlock.status_code == 400
     assert "Insufficient" in fail_unlock.json()["detail"] or "balance" in fail_unlock.json()["detail"].lower()
@@ -789,7 +793,8 @@ def test_8_monetisation_and_ledger_entitlement(gate_b_environment):
 
     # 5. Successful unlock (price: 5 coins)
     unlock_res = client.post(
-        f"/api/episodes/{env['series_id']}/{env['ep2_id']}/unlock?user_id={viewer_id}&method=COINS"
+        f"/api/episodes/{env['series_id']}/{env['ep2_id']}/unlock?user_id={viewer_id}&method=COINS",
+        headers=viewer_headers
     )
     assert unlock_res.status_code == 200
     unlock_data = unlock_res.json()
@@ -797,7 +802,7 @@ def test_8_monetisation_and_ledger_entitlement(gate_b_environment):
     assert unlock_data["remaining_balance"] == 15
 
     # 6. Playback now unlocked
-    stream_unlocked = client.get(f"/api/episodes/{env['series_id']}/{env['ep2_id']}?user_id={viewer_id}")
+    stream_unlocked = client.get(f"/api/episodes/{env['series_id']}/{env['ep2_id']}?user_id={viewer_id}", headers=viewer_headers)
     assert stream_unlocked.status_code == 200
     assert stream_unlocked.json()["is_unlocked"] is True
     assert stream_unlocked.json()["stream"]["primary_url"] == env["master_video_url_ep2"]
@@ -811,7 +816,8 @@ def test_8_monetisation_and_ledger_entitlement(gate_b_environment):
 
     # 8. Duplicate unlock attempt is handled gracefully without double-charging
     unlock_dup = client.post(
-        f"/api/episodes/{env['series_id']}/{env['ep2_id']}/unlock?user_id={viewer_id}&method=COINS"
+        f"/api/episodes/{env['series_id']}/{env['ep2_id']}/unlock?user_id={viewer_id}&method=COINS",
+        headers=viewer_headers
     )
     assert unlock_dup.status_code == 200
     assert unlock_dup.json()["remaining_balance"] == 15
@@ -1067,6 +1073,8 @@ def test_13_multi_story_isolation(gate_b_environment):
 def test_14_reload_and_second_session(gate_b_environment):
     env = gate_b_environment
     viewer_id = f"viewer_session_return_{uuid.uuid4().hex[:6]}"
+    viewer_token = create_access_token(user_id=viewer_id, role="viewer")
+    viewer_headers = {"Authorization": f"Bearer {viewer_token}"}
 
     # Initialize wallet to 0 coins
     wallet = ledger_service.get_or_create_wallet(viewer_id)
@@ -1077,7 +1085,10 @@ def test_14_reload_and_second_session(gate_b_environment):
 
     # Session 1: Topup 10 coins, Unlock Ep 2 (5 coins), Post comment
     ledger_service.credit_coins(viewer_id, 10, transaction_type="TOPUP_TEST")
-    client.post(f"/api/episodes/{env['series_id']}/{env['ep2_id']}/unlock?user_id={viewer_id}&method=COINS")
+    client.post(
+        f"/api/episodes/{env['series_id']}/{env['ep2_id']}/unlock?user_id={viewer_id}&method=COINS",
+        headers=viewer_headers
+    )
     client.post(f"/api/chat/episodes/{env['ep2_id']}/comments", json={
         "episode_id": env["ep2_id"],
         "user_name": "Persistent_Viewer",
@@ -1085,7 +1096,7 @@ def test_14_reload_and_second_session(gate_b_environment):
     })
 
     # Session 2: New browser / app reopen simulation
-    stream_s2 = client.get(f"/api/episodes/{env['series_id']}/{env['ep2_id']}?user_id={viewer_id}")
+    stream_s2 = client.get(f"/api/episodes/{env['series_id']}/{env['ep2_id']}?user_id={viewer_id}", headers=viewer_headers)
     assert stream_s2.status_code == 200
     assert stream_s2.json()["is_unlocked"] is True, "Entitlement must persist across sessions"
 

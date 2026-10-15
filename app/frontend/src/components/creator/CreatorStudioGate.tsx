@@ -7,8 +7,8 @@ import { authApi } from '../../services/api';
 
 export const CreatorStudioGate: React.FC = () => {
   const { login, setMode } = useApp();
-  const [creatorId, setCreatorId] = useState<string>('creator_zola');
-  const [studioPin, setStudioPin] = useState<string>('1234');
+  const [creatorId, setCreatorId] = useState<string>('');
+  const [studioPin, setStudioPin] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -37,24 +37,6 @@ export const CreatorStudioGate: React.FC = () => {
       setMode('creator');
     } catch (err: any) {
       setIsLoading(false);
-      if ((creatorId === 'creator_zola' || !creatorId.trim()) && (studioPin === '1234' || studioPin === 'welele_studio_pass_2026')) {
-        login({
-          id: 'usr_creator_zola',
-          creator_id: 'creator_zola',
-          name: 'Zola Dlamini',
-          role: 'creator',
-          city: 'Johannesburg, South Africa',
-          permissions: ['series:create', 'episode:upload', 'ai:storyforge:execute', 'analytics:read:own'],
-        });
-        confetti({
-          particleCount: 80,
-          spread: 60,
-          origin: { y: 0.6 },
-          colors: ['#FFA000', '#FF6B00', '#E6007A'],
-        });
-        setMode('creator');
-        return;
-      }
       setErrorMessage(err.response?.data?.detail || 'Invalid Showrunner Studio PIN or credentials.');
     }
   };
@@ -131,9 +113,6 @@ export const CreatorStudioGate: React.FC = () => {
               placeholder="••••"
               className="w-full bg-welele-surface-2 px-3.5 py-2.5 rounded-[7px] border border-white/10 text-xs font-bold text-white focus:border-welele-pink focus:outline-none font-mono"
             />
-            <span className="text-[10px] text-welele-muted mt-1 block">
-              Default Demo PIN: <strong className="text-white font-mono">1234</strong>
-            </span>
           </div>
 
           <button
@@ -150,22 +129,6 @@ export const CreatorStudioGate: React.FC = () => {
               </>
             )}
           </button>
-
-          {/* Quick 1-Tap Demo Showrunner */}
-          <div className="pt-2 border-t border-white/10">
-            <button
-              type="button"
-              onClick={() => {
-                setCreatorId('creator_zola');
-                setStudioPin('1234');
-                handleLogin();
-              }}
-              className="w-full py-2 px-3 rounded-[7px] bg-welele-surface-2 hover:bg-white/10 text-left border border-white/5 text-xs font-semibold flex items-center justify-between transition-colors"
-            >
-              <span>🎬 Quick Demo: Zola Dlamini (Mzansi Epic Films)</span>
-              <span className="text-[10px] text-welele-pink font-bold">1-Tap</span>
-            </button>
-          </div>
         </form>
 
         <div className="mt-5 pt-3 border-t border-white/10 flex items-center justify-center gap-1.5 text-[10px] text-welele-muted">

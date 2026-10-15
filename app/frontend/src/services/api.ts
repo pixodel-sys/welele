@@ -257,6 +257,14 @@ export const monetizationApi = {
     const res = await API.post('/monetization/topup', payload);
     return res.data;
   },
+  redeem1Voucher: async (payload: {
+    voucher_pin: string;
+    phone_number?: string;
+    idempotency_key?: string;
+  }) => {
+    const res = await API.post('/payments/1voucher/redeem', payload);
+    return res.data;
+  },
   unlockEpisode: async (payload: {
     user_id: string;
     episode_id: string;

@@ -11,7 +11,11 @@ import hashlib
 import threading
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
+import logging
 from repositories.base_repository import BaseRepository
+from config import settings
+
+logger = logging.getLogger("welele.audit")
 
 GENESIS_BLOCK_HASH = "0" * 64
 
@@ -39,10 +43,16 @@ class AuditService(BaseRepository):
                     "before_state": {},
                     "after_state": {"status": "INITIALIZED", "engine": "Welele Trust Foundation v2.0"},
                     "metadata": {"source": "kernel", "chain": "mainnet"},
+                    "details": {
+                        "before_state": {},
+                        "after_state": {"status": "INITIALIZED", "engine": "Welele Trust Foundation v2.0"},
+                        "metadata": {"source": "kernel", "chain": "mainnet"}
+                    },
                     "payload_hash": hashlib.sha256(b"WELELE_GENESIS_PAYLOAD").hexdigest(),
                     "previous_hash": GENESIS_BLOCK_HASH,
                     "entry_hash": hashlib.sha256(f"{GENESIS_BLOCK_HASH}:WELELE_GENESIS_PAYLOAD".encode("utf-8")).hexdigest(),
-                    "timestamp": datetime.now(timezone.utc).isoformat()
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "created_at": datetime.now(timezone.utc).isoformat()
                 }
                 self.local_insert("security_audit_ledger", genesis_entry)
 
@@ -119,34 +129,15 @@ class AuditService(BaseRepository):
                 "before_state": before_state or {},
                 "after_state": after_state or {},
                 "metadata": metadata or {},
+                "details": payload_data,
                 "payload_hash": payload_hash,
                 "previous_hash": prev_hash,
                 "entry_hash": entry_hash,
-                "timestamp": now_ts
+                "timestamp": now_ts,
+                "created_at": now_ts
             }
 
             self.local_insert("security_audit_ledger", audit_entry)
-
-            # Mirror to PostgreSQL Supabase if live
-            if self.is_live:
-                try:
-                    self.get_table("security_audit_ledger").insert({
-                        "event_id": event_id,
-                        "domain": domain.upper(),
-                        "event_type": event_type,
-                        "actor_id": actor_id,
-                        "actor_role": actor_role,
-                        "target_type": target_type,
-                        "target_id": target_id,
-                        "payload_hash": payload_hash,
-                        "previous_hash": prev_hash,
-                        "entry_hash": entry_hash,
-                        "details": payload_data,
-                        "created_at": now_ts
-                    }).execute()
-                except Exception as e:
-                    # Log fallback without breaking the operational pipeline
-                    print(f"[AUDIT_WARNING] Supabase remote sync fallback: {e}")
 
             return audit_entry
 
@@ -206,10 +197,11 @@ class AuditService(BaseRepository):
                     }
 
                 # 3. Recalculate payload hash
+                details = entry.get("details") or {}
                 payload_data = {
-                    "before_state": entry.get("before_state", {}),
-                    "after_state": entry.get("after_state", {}),
-                    "metadata": entry.get("metadata", {})
+                    "before_state": entry.get("before_state") if "before_state" in entry else details.get("before_state", {}),
+                    "after_state": entry.get("after_state") if "after_state" in entry else details.get("after_state", {}),
+                    "metadata": entry.get("metadata") if "metadata" in entry else details.get("metadata", {})
                 }
                 computed_payload_hash = self._compute_payload_hash(payload_data)
                 if idx > 0 and computed_payload_hash != entry.get("payload_hash"):
@@ -228,7 +220,7 @@ class AuditService(BaseRepository):
                         domain=entry.get("domain"),
                         event_type=entry.get("event_type"),
                         actor_id=entry.get("actor_id"),
-                        timestamp=entry.get("timestamp"),
+                        timestamp=entry.get("timestamp") or entry.get("created_at"),
                         payload_hash=computed_payload_hash
                     )
                     if computed_entry_hash != entry.get("entry_hash"):

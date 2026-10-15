@@ -101,10 +101,11 @@ def get_presigned_upload_url(req: PresignedUploadRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/presigned-upload")
+@router.post("/presigned-upload", dependencies=[Depends(require_role(["creator", "admin"]))])
 def get_presigned_upload_alias(req: PresignedUploadRequest):
     """
     Backward-compatibility alias matching Pillar 4 architecture specs.
+    Protected by Creator/Admin RBAC.
     """
     try:
         res = storage_service.generate_presigned_upload_url(
@@ -129,9 +130,9 @@ class DispatchJobRequest(BaseModel):
     provider: Optional[str] = "CloudflareStream"
     idempotency_key: Optional[str] = None
 
-@router.post("/jobs/transcode")
+@router.post("/jobs/transcode", dependencies=[Depends(require_role(["creator", "admin"]))])
 def dispatch_media_job(req: DispatchJobRequest):
-    """Dispatches an asynchronous media transcoding job outside the request thread."""
+    """Dispatches an asynchronous media transcoding job outside the request thread. Protected by Creator/Admin RBAC."""
     from services.transcoding_service import transcoding_service
     job = transcoding_service.dispatch_transcoding_job(
         media_asset_id=req.media_asset_id,

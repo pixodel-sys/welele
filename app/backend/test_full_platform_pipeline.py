@@ -37,6 +37,8 @@ def test_full_platform_pipeline_and_telemetry():
     creator_headers = {"Authorization": f"Bearer {creator_token}"}
     admin_token = create_access_token(user_id="admin_supervisor", role="admin")
     admin_headers = {"Authorization": f"Bearer {admin_token}"}
+    viewer_token = create_access_token(user_id="user_sa_viewer_99", role="viewer")
+    viewer_headers = {"Authorization": f"Bearer {viewer_token}"}
 
     unique_suffix = uuid.uuid4().hex[:6]
     franchise_code = f"MZANSI_{unique_suffix.upper()}"
@@ -149,7 +151,8 @@ def test_full_platform_pipeline_and_telemetry():
     res_upload = client.post(
         "/api/storage/upload-binary",
         data={"series_id": created_series_id, "episode_number": 1},
-        files={"file": ("test_master.mp4", fake_mp4_bytes, "video/mp4")}
+        files={"file": ("test_master.mp4", fake_mp4_bytes, "video/mp4")},
+        headers=creator_headers
     )
     assert res_upload.status_code == 200, f"Binary upload failed: {res_upload.text}"
     upload_res_data = res_upload.json()
@@ -227,18 +230,18 @@ def test_full_platform_pipeline_and_telemetry():
     # 8. Viewer Authorised Playback & Monetisation
     # -------------------------------------------------------------
     # Locked check:
-    res_stream_locked = client.get(f"/api/episodes/{created_series_id}/{created_ep_id}?user_id=user_sa_viewer_99")
+    res_stream_locked = client.get(f"/api/episodes/{created_series_id}/{created_ep_id}?user_id=user_sa_viewer_99", headers=viewer_headers)
     assert res_stream_locked.status_code == 200
     stream_locked_data = res_stream_locked.json()
     assert stream_locked_data["is_unlocked"] is False
     assert stream_locked_data["stream"]["primary_url"] is not None
 
     # Unlock via Double-Entry Ledger:
-    res_unlock = client.post(f"/api/episodes/{created_series_id}/{created_ep_id}/unlock?user_id=user_sa_viewer_99&method=COINS")
+    res_unlock = client.post(f"/api/episodes/{created_series_id}/{created_ep_id}/unlock?user_id=user_sa_viewer_99&method=COINS", headers=viewer_headers)
     assert res_unlock.status_code == 200, f"Unlock failed: {res_unlock.text}"
 
     # Unlocked check:
-    res_stream_unlocked = client.get(f"/api/episodes/{created_series_id}/{created_ep_id}?user_id=user_sa_viewer_99")
+    res_stream_unlocked = client.get(f"/api/episodes/{created_series_id}/{created_ep_id}?user_id=user_sa_viewer_99", headers=viewer_headers)
     assert res_stream_unlocked.status_code == 200
     stream_unlocked_data = res_stream_unlocked.json()
     assert stream_unlocked_data["is_unlocked"] is True

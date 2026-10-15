@@ -30,9 +30,7 @@ def list_creators():
                 "country": "South Africa",
                 "verified": True,
                 "followers_count": 420000,
-                "total_views": 8420000,
-                "coin_earnings": 284000,
-                "payout_balance": 1890.00
+                "total_views": 8420000
             }
         ]
     }
@@ -49,15 +47,24 @@ def get_creator_profile(creator_id: str):
         "country": "South Africa",
         "verified": True,
         "followers_count": 420000,
-        "total_views": 8420000,
-        "coin_earnings": 284000,
-        "payout_balance": 1890.00
+        "total_views": 8420000
     }
     series_list = series_repository.get_creator_series(creator_id)
     return {
         "creator": creator,
         "series": series_list,
         "total_series": len(series_list)
+    }
+
+@router.get("/{creator_id}/earnings", dependencies=[Depends(require_role(["creator", "admin"]))])
+def get_creator_earnings(creator_id: str, auth_user: dict = Depends(get_current_user)):
+    """Authoritative Creator financial earnings & payout balances (Tenant Protected)."""
+    enforce_tenant_access(auth_user, creator_id, domain="COMMERCE", action="view financial earnings")
+    return {
+        "creator_id": creator_id,
+        "coin_earnings": 284000,
+        "payout_balance": 1890.00,
+        "currency": "USD"
     }
 
 @router.get("/{creator_id}/dashboard", dependencies=[Depends(require_role(["creator", "admin"]))])
@@ -161,7 +168,22 @@ def get_series_workspace(series_id: str, auth_user: dict = Depends(get_current_u
 @router.post("/series/create", dependencies=[Depends(require_role(["creator", "admin"]))])
 def create_series(req: CreateSeriesRequest, auth_user: dict = Depends(get_current_user)):
     """Registers a new microdrama series under a creator and records an audit event."""
-    creator_id = req.creator_id or auth_user.get("creator_id") or auth_user.get("sub")
+    caller_role = auth_user.get("role", "creator")
+    caller_sub = auth_user.get("sub")
+    caller_creator_id = auth_user.get("creator_id") or caller_sub
+
+    # Blocker 3: Enforce strict authenticated identity and creator ownership
+    if caller_role == "admin":
+        creator_id = req.creator_id or caller_creator_id or caller_sub
+    else:
+        # Non-admin creator may only create series under their own authenticated identity
+        if req.creator_id and req.creator_id not in (caller_creator_id, caller_sub):
+            raise HTTPException(
+                status_code=403,
+                detail=f"Forbidden: You cannot create a series for another creator ('{req.creator_id}')."
+            )
+        creator_id = caller_creator_id or caller_sub
+
     enforce_tenant_access(auth_user, creator_id, domain="CONTENT", action="create series")
 
     new_id = f"story_{uuid.uuid4().hex[:8]}"
@@ -183,14 +205,18 @@ def create_series(req: CreateSeriesRequest, auth_user: dict = Depends(get_curren
         "coin_price_per_episode": req.coin_price_per_episode,
         "is_published": True,
         "creator_id": creator_id,
-        "creator_name": "Zola Dlamini",
+        "creator_name": auth_user.get("name", "Zola Dlamini"),
         "creator_avatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80",
         "available_languages": req.available_languages or ["isiZulu", "English"],
         "tags": req.tags or [],
         "created_at": now_ts,
         "updated_at": now_ts
     }
-    series_repository.local_insert("series", new_series)
+
+    try:
+        created_series = series_repository.create_series(new_series)
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
     audit_service.record_trust_event(
         domain="CONTENT",
@@ -203,7 +229,7 @@ def create_series(req: CreateSeriesRequest, auth_user: dict = Depends(get_curren
         metadata={"pricing": req.coin_price_per_episode}
     )
 
-    return {"success": True, "story": new_series}
+    return {"success": True, "story": created_series}
 
 @router.post("/episodes/add", dependencies=[Depends(require_role(["creator", "admin"]))])
 def add_episode(req: CreateEpisodeRequest, auth_user: dict = Depends(get_current_user)):
@@ -252,27 +278,30 @@ def add_episode(req: CreateEpisodeRequest, auth_user: dict = Depends(get_current
     }
 
     # 1. Create Episode via Repository
-    created_ep = series_repository.create_episode_draft(
-        series_id=req.series_id,
-        story_package_id=req.story_package_id,
-        payload=ep_payload
-    )
+    try:
+        created_ep = series_repository.create_episode_draft(
+            series_id=req.series_id,
+            story_package_id=req.story_package_id,
+            payload=ep_payload
+        )
 
-    # 2. Attach Decoupled Media Asset (GAP-006 Decoupling)
-    from services.storage_service import storage_service
-    storage_key = req.storage_key or f"masters/{req.series_id}/{created_ep['id']}.mp4"
-    if req.storage_key:
-        master_url = storage_service.get_stream_url(storage_key, adaptive_hls=False)
-    else:
-        master_url = req.video_url if req.video_url and not req.video_url.startswith("blob:") else storage_service.get_stream_url(storage_key, adaptive_hls=False)
+        # 2. Attach Decoupled Media Asset (GAP-006 Decoupling)
+        from services.storage_service import storage_service
+        storage_key = req.storage_key or f"masters/{req.series_id}/{created_ep['id']}.mp4"
+        if req.storage_key:
+            master_url = storage_service.get_stream_url(storage_key, adaptive_hls=False)
+        else:
+            master_url = req.video_url if req.video_url and not req.video_url.startswith("blob:") else storage_service.get_stream_url(storage_key, adaptive_hls=False)
 
-    media_asset = series_repository.attach_media_asset(
-        episode_id=created_ep["id"],
-        storage_key=storage_key,
-        master_url=master_url,
-        thumbnail_url=req.thumbnail_url or series.get("vertical_poster"),
-        duration_seconds=req.duration_seconds
-    )
+        media_asset = series_repository.attach_media_asset(
+            episode_id=created_ep["id"],
+            storage_key=storage_key,
+            master_url=master_url,
+            thumbnail_url=req.thumbnail_url or series.get("vertical_poster"),
+            duration_seconds=req.duration_seconds
+        )
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
     # Update storage_key and media_asset_id while preserving the strict status_target
     series_repository.local_update("episodes", "id", created_ep["id"], {
@@ -281,6 +310,18 @@ def add_episode(req: CreateEpisodeRequest, auth_user: dict = Depends(get_current
         "storage_key": storage_key,
         "media_asset_id": media_asset.get("id")
     })
+    if series_repository.is_live:
+        try:
+            from repositories.series_repository import to_uuid
+            series_repository.get_table("episodes").update({
+                "status": status_target
+            }).eq("id", to_uuid(created_ep["id"])).execute()
+        except Exception as e:
+            logger.error(f"[AddEpisode:DB] Remote episode status update error: {e}")
+            from config import settings
+            if settings.IS_PRODUCTION_OR_STAGING:
+                raise HTTPException(status_code=500, detail=f"Database update failure on episode '{created_ep['id']}': {e}")
+
     created_ep["status"] = status_target
     created_ep["video_url"] = master_url
     created_ep["storage_key"] = storage_key
