@@ -43,8 +43,8 @@ export const authApi = {
     const res = await API.post('/auth/phone/send-otp', { phone_number, region_code });
     return res.data;
   },
-  verifyOtp: async (phone_number: string, otp_code: string) => {
-    const res = await API.post('/auth/phone/verify-otp', { phone_number, otp_code });
+  verifyOtp: async (phone_number: string, otp_code: string, region_code = 'ZA') => {
+    const res = await API.post('/auth/phone/verify-otp', { phone_number, otp_code, region_code });
     if (res.data?.access_token) {
       localStorage.setItem('welele_auth_token', res.data.access_token);
     }

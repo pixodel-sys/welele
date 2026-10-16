@@ -209,11 +209,12 @@ def creator_login(req: CreatorLoginRequest):
     # Secure check: Verify against stored studio PIN/pass or configured studio key
     expected_pin = creator.get("studio_pin") if creator else None
     configured_key = os.getenv("CREATOR_STUDIO_KEY")
+    supplied_credential = req.studio_pin or req.password
     
     is_valid = False
     if expected_pin and req.studio_pin and hmac.compare_digest(str(req.studio_pin), str(expected_pin)):
         is_valid = True
-    elif configured_key and req.password and hmac.compare_digest(str(req.password), str(configured_key)):
+    elif configured_key and supplied_credential and hmac.compare_digest(str(supplied_credential), str(configured_key)):
         is_valid = True
     elif not settings.IS_PRODUCTION_OR_STAGING and settings.ENVIRONMENT in ("development", "test") and (req.studio_pin == "1234" or req.password == "welele_dev_pass"):
         # Explicitly allowed ONLY in non-staging local development / test mock environments

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { WeleleLogo } from './WeleleLogo';
 import {
@@ -33,6 +33,9 @@ export const AuthModal: React.FC = () => {
   // Active Role Tab
   const [activeTab, setActiveTab] = useState<'viewer' | 'creator' | 'admin'>('viewer');
 
+  // Synchronous in-flight guard to prevent double-execution between onChange and onSubmit
+  const isVerifyingRef = useRef<boolean>(false);
+
   // Viewer State
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
   const [phoneInput, setPhoneInput] = useState<string>(() => {
@@ -59,9 +62,13 @@ export const AuthModal: React.FC = () => {
     if (isAuthModalOpen && authModalTargetRole) {
       setActiveTab(authModalTargetRole);
     }
+    if (isAuthModalOpen) {
+      isVerifyingRef.current = false;
+    }
   }, [isAuthModalOpen, authModalTargetRole]);
 
   const triggerSuccess = (role: 'viewer' | 'creator' | 'admin') => {
+    isVerifyingRef.current = false;
     confetti({
       particleCount: 75,
       spread: 60,
@@ -82,6 +89,7 @@ export const AuthModal: React.FC = () => {
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!phoneInput.trim()) return;
+    isVerifyingRef.current = false;
     setIsLoading(true);
     setErrorMessage(null);
     try {
@@ -99,14 +107,16 @@ export const AuthModal: React.FC = () => {
     }
   };
 
-  // Execute OTP Verification & Session Establishment
+  // Execute OTP Verification & Session Establishment with synchronous guard
   const executeVerification = async (codeToVerify: string) => {
-    if (!codeToVerify || codeToVerify.length < 4 || isLoading) return;
+    if (!codeToVerify || codeToVerify.length < 4 || isVerifyingRef.current || isLoading) return;
+    isVerifyingRef.current = true;
     setIsLoading(true);
     setErrorMessage(null);
     try {
-      const res = await authApi.verifyOtp(phoneInput, codeToVerify);
+      const res = await authApi.verifyOtp(phoneInput, codeToVerify, market);
       setIsLoading(false);
+      isVerifyingRef.current = false;
       login({
         id: res.user?.id || 'usr_viewer_01',
         name: res.user?.name || (market === 'ZA' ? 'Welele Viewer' : 'Welele Viewer'),
@@ -118,6 +128,7 @@ export const AuthModal: React.FC = () => {
       });
       triggerSuccess('viewer');
     } catch (err: any) {
+      isVerifyingRef.current = false;
       setIsLoading(false);
       setErrorMessage(err?.response?.data?.detail || 'Verification failed. Please check your code and try again.');
     }
@@ -125,6 +136,7 @@ export const AuthModal: React.FC = () => {
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isVerifyingRef.current || isLoading) return;
     await executeVerification(otpCode);
   };
 
@@ -140,7 +152,7 @@ export const AuthModal: React.FC = () => {
       }).then((content: any) => {
         if (content && content.code) {
           const digits = content.code.replace(/\D/g, '').slice(0, 4);
-          if (digits.length === 4) {
+          if (digits.length === 4 && !isVerifyingRef.current && !isLoading) {
             setOtpCode(digits);
             executeVerification(digits);
           }
@@ -376,7 +388,7 @@ export const AuthModal: React.FC = () => {
                     onChange={(e) => {
                       const val = e.target.value.replace(/\D/g, '').slice(0, 4);
                       setOtpCode(val);
-                      if (val.length === 4) {
+                      if (val.length === 4 && !isVerifyingRef.current && !isLoading) {
                         executeVerification(val);
                       }
                     }}
@@ -391,7 +403,7 @@ export const AuthModal: React.FC = () => {
 
                 <button
                   type="submit"
-                  disabled={isLoading || otpCode.length < 4}
+                  disabled={isLoading || isVerifyingRef.current || otpCode.length < 4}
                   className="w-full py-2.5 rounded-[7px] font-bold text-xs bg-gradient-welele text-white shadow-lg shadow-orange-500/25 hover:opacity-95 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
                 >
                   {isLoading ? (
@@ -406,7 +418,10 @@ export const AuthModal: React.FC = () => {
 
                 <button
                   type="button"
-                  onClick={() => setStep('phone')}
+                  onClick={() => {
+                    isVerifyingRef.current = false;
+                    setStep('phone');
+                  }}
                   className="w-full text-center text-xs text-welele-muted hover:text-white"
                 >
                   ← Change Mobile Number
