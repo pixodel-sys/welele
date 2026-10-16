@@ -243,6 +243,31 @@ class Database:
                     table_name = "security_audit_ledger"
                     payload_to_sync = self._map_audit_for_supabase(item)
                     on_conflict = "event_id"
+                elif collection == "series":
+                    table_name = "series"
+                    valid_series_cols = {
+                        "id", "ip_id", "season_number", "title", "tagline", "synopsis",
+                        "cover_image", "vertical_poster", "genre", "rating", "total_episodes",
+                        "free_episodes", "coin_price_per_episode", "is_published",
+                        "available_languages", "tags", "created_at", "updated_at"
+                    }
+                    payload_to_sync = {k: v for k, v in item.items() if k in valid_series_cols}
+                    if "id" in payload_to_sync:
+                        payload_to_sync["id"] = self._to_uuid(str(payload_to_sync["id"]))
+                    if "ip_id" in payload_to_sync:
+                        payload_to_sync["ip_id"] = self._to_uuid(str(payload_to_sync["ip_id"]))
+                elif collection == "episodes":
+                    table_name = "episodes"
+                    valid_ep_cols = {
+                        "id", "series_id", "story_package_id", "season_number", "episode_number",
+                        "title", "synopsis", "duration_seconds", "is_free", "coin_price",
+                        "cliffhanger_time_seconds", "cliffhanger_hook", "status", "created_at", "updated_at"
+                    }
+                    payload_to_sync = {k: v for k, v in item.items() if k in valid_ep_cols}
+                    if "id" in payload_to_sync:
+                        payload_to_sync["id"] = self._to_uuid(str(payload_to_sync["id"]))
+                    if "series_id" in payload_to_sync:
+                        payload_to_sync["series_id"] = self._to_uuid(str(payload_to_sync["series_id"]))
 
                 if on_conflict:
                     self._supabase.table(table_name).upsert(payload_to_sync, on_conflict=on_conflict).execute()
@@ -253,6 +278,15 @@ class Database:
                 raise RuntimeError(f"Database write failure on table '{collection}': {e}") from e
 
         return item
+
+    @staticmethod
+    def _to_uuid(name: str) -> str:
+        import uuid
+        try:
+            uuid.UUID(str(name))
+            return str(name)
+        except Exception:
+            return str(uuid.uuid5(uuid.NAMESPACE_DNS, f"welele.media.{name}"))
 
     def _resolve_fk_uuid(self, table: str, raw_val: Optional[Any], slug_prefix: str) -> Optional[str]:
         """

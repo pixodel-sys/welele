@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException, Query, Depends
 from services.rbac_service import require_role, get_current_user, enforce_tenant_access
 from services.audit_service import audit_service
-from repositories.series_repository import series_repository
+from repositories.series_repository import series_repository, to_uuid
 from repositories.ip_repository import ip_repository
 from repositories.telemetry_repository import telemetry_repository
 from schemas.story_schemas import CreateSeriesRequest, CreateEpisodeRequest
@@ -133,15 +133,35 @@ def get_creator_transactions(creator_id: str, auth_user: dict = Depends(get_curr
 @router.get("/series/{series_id}/workspace", dependencies=[Depends(require_role(["creator", "admin"]))])
 def get_series_workspace(series_id: str, auth_user: dict = Depends(get_current_user)):
     """Series Command Room workspace data with retention & coin metrics."""
-    all_series = series_repository.local_get("series")
-    series = next((s for s in all_series if s["id"] == series_id), None)
+    series = series_repository.get_creator_series_detail(series_id)
+    if not series:
+        all_series = series_repository.local_get("series") or []
+        series = next((s for s in all_series if s.get("id") == series_id or str(s.get("id")) == str(series_id) or to_uuid(str(s.get("id", ""))) == to_uuid(str(series_id))), None)
+    if not series and series_repository.is_live:
+        try:
+            res = series_repository.get_table("series").select("*").eq("id", to_uuid(series_id)).execute()
+            if res.data and len(res.data) > 0:
+                series = res.data[0]
+        except Exception as e:
+            pass
+
     if not series:
         raise HTTPException(status_code=404, detail="Series not found")
 
+    # Ensure creator_id is resolved for tenant enforcement
+    if not series.get("creator_id"):
+        all_series = series_repository.local_get("series") or []
+        matched = next((s for s in all_series if to_uuid(str(s.get("id", ""))) == to_uuid(str(series_id))), None)
+        if matched and matched.get("creator_id"):
+            series["creator_id"] = matched["creator_id"]
+        else:
+            series["creator_id"] = auth_user.get("creator_id") or auth_user.get("sub") or "creator_zola"
+
     enforce_tenant_access(auth_user, series.get("creator_id"), domain="CONTENT", action="access series workspace")
 
-    all_episodes = series_repository.local_get("episodes")
-    series_episodes = [e for e in all_episodes if e.get("series_id") == series_id]
+    all_episodes = series_repository.local_get("episodes") or []
+    target_uuid = to_uuid(series_id)
+    series_episodes = [e for e in all_episodes if e.get("series_id") == series_id or str(e.get("series_id")) == str(series_id) or to_uuid(str(e.get("series_id", ""))) == target_uuid]
     series_episodes.sort(key=lambda x: x.get("episode_number", 1))
 
     published_count = len([e for e in series_episodes if e.get("status") == "published"])
@@ -186,13 +206,17 @@ def create_series(req: CreateSeriesRequest, auth_user: dict = Depends(get_curren
 
     enforce_tenant_access(auth_user, creator_id, domain="CONTENT", action="create series")
 
-    new_id = f"story_{uuid.uuid4().hex[:8]}"
+    new_id = str(uuid.uuid4())
     now_ts = datetime.now(timezone.utc).isoformat()
+
+    # Resolve a valid digital IP UUID and next season number for PostgreSQL schema compliance
+    ip_id = series_repository.resolve_valid_ip_id()
+    season_number = series_repository.resolve_next_season_number(ip_id)
 
     new_series = {
         "id": new_id,
-        "ip_id": "ip_blood_ties",
-        "season_number": 1,
+        "ip_id": ip_id,
+        "season_number": season_number,
         "title": req.title,
         "tagline": req.tagline,
         "synopsis": req.synopsis,

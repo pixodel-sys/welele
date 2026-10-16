@@ -34,6 +34,7 @@ export const CreateShowModal: React.FC<CreateShowModalProps> = ({
   );
 
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const posterInputRef = useRef<HTMLInputElement | null>(null);
   const bannerInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -88,6 +89,7 @@ export const CreateShowModal: React.FC<CreateShowModalProps> = ({
     if (!title.trim()) return;
 
     setIsSubmitting(true);
+    setErrorMessage(null);
     try {
       const res = await creatorApi.createSeries({
         title: title.trim(),
@@ -103,12 +105,18 @@ export const CreateShowModal: React.FC<CreateShowModalProps> = ({
         coin_price_per_episode: 5,
       });
 
+      const createdId = res?.story?.id || res?.series?.id || res?.id;
+      if (!createdId) {
+        throw new Error('Server did not return a valid series ID');
+      }
+
       await refreshStories();
-      const createdId = res?.series?.id || res?.id || 'story_new';
       onSuccess(createdId);
       onClose();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to create show:', err);
+      const detail = err?.response?.data?.detail || err?.message || 'Failed to create show. Please check connection and try again.';
+      setErrorMessage(typeof detail === 'string' ? detail : JSON.stringify(detail));
     } finally {
       setIsSubmitting(false);
     }
@@ -141,6 +149,12 @@ export const CreateShowModal: React.FC<CreateShowModalProps> = ({
             <X className="w-4 h-4" />
           </button>
         </div>
+
+        {errorMessage && (
+          <div className="p-3 bg-red-500/15 border border-red-500/40 rounded-[7px] text-xs text-red-300">
+            {errorMessage}
+          </div>
+        )}
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4 max-h-[75vh] overflow-y-auto pr-1">

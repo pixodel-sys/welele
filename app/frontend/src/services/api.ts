@@ -406,20 +406,12 @@ export const creatorApi = {
     }
   },
   createSeries: async (payload: any) => {
-    try {
-      const res = await API.post('/creators/series/create', payload);
-      return res.data;
-    } catch {
-      return { success: true, series: payload };
-    }
+    const res = await API.post('/creators/series/create', payload);
+    return res.data;
   },
   addEpisode: async (payload: any) => {
-    try {
-      const res = await API.post('/creators/episodes/add', payload);
-      return res.data;
-    } catch {
-      return { success: true, episode: payload };
-    }
+    const res = await API.post('/creators/episodes/add', payload);
+    return res.data;
   },
   getTransactions: async (creatorId: string) => {
     const res = await API.get(`/creators/${creatorId}/transactions`);
