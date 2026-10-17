@@ -148,14 +148,11 @@ def get_series_workspace(series_id: str, auth_user: dict = Depends(get_current_u
     if not series:
         raise HTTPException(status_code=404, detail="Series not found")
 
-    # Ensure creator_id is resolved for tenant enforcement
-    if not series.get("creator_id"):
-        all_series = series_repository.local_get("series") or []
-        matched = next((s for s in all_series if to_uuid(str(s.get("id", ""))) == to_uuid(str(series_id))), None)
-        if matched and matched.get("creator_id"):
-            series["creator_id"] = matched["creator_id"]
-        else:
-            series["creator_id"] = auth_user.get("creator_id") or auth_user.get("sub") or "creator_zola"
+    # Ensure creator_id is canonically resolved for tenant enforcement
+    creator_owner_id = series.get("creator_id") or series_repository.resolve_series_creator_id(series)
+    if not creator_owner_id:
+        creator_owner_id = series_repository.resolve_series_creator_id(series)
+    series["creator_id"] = creator_owner_id
 
     enforce_tenant_access(auth_user, series.get("creator_id"), domain="CONTENT", action="access series workspace")
 
@@ -210,7 +207,7 @@ def create_series(req: CreateSeriesRequest, auth_user: dict = Depends(get_curren
     now_ts = datetime.now(timezone.utc).isoformat()
 
     # Resolve a valid digital IP UUID and next season number for PostgreSQL schema compliance
-    ip_id = series_repository.resolve_valid_ip_id()
+    ip_id = series_repository.resolve_valid_ip_id(creator_id=creator_id)
     season_number = series_repository.resolve_next_season_number(ip_id)
 
     new_series = {
@@ -261,14 +258,27 @@ def add_episode(req: CreateEpisodeRequest, auth_user: dict = Depends(get_current
     Ingests episode through normalized DAL, attaching decoupled media, submitting to moderation,
     and recording immutable CONTENT audit events.
     """
-    series = series_repository.get_series_detail(req.series_id)
+    series = series_repository.get_creator_series_detail(req.series_id)
     if not series:
-        all_series = series_repository.local_get("series")
-        series = next((s for s in all_series if s["id"] == req.series_id), None)
-        if not series:
-            raise HTTPException(status_code=404, detail="Series not found")
+        all_series = series_repository.local_get("series") or []
+        series = next((s for s in all_series if s.get("id") == req.series_id or str(s.get("id")) == req.series_id or to_uuid(str(s.get("id", ""))) == to_uuid(str(req.series_id))), None)
+    if not series and series_repository.is_live:
+        try:
+            res = series_repository.get_table("series").select("*").or_(f"id.eq.{req.series_id},id.eq.{to_uuid(req.series_id)}").execute()
+            if res.data and len(res.data) > 0:
+                series = dict(res.data[0])
+        except Exception as e:
+            pass
 
-    enforce_tenant_access(auth_user, series.get("creator_id"), domain="CONTENT", action="add episode")
+    if not series:
+        raise HTTPException(status_code=404, detail="Series not found")
+
+    # Canonical ownership resolution: series → digital_ips → master_owner_id → creator
+    creator_owner_id = series.get("creator_id") or series_repository.resolve_series_creator_id(series)
+    if not creator_owner_id:
+        creator_owner_id = series_repository.resolve_series_creator_id(series)
+
+    enforce_tenant_access(auth_user, creator_owner_id, domain="CONTENT", action="add episode")
 
     # Reject ephemeral browser blob references
     if req.video_url and req.video_url.startswith("blob:") and not req.storage_key:
@@ -336,7 +346,6 @@ def add_episode(req: CreateEpisodeRequest, auth_user: dict = Depends(get_current
     })
     if series_repository.is_live:
         try:
-            from repositories.series_repository import to_uuid
             series_repository.get_table("episodes").update({
                 "status": status_target
             }).eq("id", to_uuid(created_ep["id"])).execute()
@@ -351,12 +360,12 @@ def add_episode(req: CreateEpisodeRequest, auth_user: dict = Depends(get_current
     created_ep["storage_key"] = storage_key
     created_ep["media_asset_id"] = media_asset.get("id")
 
-    all_series = series_repository.local_get("series")
-    target_s = next((s for s in all_series if s["id"] == req.series_id), None)
+    all_series = series_repository.local_get("series") or []
+    target_s = next((s for s in all_series if str(s.get("id")) in (req.series_id, to_uuid(req.series_id))), None)
     if target_s and status_target == "published":
         curr_count = target_s.get("total_episodes", 0)
         if req.episode_number > curr_count:
-            series_repository.local_update("series", "id", req.series_id, {"total_episodes": req.episode_number})
+            series_repository.local_update("series", "id", target_s["id"], {"total_episodes": req.episode_number})
 
     audit_service.record_trust_event(
         domain="CONTENT",
@@ -402,9 +411,10 @@ def get_retention_telemetry(
     auth_user: dict = Depends(get_current_user)
 ):
     """Routes retention telemetry through EventRepository with tenant isolation and authentic episode resolution."""
-    series = series_repository.get_series_detail(series_id)
+    series = series_repository.get_creator_series_detail(series_id) or series_repository.get_series_detail(series_id)
     if series:
-        enforce_tenant_access(auth_user, series.get("creator_id"), domain="CONTENT", action="view telemetry")
+        creator_owner_id = series.get("creator_id") or series_repository.resolve_series_creator_id(series)
+        enforce_tenant_access(auth_user, creator_owner_id, domain="CONTENT", action="view telemetry")
 
     # Phase 3A: Resolve real episode ID for the specified series and episode_number
     ep_id = None

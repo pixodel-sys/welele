@@ -913,10 +913,20 @@ class SeriesRepository(BaseRepository):
                 s_copy["slug"] = s_slug
 
             # Ensure creator metadata is populated for display
-            if not s_copy.get("creator_name"):
-                s_copy["creator_name"] = "Zola Dlamini" if ("blood" in str(s_copy.get("title", "")).lower() or "queen" in str(s_copy.get("title", "")).lower()) else "Amaka Okafor"
             if not s_copy.get("creator_id"):
-                s_copy["creator_id"] = "creator_zola" if s_copy.get("creator_name") == "Zola Dlamini" else "creator_amaka"
+                resolved_c_id = self.resolve_series_creator_id(s_copy)
+                if resolved_c_id:
+                    s_copy["creator_id"] = resolved_c_id
+            if not s_copy.get("creator_name"):
+                c_id_curr = s_copy.get("creator_id")
+                if c_id_curr == "creator_zola":
+                    s_copy["creator_name"] = "Zola Dlamini"
+                elif c_id_curr == "creator_amaka":
+                    s_copy["creator_name"] = "Amaka Okafor"
+                elif c_id_curr == "creator_lerato":
+                    s_copy["creator_name"] = "Lerato Khumalo"
+                else:
+                    s_copy["creator_name"] = "Welele Creator"
             if not s_copy.get("creator_avatar"):
                 s_copy["creator_avatar"] = "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80"
             if "is_original" not in s_copy:
@@ -1053,6 +1063,130 @@ class SeriesRepository(BaseRepository):
         all_media = self.local_get("media_assets") or []
         return next((m for m in all_media if str(m.get("episode_id")) in [episode_id, target_uuid]), None)
 
+    def resolve_series_creator_id(self, series: Dict[str, Any]) -> Optional[str]:
+        """
+        Resolves series creator from canonical persisted ownership relationship:
+        series → digital_ips → master_owner_id → creator.
+        Strictly avoids title-based heuristics, series name guessing, or arbitrary defaults.
+        """
+        if not series:
+            return None
+
+        # 1. Identify digital IP ID from series
+        ip_id = series.get("ip_id")
+        target_series_id = str(series.get("id", ""))
+
+        # If ip_id is not directly on series, check local store series record or live database
+        if not ip_id and target_series_id:
+            local_series = self.local_get("series") or []
+            target_uuid = to_uuid(target_series_id)
+            matched_s = next(
+                (s for s in local_series if str(s.get("id", "")) in (target_series_id, target_uuid) or to_uuid(str(s.get("id", ""))) == target_uuid),
+                None
+            )
+            if matched_s:
+                ip_id = matched_s.get("ip_id")
+
+            if not ip_id and self.is_live:
+                try:
+                    res = self.get_table("series").select("ip_id").or_(f"id.eq.{target_series_id},id.eq.{target_uuid}").limit(1).execute()
+                    if res and res.data and len(res.data) > 0:
+                        ip_id = res.data[0].get("ip_id")
+                except Exception as e:
+                    logger.warning(f"[SeriesRepository] Remote series ip_id lookup failed: {e}")
+
+        target_ip_record = None
+        if ip_id:
+            # 2. Resolve digital_ips record
+            target_ip_uuid = to_uuid(str(ip_id))
+            all_ips = self.local_get("digital_ips") or []
+            target_ip_record = next(
+                (i for i in all_ips if str(i.get("id", "")) in (str(ip_id), target_ip_uuid) or to_uuid(str(i.get("id", ""))) == target_ip_uuid),
+                None
+            )
+            if not target_ip_record and self.is_live:
+                try:
+                    res = self.get_table("digital_ips").select("*").or_(f"id.eq.{ip_id},id.eq.{target_ip_uuid}").execute()
+                    if res and res.data and len(res.data) > 0:
+                        target_ip_record = res.data[0]
+                except Exception as e:
+                    logger.warning(f"[SeriesRepository] Remote digital_ips lookup failed: {e}")
+
+        # 3. Resolve master_owner_id from digital_ips
+        if target_ip_record and target_ip_record.get("master_owner_id"):
+            master_owner_id = str(target_ip_record["master_owner_id"])
+            
+            # 4. Resolve master_owner_id -> creator
+            # A. If master_owner_id is already a creator_id (e.g. 'creator_zola', 'creator_amaka')
+            if master_owner_id.startswith("creator_"):
+                return master_owner_id
+
+            # B. Check local or remote creators table for user_id == master_owner_id or id == master_owner_id
+            local_creators = self.local_get("creators") or []
+            target_owner_uuid = to_uuid(master_owner_id)
+            matched_creator = next(
+                (c for c in local_creators if str(c.get("user_id", "")) in (master_owner_id, target_owner_uuid) 
+                 or to_uuid(str(c.get("user_id", ""))) == target_owner_uuid
+                 or str(c.get("id", "")) in (master_owner_id, target_owner_uuid)
+                 or to_uuid(str(c.get("id", ""))) == target_owner_uuid),
+                None
+            )
+            if matched_creator and matched_creator.get("id"):
+                return str(matched_creator["id"])
+
+            # C. Check remote creators if live
+            if self.is_live:
+                try:
+                    res = self.get_table("creators").select("*").or_(f"user_id.eq.{master_owner_id},user_id.eq.{target_owner_uuid},id.eq.{master_owner_id},id.eq.{target_owner_uuid}").execute()
+                    if res and res.data and len(res.data) > 0:
+                        creator_row = res.data[0]
+                        c_id = creator_row.get("id")
+                        if c_id:
+                            return str(c_id)
+                except Exception as e:
+                    logger.warning(f"[SeriesRepository] Remote creator lookup failed: {e}")
+
+            # D. Known canonical user -> creator mappings (conforming to Schema v2 and seed contracts)
+            known_user_to_creator = {
+                "user_zola": "creator_zola",
+                to_uuid("user_zola"): "creator_zola",
+                to_uuid("creator_zola"): "creator_zola",
+                "user_amaka": "creator_amaka",
+                to_uuid("user_amaka"): "creator_amaka",
+                to_uuid("creator_amaka"): "creator_amaka",
+                "user_sa_02": "creator_lerato",
+                to_uuid("user_sa_02"): "creator_lerato",
+                to_uuid("creator_lerato"): "creator_lerato",
+                "user_kofi": "creator_kofi",
+                to_uuid("user_kofi"): "creator_kofi",
+                to_uuid("creator_kofi"): "creator_kofi",
+                "user_wanjiku": "creator_wanjiku",
+                to_uuid("user_wanjiku"): "creator_wanjiku",
+                to_uuid("creator_wanjiku"): "creator_wanjiku",
+            }
+            if master_owner_id in known_user_to_creator:
+                return known_user_to_creator[master_owner_id]
+            if target_owner_uuid in known_user_to_creator:
+                return known_user_to_creator[target_owner_uuid]
+
+            return master_owner_id
+
+        # 5. Fallback to persisted creator_id on series if set
+        if series.get("creator_id"):
+            return str(series["creator_id"])
+
+        if target_series_id:
+            local_series = self.local_get("series") or []
+            target_uuid = to_uuid(target_series_id)
+            matched_s = next(
+                (s for s in local_series if str(s.get("id", "")) in (target_series_id, target_uuid) or to_uuid(str(s.get("id", ""))) == target_uuid),
+                None
+            )
+            if matched_s and matched_s.get("creator_id"):
+                return str(matched_s["creator_id"])
+
+        return None
+
     def get_creator_series(self, creator_id: Optional[str] = None) -> List[Dict[str, Any]]:
         """
         Creator-facing Series roster returning ALL episodes across all lifecycle states
@@ -1093,7 +1227,9 @@ class SeriesRepository(BaseRepository):
             if not c_id and matched_local:
                 c_id = matched_local.get("creator_id")
             if not c_id:
-                c_id = "creator_zola" if ("blood" in str(s.get("title", "")).lower() or "queen" in str(s.get("title", "")).lower()) else "creator_amaka"
+                c_id = self.resolve_series_creator_id(s)
+            if not c_id and matched_local:
+                c_id = self.resolve_series_creator_id(matched_local)
 
             if creator_id and c_id and c_id != creator_id and to_uuid(c_id) != to_uuid(creator_id):
                 continue
@@ -1105,6 +1241,15 @@ class SeriesRepository(BaseRepository):
                     s_copy["creator_name"] = matched_local.get("creator_name")
                 if not s_copy.get("creator_avatar"):
                     s_copy["creator_avatar"] = matched_local.get("creator_avatar")
+            if not s_copy.get("creator_name"):
+                if c_id == "creator_zola":
+                    s_copy["creator_name"] = "Zola Dlamini"
+                elif c_id == "creator_amaka":
+                    s_copy["creator_name"] = "Amaka Okafor"
+                elif c_id == "creator_lerato":
+                    s_copy["creator_name"] = "Lerato Khumalo"
+                else:
+                    s_copy["creator_name"] = "Welele Creator"
             if s_slug:
                 s_copy["slug"] = s_slug
 
@@ -1174,17 +1319,44 @@ class SeriesRepository(BaseRepository):
     def get_creator_series_detail(self, series_id: str) -> Optional[Dict[str, Any]]:
         """
         Returns a single series with all episodes across all lifecycle states.
+        Resolves creator ownership canonically: series → digital_ips → master_owner_id → creator.
         """
         all_series = self.get_creator_series()
         target_uuid = to_uuid(series_id)
-        return next((s for s in all_series if s.get("id") == series_id or str(s.get("id")) == series_id or to_uuid(str(s.get("id", ""))) == target_uuid), None)
+        series = next((s for s in all_series if s.get("id") == series_id or str(s.get("id")) == series_id or to_uuid(str(s.get("id", ""))) == target_uuid), None)
+        if series:
+            s_copy = dict(series)
+            if not s_copy.get("creator_id"):
+                s_copy["creator_id"] = self.resolve_series_creator_id(s_copy)
+            return s_copy
 
-    def resolve_valid_ip_id(self, preferred_ip: Optional[str] = None) -> str:
+        # Fallback to local series
+        raw_series = self.local_get("series") or []
+        series = next((s for s in raw_series if s.get("id") == series_id or str(s.get("id")) == series_id or to_uuid(str(s.get("id", ""))) == target_uuid), None)
+        if series:
+            s_copy = dict(series)
+            s_copy["creator_id"] = s_copy.get("creator_id") or self.resolve_series_creator_id(s_copy)
+            return s_copy
+
+        if self.is_live:
+            try:
+                res = self.get_table("series").select("*").or_(f"id.eq.{series_id},id.eq.{target_uuid}").execute()
+                if res and res.data and len(res.data) > 0:
+                    s_row = dict(res.data[0])
+                    s_row["creator_id"] = self.resolve_series_creator_id(s_row)
+                    return s_row
+            except Exception as e:
+                logger.warning(f"[SeriesRepository] get_creator_series_detail remote lookup failed: {e}")
+
+        return None
+
+    def resolve_valid_ip_id(self, preferred_ip: Optional[str] = None, creator_id: Optional[str] = None) -> str:
         """
         Resolves or selects a valid UUID for digital_ips.id conforming to PostgreSQL schema.
         1. If preferred_ip is a valid UUID, returns it.
-        2. Queries live Supabase public.digital_ips for an active IP UUID.
-        3. Falls back to canonical staging seed UUID to_uuid('ip_blood_ties').
+        2. If creator_id is provided, finds an active digital_ips owned by this creator.
+        3. Queries live Supabase public.digital_ips for an active IP UUID.
+        4. Falls back to canonical staging seed UUID to_uuid('ip_blood_ties').
         """
         if preferred_ip:
             try:
@@ -1192,6 +1364,29 @@ class SeriesRepository(BaseRepository):
                 return str(preferred_ip)
             except Exception:
                 pass
+
+        if creator_id:
+            target_creator_uuid = to_uuid(creator_id)
+            all_ips = self.local_get("digital_ips") or []
+            for ip in all_ips:
+                owner = str(ip.get("master_owner_id", ""))
+                if owner and (
+                    owner == creator_id 
+                    or to_uuid(owner) == target_creator_uuid
+                    or (creator_id == "creator_zola" and owner in ("user_zola", to_uuid("user_zola")))
+                    or (creator_id == "creator_amaka" and owner in ("user_amaka", to_uuid("user_amaka")))
+                ):
+                    return to_uuid(str(ip.get("id")))
+
+            if self.is_live:
+                try:
+                    res = self.get_table("digital_ips").select("id").or_(
+                        f"master_owner_id.eq.{creator_id},master_owner_id.eq.{target_creator_uuid}"
+                    ).limit(1).execute()
+                    if res and res.data and len(res.data) > 0 and res.data[0].get("id"):
+                        return str(res.data[0]["id"])
+                except Exception as e:
+                    logger.warning(f"[SeriesRepository] Query digital_ips by creator failed: {e}")
 
         if self.is_live:
             try:
@@ -1262,9 +1457,9 @@ class SeriesRepository(BaseRepository):
 
         raw_ip = series_data.get("ip_id")
         if not raw_ip or raw_ip == "ip_blood_ties":
-            ip_id = self.resolve_valid_ip_id()
+            ip_id = self.resolve_valid_ip_id(creator_id=series_data.get("creator_id"))
         else:
-            ip_id = self.resolve_valid_ip_id(preferred_ip=str(raw_ip))
+            ip_id = self.resolve_valid_ip_id(preferred_ip=str(raw_ip), creator_id=series_data.get("creator_id"))
 
         season_number = series_data.get("season_number")
         if not season_number:
