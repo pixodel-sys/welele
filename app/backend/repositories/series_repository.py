@@ -1569,8 +1569,7 @@ class SeriesRepository(BaseRepository):
                     "cliffhanger_time_seconds": ep_record["cliffhanger_time_seconds"],
                     "cliffhanger_hook": ep_record["cliffhanger_hook"],
                     "status": ep_record["status"],
-                    "created_at": ep_record["created_at"],
-                    "updated_at": ep_record["updated_at"]
+                    "created_at": ep_record["created_at"]
                 }
                 self.get_table("episodes").upsert(db_record).execute()
             except Exception as e:
@@ -1658,8 +1657,7 @@ class SeriesRepository(BaseRepository):
         if self.is_live:
             try:
                 self.get_table("episodes").update({
-                    "status": "under_review",
-                    "updated_at": now_ts
+                    "status": "under_review"
                 }).or_(f"id.eq.{episode_id},id.eq.{to_uuid(episode_id)}").execute()
             except Exception as e:
                 logger.warning(f"[SeriesRepository:DB] submit_for_moderation remote persistence error: {e}")
@@ -1697,8 +1695,7 @@ class SeriesRepository(BaseRepository):
         if self.is_live:
             try:
                 self.get_table("episodes").update({
-                    "status": target_status,
-                    "updated_at": now_ts
+                    "status": target_status
                 }).or_(f"id.eq.{episode_id},id.eq.{to_uuid(episode_id)}").execute()
             except Exception as e:
                 logger.warning(f"[SeriesRepository:DB] review_episode remote persistence error: {e}")

@@ -188,3 +188,91 @@ def test_milestone_6c_no_title_heuristic_in_database_series_read():
         f"Title heuristic failure: Series with 'queen'/'blood' in title but owned by Amaka IP "
         f"must resolve to 'creator_amaka', got '{resolved_owner}'"
     )
+
+
+def test_milestone_6c_episode_persistence_payload_schema_compliance(monkeypatch):
+    """
+    Regression Test for Milestone 6C Staging Blocker:
+    Proves that episode persistence paths writing to canonical public.episodes table:
+    1. Do NOT include 'updated_at' in the PostgreSQL upsert/update payload (table has no updated_at column).
+    2. Preserve 'created_at' in the payload.
+    3. Conform strictly to canonical supabase_schema_v2.sql public.episodes definition.
+    """
+    captured_upserts = []
+    captured_updates = []
+
+    class MockTable:
+        def __init__(self, name):
+            self.name = name
+
+        def upsert(self, record):
+            captured_upserts.append(record)
+            class MockExec:
+                def execute(self):
+                    return {"data": [record]}
+            return MockExec()
+
+        def update(self, values):
+            captured_updates.append(values)
+            class MockFilter:
+                def eq(self, *args, **kwargs):
+                    return self
+                def or_(self, *args, **kwargs):
+                    return self
+                def execute(self):
+                    return {"data": [values]}
+            return MockFilter()
+
+    # Enable is_live to test remote database serialization logic
+    monkeypatch.setattr(type(series_repository), "is_live", property(lambda self: True))
+    monkeypatch.setattr(series_repository, "get_table", lambda t: MockTable(t))
+
+    test_series_id = str(uuid.uuid4())
+    payload = {
+        "episode_number": 1,
+        "title": "The Midnight Drop",
+        "synopsis": "Dockside thriller episode draft",
+        "duration_seconds": 75,
+        "is_free": False,
+        "coin_price": 5,
+        "cliffhanger_time": 65,
+        "cliffhanger_hook": "Who is at the gate?",
+        "status": "under_review"
+    }
+
+    # 1. Test create_episode_draft()
+    created_ep = series_repository.create_episode_draft(
+        series_id=test_series_id,
+        story_package_id=None,
+        payload=payload
+    )
+
+    assert len(captured_upserts) == 1, "Expected 1 remote database upsert call"
+    db_record = captured_upserts[0]
+
+    # Staging Schema Invariant: public.episodes must NEVER receive updated_at
+    assert "updated_at" not in db_record, (
+        f"Schema violation: 'updated_at' was sent in public.episodes payload: {db_record}"
+    )
+    # Staging Schema Invariant: created_at must be preserved
+    assert "created_at" in db_record, "Expected 'created_at' to be preserved in db_record"
+    assert db_record["title"] == "The Midnight Drop"
+    assert db_record["episode_number"] == 1
+
+    # 2. Test submit_for_moderation()
+    series_repository.submit_for_moderation(created_ep["id"])
+    assert len(captured_updates) >= 1
+    mod_update = captured_updates[-1]
+    assert "updated_at" not in mod_update, (
+        f"Schema violation: 'updated_at' was sent in submit_for_moderation update: {mod_update}"
+    )
+    assert mod_update["status"] == "under_review"
+
+    # 3. Test review_episode()
+    series_repository.review_episode(created_ep["id"], decision="approved")
+    rev_update = captured_updates[-1]
+    assert "updated_at" not in rev_update, (
+        f"Schema violation: 'updated_at' was sent in review_episode update: {rev_update}"
+    )
+    assert rev_update["status"] == "published"
+
