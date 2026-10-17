@@ -4,21 +4,184 @@ Provides normalized persistence, session event sequencing, deduplication lookup,
 and milestone emission tracking for Viewer Telemetry Events.
 """
 
+import logging
+import uuid
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
 from .base_repository import BaseRepository
+from repositories.series_repository import to_uuid
+
+logger = logging.getLogger("welele.telemetry")
+
+SENSITIVE_FIELD_SUBSTRINGS = (
+    "token", "secret", "password", "key", "auth", "credential", "otp"
+)
+
+def _sanitize_metadata(meta: Dict[str, Any]) -> Dict[str, Any]:
+    """Ensures sensitive authentication tokens or secrets are never persisted in telemetry."""
+    sanitized = {}
+    for k, v in meta.items():
+        k_lower = str(k).lower()
+        if any(sub in k_lower for sub in SENSITIVE_FIELD_SUBSTRINGS):
+            continue
+        if isinstance(v, dict):
+            sanitized[k] = _sanitize_metadata(v)
+        else:
+            sanitized[k] = v
+    return sanitized
 
 
 class TelemetryRepository(BaseRepository):
     def __init__(self):
         super().__init__()
 
+    def _map_to_db_payload(self, event_dict: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Maps a ViewerTelemetryEvent dict to the canonical public.telemetry_events schema:
+        id UUID PRIMARY KEY,
+        event_name VARCHAR(64) NOT NULL,
+        user_id UUID REFERENCES public.users(id),
+        session_id VARCHAR(64) NOT NULL,
+        ip_id UUID REFERENCES public.digital_ips(id),
+        series_id UUID REFERENCES public.series(id),
+        episode_id UUID REFERENCES public.episodes(id),
+        playback_second INT NOT NULL,
+        region_code VARCHAR(8) NOT NULL,
+        device_type VARCHAR(32) NOT NULL,
+        metadata JSONB,
+        created_at TIMESTAMPTZ NOT NULL
+        """
+        raw_event_id = event_dict.get("event_id") or event_dict.get("id") or str(uuid.uuid4())
+        event_uuid = to_uuid(str(raw_event_id))
+
+        event_name = str(event_dict.get("event_type") or event_dict.get("event_name") or "custom_event")[:64]
+        session_id = str(event_dict.get("session_id") or "default_session")[:64]
+        playback_second = int(float(event_dict.get("position_seconds") or event_dict.get("playback_second") or 0))
+
+        region_code = str(
+            event_dict.get("region_code") or
+            (event_dict.get("metadata") or {}).get("region_code") or
+            (event_dict.get("cohort_context") or {}).get("region_code") or
+            "ZA"
+        )[:8]
+
+        device_type = str(
+            (event_dict.get("metadata") or {}).get("device_class") or
+            event_dict.get("source") or
+            "mobile_pwa"
+        )[:32]
+
+        series_uuid = None
+        if event_dict.get("series_id"):
+            raw_s = str(event_dict["series_id"])
+            target_s_uuid = to_uuid(raw_s)
+            if self.is_live:
+                try:
+                    s_res = self.get_table("series").select("id").eq("id", target_s_uuid).limit(1).execute()
+                    if s_res and s_res.data:
+                        series_uuid = s_res.data[0]["id"]
+                except Exception:
+                    series_uuid = None
+            else:
+                series_uuid = target_s_uuid
+
+        episode_uuid = None
+        ep_id = event_dict.get("episode_id") or (event_dict.get("content_id") if event_dict.get("content_type") == "EPISODE" else None)
+        if ep_id:
+            raw_ep = str(ep_id)
+            target_ep_uuid = to_uuid(raw_ep)
+            if self.is_live:
+                try:
+                    ep_res = self.get_table("episodes").select("id").eq("id", target_ep_uuid).limit(1).execute()
+                    if ep_res and ep_res.data:
+                        episode_uuid = ep_res.data[0]["id"]
+                except Exception:
+                    episode_uuid = None
+            else:
+                episode_uuid = target_ep_uuid
+
+        ip_uuid = None
+        if event_dict.get("ip_id"):
+            target_ip_uuid = to_uuid(str(event_dict["ip_id"]))
+            if self.is_live:
+                try:
+                    ip_res = self.get_table("digital_ips").select("id").eq("id", target_ip_uuid).limit(1).execute()
+                    if ip_res and ip_res.data:
+                        ip_uuid = ip_res.data[0]["id"]
+                except Exception:
+                    ip_uuid = None
+            else:
+                ip_uuid = target_ip_uuid
+
+        user_uuid = None
+        raw_uid = event_dict.get("user_id") or event_dict.get("viewer_id")
+        if raw_uid and self.is_live:
+            try:
+                target_u_uuid = to_uuid(str(raw_uid))
+                u_res = self.get_table("users").select("id").eq("id", target_u_uuid).limit(1).execute()
+                if u_res and u_res.data:
+                    user_uuid = u_res.data[0]["id"]
+            except Exception:
+                user_uuid = None
+
+        merged_meta = dict(event_dict.get("metadata") or {})
+        for spine_key in (
+            "event_id", "event_family", "event_type", "occurred_at", "ingested_at",
+            "session_id", "viewer_id", "anonymous_id", "content_type", "content_id",
+            "series_id", "episode_id", "position_seconds", "duration_seconds",
+            "milestone_pct", "event_source", "event_version", "source", "environment",
+            "is_test", "technical_context", "cohort_context"
+        ):
+            if spine_key in event_dict and spine_key not in merged_meta:
+                merged_meta[spine_key] = event_dict[spine_key]
+
+        sanitized_meta = _sanitize_metadata(merged_meta)
+        created_at = event_dict.get("occurred_at") or datetime.now(timezone.utc).isoformat()
+
+        return {
+            "id": event_uuid,
+            "event_name": event_name,
+            "user_id": user_uuid,
+            "session_id": session_id,
+            "ip_id": ip_uuid,
+            "series_id": series_uuid,
+            "episode_id": episode_uuid,
+            "playback_second": playback_second,
+            "region_code": region_code,
+            "device_type": device_type,
+            "metadata": sanitized_meta,
+            "created_at": created_at
+        }
+
+    def _map_db_row_to_event(self, row: Dict[str, Any]) -> Dict[str, Any]:
+        meta = row.get("metadata") or {}
+        event = dict(meta)
+        event["id"] = str(row.get("id"))
+        event["event_id"] = meta.get("event_id") or str(row.get("id"))
+        event["event_type"] = meta.get("event_type") or row.get("event_name")
+        event["session_id"] = row.get("session_id") or meta.get("session_id")
+        event["series_id"] = str(row.get("series_id")) if row.get("series_id") else meta.get("series_id")
+        event["episode_id"] = str(row.get("episode_id")) if row.get("episode_id") else meta.get("episode_id")
+        event["position_seconds"] = meta.get("position_seconds", float(row.get("playback_second", 0)))
+        event["occurred_at"] = meta.get("occurred_at") or row.get("created_at")
+        event["ingested_at"] = meta.get("ingested_at") or row.get("created_at")
+        return event
+
     def save_event(self, event_dict: Dict[str, Any]) -> Dict[str, Any]:
-        """Persists a validated telemetry event to the canonical event ledger."""
+        """Persists a validated telemetry event to the canonical event ledger and PostgreSQL."""
         if not event_dict.get("ingested_at"):
             event_dict["ingested_at"] = datetime.now(timezone.utc).isoformat()
         
         saved = self.local_insert("telemetry_events", event_dict)
+
+        if self.is_live:
+            try:
+                db_payload = self._map_to_db_payload(event_dict)
+                self.get_table("telemetry_events").insert(db_payload).execute()
+            except Exception as e:
+                # Telemetry failure must never break viewer playback
+                logger.warning(f"[TelemetryRepository] Telemetry PostgreSQL persistence isolated warning: {e}")
+
         return saved
 
     def _get_all_events(self) -> List[Dict[str, Any]]:
@@ -39,12 +202,40 @@ class TelemetryRepository(BaseRepository):
     def find_event_by_id(self, event_id: str) -> Optional[Dict[str, Any]]:
         """Finds an event by its unique deterministic or UUID identifier for deduplication."""
         events = self._get_all_events()
-        return next((e for e in events if e.get("event_id") == event_id or e.get("id") == event_id), None)
+        local_match = next((e for e in events if e.get("event_id") == event_id or e.get("id") == event_id), None)
+        if local_match:
+            return local_match
+
+        if self.is_live:
+            try:
+                target_uuid = to_uuid(str(event_id))
+                res = self.get_table("telemetry_events").select("*").eq("id", target_uuid).limit(1).execute()
+                if res and res.data:
+                    return self._map_db_row_to_event(res.data[0])
+            except Exception as e:
+                logger.warning(f"[TelemetryRepository] find_event_by_id remote lookup failed: {e}")
+
+        return None
 
     def get_session_events(self, session_id: str) -> List[Dict[str, Any]]:
         """Returns all events for a given session sorted chronologically by occurred_at."""
         events = self._get_all_events()
         session_events = [e for e in events if e.get("session_id") == session_id or e.get("client_session_id") == session_id]
+
+        if self.is_live:
+            try:
+                res = self.get_table("telemetry_events").select("*").eq("session_id", session_id).order("created_at").execute()
+                if res and res.data:
+                    seen = {e.get("event_id") or e.get("id") for e in session_events}
+                    for r in res.data:
+                        mapped = self._map_db_row_to_event(r)
+                        mid = mapped.get("event_id") or mapped.get("id")
+                        if mid not in seen:
+                            session_events.append(mapped)
+                            seen.add(mid)
+            except Exception as e:
+                logger.warning(f"[TelemetryRepository] get_session_events remote lookup failed: {e}")
+
         session_events.sort(key=lambda x: x.get("occurred_at", ""))
         return session_events
 

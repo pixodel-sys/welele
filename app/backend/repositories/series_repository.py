@@ -1029,6 +1029,30 @@ class SeriesRepository(BaseRepository):
                 return s
         return None
 
+    def get_episode(self, episode_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Retrieves authoritative episode record from Supabase PostgreSQL in live mode,
+        falling back to local fixtures when offline or in test mode.
+        Supports UUIDs, string IDs, and canonical slugs.
+        """
+        target_uuid = to_uuid(episode_id)
+        if self.is_live:
+            try:
+                res = self.get_table("episodes").select("*").eq("id", target_uuid).limit(1).execute()
+                if res and res.data:
+                    row = res.data[0]
+                    row["slug"] = EPISODE_UUID_TO_SLUG.get(str(row.get("id")))
+                    return row
+            except Exception as e:
+                logger.warning(f"[SeriesRepository] get_episode remote lookup failed: {e}")
+        all_episodes = self.local_get("episodes") or []
+        for ep in all_episodes:
+            ep_id = str(ep.get("id", ""))
+            ep_slug = str(ep.get("slug", ""))
+            if ep_id == episode_id or ep_slug == episode_id or ep_id == target_uuid or to_uuid(ep_id) == target_uuid:
+                return ep
+        return None
+
     def get_episodes_for_series(self, series_id: str) -> List[Dict[str, Any]]:
         target_uuid = to_uuid(series_id)
         if self.is_live:

@@ -35,19 +35,28 @@ class ViewerTelemetryService:
     def validate_content_lineage(self, event: ViewerTelemetryEvent) -> bool:
         """
         Validates that content references point to real canonical entities in the catalog.
+        Resolves against authoritative PostgreSQL database in staging/production live mode,
+        preserving local/offline fallback for test/fixture environments.
         """
+        from repositories.series_repository import to_uuid
+
         if event.content_type == "EPISODE" or event.episode_id:
             ep_id = event.episode_id or event.content_id
-            all_episodes = self.series_repo.local_get("episodes") or []
-            ep = next((e for e in all_episodes if e.get("id") == ep_id), None)
+            ep = self.series_repo.get_episode(ep_id)
             if not ep:
                 return False
-            if event.series_id and ep.get("series_id") and ep.get("series_id") != event.series_id:
-                return False
+            if event.series_id and ep.get("series_id"):
+                ep_series = str(ep.get("series_id"))
+                evt_series = str(event.series_id)
+                if ep_series != evt_series and to_uuid(ep_series) != to_uuid(evt_series):
+                    return False
 
         if event.series_id:
-            all_series = self.series_repo.local_get("series") or []
-            s = next((s for s in all_series if s.get("id") == event.series_id), None)
+            s = self.series_repo.get_series(event.series_id)
+            if not s:
+                return False
+        elif event.content_type == "SERIES":
+            s = self.series_repo.get_series(event.content_id)
             if not s:
                 return False
 
