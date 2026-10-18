@@ -98,103 +98,115 @@ def send_phone_otp(req: PhoneAuthRequest):
 @router.post("/phone/verify-otp")
 def verify_phone_otp(req: VerifyOtpRequest):
     """Verifies OTP, issues a signed JWT with ROLE_VIEWER, and records an AUTH audit event."""
-    is_valid, msg = sms_service.verify_otp(
-        phone_number=req.phone_number,
-        submitted_code=req.otp_code,
-        region_code=req.region_code or "ZA"
-    )
-    
-    env = (settings.ENVIRONMENT or "").lower()
-    is_prod = env in ("production", "prod")
-
-    # Allow test harness bypass code '5542' strictly in automated unit test environment (ENVIRONMENT=test)
-    if not is_valid and env == "test" and req.otp_code == "5542":
-        is_valid = True
+    try:
+        is_valid, msg = sms_service.verify_otp(
+            phone_number=req.phone_number,
+            submitted_code=req.otp_code,
+            region_code=req.region_code or "ZA"
+        )
         
-    if not is_valid:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=msg or "Invalid or expired verification code."
+        env = (settings.ENVIRONMENT or "").lower()
+        is_prod = env in ("production", "prod")
+
+        # Allow test harness bypass code '5542' strictly in automated unit test environment (ENVIRONMENT=test)
+        if not is_valid and env == "test" and req.otp_code == "5542":
+            is_valid = True
+            
+        if not is_valid:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=msg or "Invalid or expired verification code."
+            )
+
+        user_id = f"usr_{uuid.uuid4().hex[:8]}"
+        
+        # Initialize wallet with promotional coins if not existing
+        ledger_service.create_wallet_for_user(user_id, initial_coins=50)
+        
+        token = create_access_token(
+            user_id=user_id,
+            role="viewer",
+            phone=req.phone_number,
+            market=req.region_code or "ZA"
         )
 
-    user_id = f"usr_{uuid.uuid4().hex[:8]}"
-    
-    # Initialize wallet with promotional coins if not existing
-    ledger_service.create_wallet_for_user(user_id, initial_coins=50)
-    
-    token = create_access_token(
-        user_id=user_id,
-        role="viewer",
-        phone=req.phone_number,
-        market=req.region_code or "ZA"
-    )
-
-    audit_service.record_trust_event(
-        domain="AUTH",
-        event_type="auth.login",
-        actor_id=user_id,
-        actor_role="viewer",
-        target_type="user_session",
-        target_id=user_id,
-        after_state={"phone": req.phone_number, "market": req.region_code or "ZA", "role": "viewer"},
-        metadata={"method": "sms_otp", "carrier_region": req.region_code or "ZA"}
-    )
-    
-    return {
-        "status": "success",
-        "access_token": token,
-        "token_type": "bearer",
-        "user": {
-            "id": user_id,
-            "name": req.display_name or "Welele Viewer",
-            "phone": req.phone_number,
-            "role": "viewer",
-            "coins": 50,
-            "market": req.region_code or "ZA"
+        audit_service.record_trust_event(
+            domain="AUTH",
+            event_type="auth.login",
+            actor_id=user_id,
+            actor_role="viewer",
+            target_type="user_session",
+            target_id=user_id,
+            after_state={"phone": req.phone_number, "market": req.region_code or "ZA", "role": "viewer"},
+            metadata={"method": "sms_otp", "carrier_region": req.region_code or "ZA"}
+        )
+        
+        return {
+            "status": "success",
+            "access_token": token,
+            "token_type": "bearer",
+            "user": {
+                "id": user_id,
+                "name": req.display_name or "Welele Viewer",
+                "phone": req.phone_number,
+                "role": "viewer",
+                "coins": 50,
+                "market": req.region_code or "ZA"
+            }
         }
-    }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[verify_phone_otp error] {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"verify_otp_error: {type(e).__name__}: {str(e)}")
 
 @router.post("/guest")
 def guest_login(req: GuestAuthRequest):
     """Issues an anonymous guest trial token bound to device fingerprint and records audit event."""
-    guest_id = f"guest_{uuid.uuid4().hex[:8]}"
-    ledger_service.create_wallet_for_user(guest_id, initial_coins=25)
-    
-    token = create_access_token(
-        user_id=guest_id,
-        role="viewer",
-        market=req.region_code or "ZA",
-        kyc_status="GUEST"
-    )
+    try:
+        guest_id = f"guest_{uuid.uuid4().hex[:8]}"
+        ledger_service.create_wallet_for_user(guest_id, initial_coins=25)
+        
+        token = create_access_token(
+            user_id=guest_id,
+            role="viewer",
+            market=req.region_code or "ZA",
+            kyc_status="GUEST"
+        )
 
-    audit_service.record_trust_event(
-        domain="AUTH",
-        event_type="auth.guest_session",
-        actor_id=guest_id,
-        actor_role="viewer",
-        target_type="guest_session",
-        target_id=guest_id,
-        after_state={"market": req.region_code or "ZA", "device_id": req.device_id},
-        metadata={"onboarding": "frictionless_trial"}
-    )
-    
-    return {
-        "status": "success",
-        "access_token": token,
-        "token_type": "bearer",
-        "user": {
-            "id": guest_id,
-            "name": "Guest Viewer",
-            "role": "viewer",
-            "coins": 25,
-            "market": req.region_code or "ZA"
-        },
-        "wallet": {
-            "balance": 25,
-            "coin_balance": 25,
-            "bonus_coins": 0
+        audit_service.record_trust_event(
+            domain="AUTH",
+            event_type="auth.guest_session",
+            actor_id=guest_id,
+            actor_role="viewer",
+            target_type="guest_session",
+            target_id=guest_id,
+            after_state={"market": req.region_code or "ZA", "device_id": req.device_id},
+            metadata={"onboarding": "frictionless_trial"}
+        )
+        
+        return {
+            "status": "success",
+            "access_token": token,
+            "token_type": "bearer",
+            "user": {
+                "id": guest_id,
+                "name": "Guest Viewer",
+                "role": "viewer",
+                "coins": 25,
+                "market": req.region_code or "ZA"
+            },
+            "wallet": {
+                "balance": 25,
+                "coin_balance": 25,
+                "bonus_coins": 0
+            }
         }
-    }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[guest_login error] {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"guest_login_error: {type(e).__name__}: {str(e)}")
 
 @router.post("/creator/login")
 def creator_login(req: CreatorLoginRequest):
