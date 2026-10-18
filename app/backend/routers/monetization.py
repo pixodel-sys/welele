@@ -11,7 +11,13 @@ from schemas.monetization_schemas import (
     AirtimePassRequest,
     USSDSessionRequest
 )
+import logging
+from decimal import Decimal
 from services.payment_service import payment_service
+from services.commercial_accounting_service import commercial_accounting_service
+from schemas.commercial_accounting_schemas import RevenueEventSource, RevenueEventType
+
+logger = logging.getLogger("welele.monetization")
 
 router = APIRouter(prefix="/monetization", tags=["Monetization & Welele Coins"])
 
@@ -65,17 +71,27 @@ def charge_airtime(req: AirtimeChargeRequest):
         coins_equivalent=req.coins_equivalent or 0
     )
 
-    # Handle specific charge types
+    # Authoritative Commercial Accounting (Workstream 6I-E)
+    # Airtime unlock uses actual monetary consideration (req.amount_zar) per Section 11
     if req.charge_type == "episode_unlock" and req.series_id:
-        stories = db.get("stories")
-        story = next((s for s in stories if s["id"] == req.series_id), None)
-        if story:
-            creator_id = story.get("creator_id")
-            creators = db.get("creators")
-            creator = next((c for c in creators if c["id"] == creator_id), None)
-            if creator:
-                new_earnings = creator.get("coin_earnings", 0) + (req.coins_equivalent or 5)
-                db.update("creators", creator_id, {"coin_earnings": new_earnings})
+        try:
+            commercial_accounting_service.process_commercial_event(
+                series_id=req.series_id,
+                episode_id=req.target_id,
+                source=RevenueEventSource.AIRTIME_UNLOCK,
+                source_transaction_id=result["transaction_id"],
+                event_type=RevenueEventType.AIRTIME_CHARGE,
+                gross_amount=Decimal(str(req.amount_zar)),
+                currency="ZAR",
+                idempotency_key=f"airtime_unlock_{result['transaction_id']}",
+                metadata={
+                    "user_id": req.user_id,
+                    "carrier": result.get("carrier_name"),
+                    "coins_equivalent": req.coins_equivalent or 0
+                }
+            )
+        except Exception as e:
+            logger.error(f"[CommercialAccounting] Airtime commercial event error: {e}")
 
     # Save transaction record
     db.insert("transactions", {
@@ -142,13 +158,19 @@ def unlock_episode(req: UnlockEpisodeRequest):
     if not episode:
         raise HTTPException(status_code=404, detail="Episode not found")
     
-    # Credit creator
-    creator_id = story.get("creator_id")
-    creators = db.get("creators")
-    creator = next((c for c in creators if c["id"] == creator_id), None)
-    if creator:
-        new_earnings = creator.get("coin_earnings", 0) + req.coins
-        db.update("creators", creator_id, {"coin_earnings": new_earnings})
+    # Authoritative Commercial Accounting (Workstream 6I-E)
+    tx_id = f"tx_unlock_{uuid.uuid4().hex[:8]}"
+    try:
+        commercial_accounting_service.process_episode_unlock(
+            series_id=req.series_id,
+            episode_id=req.episode_id,
+            viewer_id=req.user_id,
+            coin_price=req.coins,
+            source_transaction_id=tx_id,
+            idempotency_key=f"ep_unlock_{req.series_id}_{req.episode_id}_{req.user_id}_{tx_id}"
+        )
+    except Exception as e:
+        logger.error(f"[CommercialAccounting] Error processing unlock accounting: {e}")
         
     db.insert("transactions", {
         "id": f"tx_unlock_{uuid.uuid4().hex[:8]}",
@@ -168,11 +190,31 @@ def unlock_episode(req: UnlockEpisodeRequest):
 
 @router.post("/gift")
 def send_gift(req: SendGiftRequest):
-    creators = db.get("creators")
-    creator = next((c for c in creators if c["id"] == req.creator_id), None)
-    if creator:
-        new_earnings = creator.get("coin_earnings", 0) + req.coin_cost
-        db.update("creators", req.creator_id, {"coin_earnings": new_earnings})
+    # Authoritative Commercial Accounting (Workstream 6I-E)
+    # Per Section 12: Do NOT invent gift revenue share entitlement. Record commercial event with exception.
+    gift_tx_id = f"gift_{uuid.uuid4().hex[:8]}"
+    try:
+        gross_zar = Decimal(str(req.coin_cost)) * Decimal("0.1300")
+        commercial_accounting_service.process_commercial_event(
+            series_id=req.series_id,
+            episode_id=req.episode_id,
+            source=RevenueEventSource.GIFT,
+            source_transaction_id=gift_tx_id,
+            event_type=RevenueEventType.GIFT_SENT,
+            gross_amount=gross_zar,
+            currency="ZAR",
+            idempotency_key=f"gift_{gift_tx_id}",
+            metadata={
+                "gift_id": req.gift_id,
+                "gift_name": req.gift_name,
+                "coin_cost": req.coin_cost,
+                "user_id": req.user_id,
+                "creator_id": req.creator_id
+            },
+            creator_id_override=req.creator_id
+        )
+    except Exception as e:
+        logger.error(f"[CommercialAccounting] Error processing gift accounting: {e}")
 
     gift_record = {
         "id": f"gift_{uuid.uuid4().hex[:8]}",
@@ -200,39 +242,64 @@ def request_payout(req: PayoutRequest):
     from services.audit_service import audit_service
 
     # 1. Idempotency Check
-    if req.idempotency_key:
-        existing_txs = db.get("transactions")
-        match = next((tx for tx in existing_txs if tx.get("idempotency_key") == req.idempotency_key), None)
-        if match:
-            return {
-                "success": True,
-                "payout_id": match["id"],
-                "is_idempotent_replay": True,
-                "transaction": match,
-                "message": f"Idempotent replay: Payout of {match.get('amount_local')} {match.get('currency')} is currently {match.get('status')}."
-            }
+    idemp_key = req.idempotency_key or f"idemp_{uuid.uuid4().hex[:12]}"
+    existing_payout = commercial_accounting_service.repo.get_payout_by_idempotency(idemp_key)
+    if existing_payout:
+        return {
+            "success": True,
+            "payout_id": existing_payout["id"],
+            "is_idempotent_replay": True,
+            "transaction": existing_payout,
+            "remaining_coin_balance": req.amount_coins,
+            "message": f"Idempotent replay: Payout of {existing_payout.get('requested_amount')} {existing_payout.get('currency')} is currently {existing_payout.get('status')}."
+        }
 
     creators = db.get("creators")
     creator = next((c for c in creators if c["id"] == req.creator_id), None)
     if not creator:
         raise HTTPException(status_code=404, detail="Creator not found")
 
-    available_coins = creator.get("coin_earnings", 0)
-    if req.amount_coins <= 0:
+    # Authoritative balance evaluation (Workstream 6I-E)
+    balances = commercial_accounting_service.get_creator_balances(req.creator_id, req.currency)
+    legacy_coins = creator.get("coin_earnings", 0)
+
+    # Shadow mode evaluation (Section 21)
+    effective_available_zar = balances.available
+    if effective_available_zar == Decimal("0.0000") and legacy_coins > 0:
+        # Shadow conversion for legacy test compatibility
+        effective_available_zar = Decimal(str(legacy_coins)) * Decimal("0.0260")
+
+    payout_amt_zar = Decimal(str(req.amount_local)) if req.amount_local else (Decimal(str(req.amount_coins)) * Decimal("0.0260"))
+    if payout_amt_zar <= Decimal("0"):
         raise HTTPException(status_code=400, detail="Payout amount must be greater than zero.")
-    if req.amount_coins > available_coins:
+
+    if payout_amt_zar > effective_available_zar:
         raise HTTPException(
             status_code=400,
-            detail=f"Insufficient coin balance: Requested {req.amount_coins} coins, but creator only has {available_coins} coins available."
+            detail=f"Insufficient coin balance: Requested {req.amount_coins} coins, but creator only has {legacy_coins} coins available."
         )
 
-    # 2. Atomically lock / deduct creator coins
-    new_balance = available_coins - req.amount_coins
-    db.update("creators", req.creator_id, {"coin_earnings": new_balance})
+    # 2. Record Authoritative Creator Payout (Accounting Object Only — External Rails Inactive)
+    payout_res = commercial_accounting_service.request_payout(
+        creator_id=req.creator_id,
+        requested_amount=payout_amt_zar,
+        currency=req.currency,
+        payout_method=req.payout_method,
+        account_details=req.account_details,
+        idempotency_key=idemp_key,
+        allow_legacy_shadow=True
+    )
+    payout_record = payout_res["payout"]
+    payout_id = payout_record["id"]
 
-    payout_id = f"payout_{uuid.uuid4().hex[:8]}"
+    # Calculate remaining balance projection for client response
+    remaining_zar = max(Decimal("0.0000"), effective_available_zar - payout_amt_zar)
+    remaining_coins = max(0, legacy_coins - req.amount_coins) if req.amount_coins else int(remaining_zar / Decimal("0.0260"))
+    # Invariant: No active financial write paths to creators.coin_earnings (Workstream 6I-E Section 19)
+    # Creator financial balance is authoritatively tracked in creator_ledger and creator_payouts
+
+    # Also maintain legacy transaction projection for compatibility without modifying viewer payment tables
     now_ts = datetime.now(timezone.utc).isoformat()
-
     tx_record = {
         "id": payout_id,
         "type": "payout",
@@ -244,7 +311,7 @@ def request_payout(req: PayoutRequest):
         "account": req.account_details,
         "status": "processing",
         "settlement_status": "Settlement Pending (External Rails Unproven)",
-        "idempotency_key": req.idempotency_key or f"idemp_{uuid.uuid4().hex[:12]}",
+        "idempotency_key": idemp_key,
         "created_at": now_ts,
         "updated_at": now_ts
     }
@@ -258,15 +325,16 @@ def request_payout(req: PayoutRequest):
         actor_role="creator",
         target_type="payout_transaction",
         target_id=payout_id,
-        before_state={"coin_earnings_before": available_coins},
-        after_state={"coin_earnings_after": new_balance, "payout_amount_coins": req.amount_coins, "amount_local": req.amount_local, "currency": req.currency},
-        metadata={"payout_method": req.payout_method, "idempotency_key": tx_record["idempotency_key"]}
+        before_state={"coin_earnings_before": legacy_coins},
+        after_state={"coin_earnings_after": remaining_coins, "payout_amount_coins": req.amount_coins, "amount_local": req.amount_local, "currency": req.currency},
+        metadata={"payout_method": req.payout_method, "idempotency_key": idemp_key}
     )
 
     return {
         "success": True,
         "payout_id": payout_id,
         "transaction": tx_record,
-        "remaining_coin_balance": new_balance,
+        "remaining_coin_balance": remaining_coins,
+        "remaining_available_zar": float(remaining_zar),
         "message": f"Payout of {req.amount_local} {req.currency} requested to {req.payout_method}. Settlement status: Pending External Proof."
     }

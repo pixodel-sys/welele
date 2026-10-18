@@ -7,6 +7,7 @@ cliffhanger detection, and subtitles.
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Query, Depends, Header
 from database import db
+import uuid
 import logging
 from repositories.ledger_repository import ledger_repository
 from repositories.series_repository import series_repository, to_uuid
@@ -14,6 +15,7 @@ from services.storage_service import storage_service
 from services.ledger_service import ledger_service
 from services.rbac_service import require_role, get_current_user, enforce_tenant_access, require_authenticated_user
 from services.audit_service import audit_service
+from services.commercial_accounting_service import commercial_accounting_service
 
 logger = logging.getLogger("welele.episodes")
 
@@ -321,14 +323,20 @@ def unlock_episode(
     if not success:
         raise HTTPException(status_code=400, detail=message)
 
-    # Credit creator royalty split
-    creator_id = story.get("creator_id")
-    if creator_id:
-        creators = db.get("creators")
-        creator = next((c for c in creators if c["id"] == creator_id), None)
-        if creator:
-            new_coins = creator.get("coin_earnings", 0) + coin_price
-            db.update("creators", creator_id, {"coin_earnings": new_coins})
+    # Authoritative Commercial Accounting (Workstream 6I-E)
+    # Creator earnings originate from revenue events and governing commercial agreement
+    try:
+        unlock_id = unlock_record.get("id") if isinstance(unlock_record, dict) else str(uuid.uuid4())
+        commercial_accounting_service.process_episode_unlock(
+            series_id=series_id,
+            episode_id=episode_id,
+            viewer_id=target_user,
+            coin_price=coin_price,
+            source_transaction_id=str(unlock_id),
+            idempotency_key=f"ep_unlock_{series_id}_{episode_id}_{target_user}_{unlock_id}"
+        )
+    except Exception as e:
+        logger.error(f"[CommercialAccounting] Error processing commercial accounting for episode unlock {episode_id}: {e}")
 
     balance = ledger_service.get_balance(target_user)
     return {

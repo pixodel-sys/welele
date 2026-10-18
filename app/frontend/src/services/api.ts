@@ -505,6 +505,53 @@ export const adminApi = {
     const res = await API.get('/admin/project40-funnel', { params });
     return res.data;
   },
+  listPaymentRuns: async (params?: { limit?: number; status?: string }) => {
+    const res = await API.get('/admin/commercial/runs', { params });
+    return res.data;
+  },
+  getPaymentRunDetail: async (runId: string) => {
+    const res = await API.get(`/admin/commercial/runs/${runId}`);
+    return res.data;
+  },
+  createPaymentRun: async (payload: {
+    period_start: string;
+    period_end: string;
+    currency?: string;
+    idempotency_key?: string;
+    metadata?: any;
+    payout_ids?: string[];
+  }) => {
+    const res = await API.post('/admin/commercial/runs', payload);
+    return res.data;
+  },
+  submitPaymentRunForReview: async (runId: string) => {
+    const res = await API.post(`/admin/commercial/runs/${runId}/submit-review`);
+    return res.data;
+  },
+  approvePaymentRun: async (runId: string) => {
+    const res = await API.post(`/admin/commercial/runs/${runId}/approve`);
+    return res.data;
+  },
+  cancelPaymentRun: async (runId: string, reason?: string) => {
+    const res = await API.post(`/admin/commercial/runs/${runId}/cancel`, null, { params: { reason } });
+    return res.data;
+  },
+  exportPaymentRun: async (runId: string) => {
+    const res = await API.get(`/admin/commercial/runs/${runId}/export`, { responseType: 'blob' });
+    return res;
+  },
+  recordPaymentRunResults: async (runId: string, results: any[], idempotency_key?: string) => {
+    const res = await API.post(`/admin/commercial/runs/${runId}/results`, { results, idempotency_key });
+    return res.data;
+  },
+  reconcilePaymentRun: async (runId: string) => {
+    const res = await API.post(`/admin/commercial/runs/${runId}/reconcile`);
+    return res.data;
+  },
+  getPaymentRunExceptions: async () => {
+    const res = await API.get('/admin/commercial/runs/exceptions');
+    return res.data;
+  },
 };
 
 export const experienceApi = {

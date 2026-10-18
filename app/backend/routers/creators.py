@@ -5,14 +5,23 @@ enforcing strict Creator Tenant Isolation and emitting CONTENT domain audit even
 """
 
 import uuid
+from typing import Optional, List, Dict, Any
 from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException, Query, Depends
+from pydantic import BaseModel
 from services.rbac_service import require_role, get_current_user, enforce_tenant_access
 from services.audit_service import audit_service
+from decimal import Decimal
 from repositories.series_repository import series_repository, to_uuid
 from repositories.ip_repository import ip_repository
 from repositories.telemetry_repository import telemetry_repository
 from schemas.story_schemas import CreateSeriesRequest, CreateEpisodeRequest
+from schemas.commercial_accounting_schemas import PayoutRequestCreate
+from services.commercial_accounting_service import commercial_accounting_service
+
+class GenerateStatementRequest(BaseModel):
+    accounting_period: str
+    currency: str = "ZAR"
 
 router = APIRouter(prefix="/creators", tags=["Creator Hub"])
 
@@ -60,12 +69,127 @@ def get_creator_profile(creator_id: str):
 def get_creator_earnings(creator_id: str, auth_user: dict = Depends(get_current_user)):
     """Authoritative Creator financial earnings & payout balances (Tenant Protected)."""
     enforce_tenant_access(auth_user, creator_id, domain="COMMERCE", action="view financial earnings")
+    balances = commercial_accounting_service.get_creator_balances(creator_id, currency="ZAR")
+    coin_equiv = int(balances.earned / Decimal("0.1300")) if balances.earned > 0 else 0
     return {
         "creator_id": creator_id,
-        "coin_earnings": 284000,
-        "payout_balance": 1890.00,
-        "currency": "USD"
+        "coin_earnings": coin_equiv,
+        "payout_balance": float(balances.available),
+        "earned_balance": float(balances.earned),
+        "settled_balance": float(balances.settled),
+        "available_balance": float(balances.available),
+        "paid_balance": float(balances.paid),
+        "held_balance": float(balances.held),
+        "currency": balances.currency
     }
+
+@router.get("/{creator_id}/statements", dependencies=[Depends(require_role(["creator", "admin"]))])
+def get_creator_statements(creator_id: str, auth_user: dict = Depends(get_current_user)):
+    """Lists all generated monthly accounting statements for the creator."""
+    enforce_tenant_access(auth_user, creator_id, domain="COMMERCE", action="view statements")
+    statements = commercial_accounting_service.repo.get_creator_statements(creator_id)
+    return {
+        "creator_id": creator_id,
+        "total_statements": len(statements),
+        "statements": statements
+    }
+
+@router.get("/{creator_id}/statements/{accounting_period}", dependencies=[Depends(require_role(["creator", "admin"]))])
+def get_creator_statement_detail(creator_id: str, accounting_period: str, auth_user: dict = Depends(get_current_user)):
+    """Retrieves full statement details and line items for a specific period."""
+    enforce_tenant_access(auth_user, creator_id, domain="COMMERCE", action="view statement detail")
+    statement = commercial_accounting_service.repo.get_statement(creator_id, accounting_period)
+    if not statement:
+        # Generate on-demand from underlying ledger entries
+        statement = commercial_accounting_service.generate_statement(creator_id, accounting_period)
+
+    lines = commercial_accounting_service.repo.get_statement_lines(statement["id"])
+    return {
+        "statement": statement,
+        "lines": lines or statement.get("lines", [])
+    }
+
+@router.post("/{creator_id}/statements/generate", dependencies=[Depends(require_role(["creator", "admin"]))])
+def generate_creator_statement(creator_id: str, req: GenerateStatementRequest, auth_user: dict = Depends(get_current_user)):
+    """Generates or recalculates a monthly accounting statement from immutable ledger records."""
+    enforce_tenant_access(auth_user, creator_id, domain="COMMERCE", action="generate statement")
+    statement = commercial_accounting_service.generate_statement(
+        creator_id=creator_id,
+        accounting_period=req.accounting_period,
+        currency=req.currency
+    )
+    return {
+        "success": True,
+        "statement": statement
+    }
+
+@router.get("/{creator_id}/ledger", dependencies=[Depends(require_role(["creator", "admin"]))])
+def get_creator_ledger(
+    creator_id: str,
+    period: Optional[str] = Query(None),
+    limit: int = Query(50),
+    auth_user: dict = Depends(get_current_user)
+):
+    """Lists immutable creator ledger lines (audit trail)."""
+    enforce_tenant_access(auth_user, creator_id, domain="COMMERCE", action="view ledger")
+    entries = commercial_accounting_service.repo.get_creator_ledger(creator_id, accounting_period=period, limit=limit)
+    balances = commercial_accounting_service.get_creator_balances(creator_id)
+    return {
+        "creator_id": creator_id,
+        "total_entries": len(entries),
+        "balances": {
+            "earned": float(balances.earned),
+            "settled": float(balances.settled),
+            "available": float(balances.available),
+            "paid": float(balances.paid),
+            "held": float(balances.held)
+        },
+        "entries": entries
+    }
+
+@router.get("/{creator_id}/payouts", dependencies=[Depends(require_role(["creator", "admin"]))])
+def get_creator_payouts(creator_id: str, auth_user: dict = Depends(get_current_user)):
+    """Retrieves all payout requests and their allocations for the creator (Tenant Protected)."""
+    enforce_tenant_access(auth_user, creator_id, domain="COMMERCE", action="list payouts")
+    from services.creator_payout_service import creator_payout_service
+    payouts = creator_payout_service.list_creator_payouts(creator_id)
+    return {
+        "creator_id": creator_id,
+        "total": len(payouts),
+        "payouts": payouts
+    }
+
+@router.get("/{creator_id}/payouts/{payout_id}", dependencies=[Depends(require_role(["creator", "admin"]))])
+def get_creator_payout_detail(creator_id: str, payout_id: str, auth_user: dict = Depends(get_current_user)):
+    """Retrieves details of a specific payout request for the creator (Tenant Protected against IDOR)."""
+    enforce_tenant_access(auth_user, creator_id, domain="COMMERCE", action="view payout detail")
+    from services.creator_payout_service import creator_payout_service
+    payout = creator_payout_service.get_payout(payout_id=payout_id, creator_id=creator_id)
+    if not payout:
+        raise HTTPException(status_code=404, detail="Payout record not found or access denied.")
+    return payout
+
+@router.post("/{creator_id}/payouts", dependencies=[Depends(require_role(["creator", "admin"]))])
+def create_creator_payout(creator_id: str, req: PayoutRequestCreate, auth_user: dict = Depends(get_current_user)):
+    """
+    Submits a new payout request for available commercial earnings (Tenant Protected & Idempotent).
+    Allocates funds against creator ledger entries and creates immutable payout request.
+    """
+    enforce_tenant_access(auth_user, creator_id, domain="COMMERCE", action="request payout")
+    from services.creator_payout_service import creator_payout_service
+    try:
+        result = creator_payout_service.request_payout(
+            creator_id=creator_id,
+            requested_amount=req.amount,
+            currency=req.currency,
+            payout_method=req.payout_method,
+            account_details=req.account_details,
+            idempotency_key=req.idempotency_key
+        )
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
 
 @router.get("/{creator_id}/dashboard", dependencies=[Depends(require_role(["creator", "admin"]))])
 def get_creator_dashboard(creator_id: str, auth_user: dict = Depends(get_current_user)):
@@ -75,6 +199,8 @@ def get_creator_dashboard(creator_id: str, auth_user: dict = Depends(get_current
     series_list = series_repository.get_creator_series(creator_id)
     total_views = sum(s.get("total_views", 0) for s in series_list)
     total_episodes_count = sum(s.get("total_episodes", len(s.get("episodes", []))) for s in series_list)
+    balances = commercial_accounting_service.get_creator_balances(creator_id, currency="ZAR")
+    coin_equiv = int(balances.earned / Decimal("0.1300")) if balances.earned > 0 else 0
 
     return {
         "stats": {
@@ -82,8 +208,9 @@ def get_creator_dashboard(creator_id: str, auth_user: dict = Depends(get_current
             "total_likes": 482000,
             "total_episodes": total_episodes_count,
             "followers": 420000,
-            "coin_earnings": 284000,
-            "payout_balance_usd": 1890.00,
+            "coin_earnings": coin_equiv,
+            "payout_balance": float(balances.available),
+            "payout_balance_usd": float(balances.available),
             "avg_cliffhanger_completion_rate": "88.4%",
             "monthly_growth_rate": "+26.4%"
         },

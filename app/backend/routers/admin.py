@@ -5,16 +5,17 @@ and exposes append-only Institutional Trust audit inspection endpoints.
 """
 
 from typing import Optional, List, Dict, Any
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends, Query, Response
 from pydantic import BaseModel
 from datetime import datetime, timezone, timedelta
 from services.rbac_service import require_role, get_current_user
 from services.audit_service import audit_service
 from repositories.series_repository import series_repository
-from repositories.telemetry_repository import telemetry_repository
 from services.evidence_projection_service import evidence_projection_service
+from services.commercial_reconciliation_service import commercial_reconciliation_service
+from services.commercial_payment_run_service import commercial_payment_run_service
 
-router = APIRouter(prefix="/admin", tags=["Admin Platform"], dependencies=[Depends(require_role(["admin"]))])
+router = APIRouter(prefix="/admin", tags=["Admin Platform"], dependencies=[Depends(require_role(["admin", "admin_operator", "admin_supervisor", "finance"]))])
 
 class ModerationFeedbackRequest(BaseModel):
     feedback: Optional[str] = None
@@ -287,3 +288,424 @@ def get_project40_funnel(
         "retention_curve": [s.model_dump() for s in proj.retention_curve],
         "detected_anomalies": [a.model_dump() for a in proj.detected_anomalies]
     }
+
+# -----------------------------------------------------------------------------
+# Workstream 6I-F.1: Commercial Operations & Reconciliation Endpoints
+# -----------------------------------------------------------------------------
+
+@router.get("/commercial/reconciliation")
+def get_commercial_reconciliation(
+    period: Optional[str] = Query(None, description="Accounting period e.g. 2026-10"),
+    limit: int = Query(500, description="Max events to scan")
+):
+    """
+    Executes authoritative 3-way commercial reconciliation across viewer debits,
+    revenue events, and creator ledger entries. Detects calculation and allocation discrepancies.
+    """
+    report = commercial_reconciliation_service.reconcile_chain(period=period, limit=limit)
+    return report
+
+@router.get("/commercial/exceptions")
+def get_commercial_exceptions(
+    series_id: Optional[str] = Query(None, description="Optional series filter"),
+    limit: int = Query(100, description="Max exceptions to retrieve")
+):
+    """
+    Lists active commercial accounting exceptions (e.g. uncontracted series, unestablished gifts).
+    """
+    exceptions = commercial_reconciliation_service.get_unresolved_exceptions(series_id=series_id, limit=limit)
+    return {
+        "total_exceptions": len(exceptions),
+        "exceptions": exceptions
+    }
+
+@router.post("/commercial/exceptions/{event_id}/reprocess")
+def reprocess_commercial_exception(
+    event_id: str,
+    user: dict = Depends(get_current_user)
+):
+    """
+    Attempts controlled fail-closed re-resolution of an unresolved commercial exception.
+    Posts additive creator ledger entry only if governing commercial agreement has been established.
+    """
+    actor_id = user.get("sub", "admin_supervisor")
+    result = commercial_reconciliation_service.reprocess_exception(
+        revenue_event_id=event_id,
+        actor_id=actor_id
+    )
+    if not result.get("success"):
+        raise HTTPException(
+            status_code=400,
+            detail=result.get("reason") or result.get("error") or "Exception re-processing failed closed."
+        )
+    return result
+
+@router.get("/commercial/summary")
+def get_commercial_summary():
+    """
+    Returns platform-wide commercial KPIs, gross volume, creator allocations,
+    pending payout obligations, and reconciliation health status.
+    """
+    kpis = commercial_reconciliation_service.get_commercial_kpis()
+    return kpis
+
+
+# ------------------------------------------------------------------------------
+# Workstream 6I-G.2: Admin Commercial Payout Governance & Settlement Operations
+# ------------------------------------------------------------------------------
+
+@router.get("/commercial/payouts")
+def list_commercial_payouts(
+    limit: int = Query(100),
+    status: Optional[str] = Query(None)
+):
+    """Admin: Lists creator payouts across all creators with allocations."""
+    from services.creator_payout_service import creator_payout_service
+    payouts = creator_payout_service.list_all_payouts(limit=limit, status=status)
+    return {
+        "total": len(payouts),
+        "payouts": payouts
+    }
+
+
+@router.get("/commercial/payouts/{payout_id}")
+def get_commercial_payout_detail(payout_id: str):
+    """Admin: Inspects specific creator payout details and underlying ledger allocations."""
+    from services.creator_payout_service import creator_payout_service
+    payout = creator_payout_service.get_payout(payout_id=payout_id)
+    if not payout:
+        raise HTTPException(status_code=404, detail="Payout record not found.")
+    return payout
+
+
+@router.post("/commercial/payouts/{payout_id}/hold")
+def hold_commercial_payout(
+    payout_id: str,
+    reason: str = Query("Administrative review"),
+    user: dict = Depends(get_current_user)
+):
+    """Admin: Places a payout request on administrative hold (PENDING/PROCESSING/FAILED -> HELD)."""
+    from services.creator_payout_service import creator_payout_service
+    actor_id = user.get("sub", "admin_supervisor")
+    try:
+        updated = creator_payout_service.hold_payout(payout_id=payout_id, actor_id=actor_id, reason=reason)
+        return {"success": True, "payout": updated}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/commercial/payouts/{payout_id}/release-hold")
+def release_commercial_payout_hold(
+    payout_id: str,
+    reason: str = Query("Hold released"),
+    user: dict = Depends(get_current_user)
+):
+    """Admin: Releases a held payout request back to PENDING state (HELD -> PENDING)."""
+    from services.creator_payout_service import creator_payout_service
+    actor_id = user.get("sub", "admin_supervisor")
+    try:
+        updated = creator_payout_service.release_payout_hold(payout_id=payout_id, actor_id=actor_id, reason=reason)
+        return {"success": True, "payout": updated}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/commercial/payouts/{payout_id}/retry")
+def retry_commercial_payout(
+    payout_id: str,
+    reason: str = Query("Retry after failure"),
+    user: dict = Depends(get_current_user)
+):
+    """Admin: Retries a FAILED payout, transitioning to PROCESSING without double-allocating creator balance."""
+    from services.creator_payout_service import creator_payout_service
+    actor_id = user.get("sub", "admin_supervisor")
+    try:
+        updated = creator_payout_service.retry_failed_payout(payout_id=payout_id, actor_id=actor_id, reason=reason)
+        return {"success": True, "payout": updated}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/commercial/payouts/{payout_id}/process")
+def process_commercial_payout(
+    payout_id: str,
+    reason: str = Query("Instruction initiated"),
+    user: dict = Depends(get_current_user)
+):
+    """Admin: Advances a PENDING payout to PROCESSING state."""
+    from services.creator_payout_service import creator_payout_service
+    actor_id = user.get("sub", "admin_supervisor")
+    try:
+        updated = creator_payout_service.transition_payout_status(
+            payout_id=payout_id,
+            new_status="PROCESSING",
+            actor_id=actor_id,
+            actor_role="admin",
+            reason=reason
+        )
+        return {"success": True, "payout": updated}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/commercial/payouts/settle")
+def process_settlement_evidence(
+    req: Dict[str, Any],
+    user: dict = Depends(get_current_user)
+):
+    """
+    Settlement boundary handler: Accepts genuine external settlement confirmation.
+    Transitions PROCESSING -> PAID ONLY upon valid, authenticated settlement proof.
+    Direct/manual shortcuts to PAID without valid settlement proof are strictly rejected.
+    """
+    from services.creator_payout_service import creator_payout_service
+    from services.payout_provider import SettlementConfirmation, ProviderStatus
+    from decimal import Decimal
+
+    actor_id = user.get("sub", "settlement_worker")
+    try:
+        raw_amt = req.get("amount")
+        if raw_amt is None:
+            raise ValueError("Settlement confirmation missing required 'amount' field.")
+
+        confirmation = SettlementConfirmation(
+            payout_id=req["payout_id"],
+            provider_reference=req["provider_reference"],
+            amount=Decimal(str(raw_amt)),
+            currency=req.get("currency", "ZAR"),
+            settled_at=datetime.fromisoformat(req["settled_at"]) if req.get("settled_at") else datetime.now(timezone.utc),
+            idempotency_key=req["idempotency_key"],
+            provider_status=ProviderStatus(req.get("provider_status", "SETTLED")),
+            metadata=req.get("metadata", {})
+        )
+        res = creator_payout_service.process_settlement_confirmation(
+            confirmation=confirmation,
+            actor_id=actor_id
+        )
+        return res
+    except KeyError as e:
+        raise HTTPException(status_code=400, detail=f"Missing required field: {e}")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+# ==============================================================================
+# WORKSTREAM 6I-G.4.2: CREATOR PAYMENT RUN ADMINISTRATION ENDPOINTS
+# ==============================================================================
+
+@router.post("/commercial/runs")
+def create_payment_run(
+    req: Dict[str, Any],
+    user: dict = Depends(get_current_user)
+):
+    """
+    Admin Operator: Prepares a new draft payment run grouping eligible creator payouts.
+    Only PENDING creator-requested payouts can be included.
+    Zero automatic balance sweeps. Idempotent.
+    """
+    user_role = user.get("role", "viewer")
+    if user_role not in ["admin", "admin_operator", "finance"]:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Access denied: Role '{user_role}' is not authorized to create payment runs. Required: admin_operator or finance."
+        )
+
+    actor_id = user.get("sub", "admin_operator")
+    try:
+        p_start_raw = req.get("period_start")
+        p_end_raw = req.get("period_end")
+        if not p_start_raw or not p_end_raw:
+            raise ValueError("period_start and period_end are required fields.")
+
+        period_start = datetime.fromisoformat(str(p_start_raw).replace("Z", "+00:00"))
+        period_end = datetime.fromisoformat(str(p_end_raw).replace("Z", "+00:00"))
+        currency = req.get("currency", "ZAR")
+        idempotency_key = req.get("idempotency_key")
+        metadata = req.get("metadata", {})
+        payout_ids = req.get("payout_ids")
+
+        res = commercial_payment_run_service.create_run(
+            period_start=period_start,
+            period_end=period_end,
+            currency=currency,
+            created_by=actor_id,
+            idempotency_key=idempotency_key,
+            metadata=metadata,
+            payout_ids=payout_ids
+        )
+        return res
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/commercial/runs")
+def list_payment_runs(
+    limit: int = Query(50, ge=1, le=200),
+    status: Optional[str] = None,
+    user: dict = Depends(get_current_user)
+):
+    """Admin: Lists payment runs with status, totals, and audit summaries."""
+    runs = commercial_payment_run_service.list_runs(limit=limit, status=status)
+    return {"runs": runs, "count": len(runs)}
+
+
+@router.get("/commercial/runs/exceptions")
+def list_payment_run_exceptions(
+    user: dict = Depends(get_current_user)
+):
+    """Admin: Reconciles all payment runs and returns actionable reconciliation exceptions."""
+    all_runs = commercial_payment_run_service.list_runs(limit=100)
+    exceptions_by_run = []
+    for r in all_runs:
+        rec = commercial_payment_run_service.reconcile_run(r["id"])
+        if not rec.get("is_clean"):
+            exceptions_by_run.append(rec)
+    return {
+        "exceptions_count": len(exceptions_by_run),
+        "unreconciled_runs": exceptions_by_run
+    }
+
+
+@router.get("/commercial/runs/{run_id}")
+def get_payment_run_detail(
+    run_id: str,
+    user: dict = Depends(get_current_user)
+):
+    """
+    Admin: Retrieves payment run details and immutable snapshot items.
+    Account numbers are masked by default (e.g. ******1234) for privacy.
+    """
+    run_detail = commercial_payment_run_service.get_run(run_id=run_id, mask_sensitive=True)
+    if not run_detail:
+        raise HTTPException(status_code=404, detail=f"Payment run '{run_id}' not found.")
+    return run_detail
+
+
+@router.post("/commercial/runs/{run_id}/submit-review")
+def submit_payment_run_for_review(
+    run_id: str,
+    user: dict = Depends(get_current_user)
+):
+    """Admin Operator: Submits a DRAFT payment run for supervisor review (DRAFT -> UNDER_REVIEW)."""
+    actor_id = user.get("sub", "admin_operator")
+    try:
+        updated = commercial_payment_run_service.submit_for_review(run_id=run_id, actor_id=actor_id)
+        return {"success": True, "run": updated}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/commercial/runs/{run_id}/approve")
+def approve_payment_run(
+    run_id: str,
+    user: dict = Depends(get_current_user)
+):
+    """
+    Admin Supervisor / Authorized Finance: Approves a payment run (UNDER_REVIEW -> APPROVED).
+    Dual-Control Enforcement: The preparer (created_by) CANNOT approve their own run.
+    Membership and amounts become strictly immutable once approved.
+    """
+    user_role = user.get("role", "viewer")
+    if user_role not in ["admin", "admin_supervisor", "finance"]:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Access denied: Role '{user_role}' is not authorized to approve payment runs. Required: admin_supervisor or finance."
+        )
+
+    actor_id = user.get("sub", "admin_supervisor")
+    try:
+        updated = commercial_payment_run_service.approve_run(run_id=run_id, approver_id=actor_id)
+        return {"success": True, "run": updated}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/commercial/runs/{run_id}/cancel")
+def cancel_payment_run(
+    run_id: str,
+    reason: str = Query("Administrative cancellation"),
+    user: dict = Depends(get_current_user)
+):
+    """Admin: Cancels an unexported payment run and releases payouts back to unbatched PENDING."""
+    actor_id = user.get("sub", "admin_operator")
+    try:
+        updated = commercial_payment_run_service.cancel_run(run_id=run_id, actor_id=actor_id, reason=reason)
+        return {"success": True, "run": updated}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/commercial/runs/{run_id}/export")
+def export_payment_run(
+    run_id: str,
+    user: dict = Depends(get_current_user)
+):
+    """
+    Controlled Bank Export: Generates deterministic provider-neutral CSV bank instructions.
+    Calculates and persists SHA-256 hash.
+    Transitions included payouts from PENDING -> PROCESSING.
+    Exporting does NOT mean executed; does NOT mean PAID.
+    """
+    actor_id = user.get("sub", "admin_operator")
+    try:
+        export_data = commercial_payment_run_service.export_run(
+            run_id=run_id,
+            actor_id=actor_id,
+            export_format="csv"
+        )
+        return Response(
+            content=export_data["csv_content"],
+            media_type="text/csv",
+            headers={
+                "Content-Disposition": f"attachment; filename={export_data['file_name']}",
+                "X-Export-SHA256": export_data["sha256_hash"],
+                "X-FNB-Hash-Total": str(export_data.get("fnb_hash_total") or ""),
+                "X-Payout-Count": str(export_data["payout_count"]),
+                "X-Total-Amount": str(export_data["total_amount"])
+            }
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/commercial/runs/{run_id}/results")
+def record_payment_run_external_results(
+    run_id: str,
+    batch: Dict[str, Any],
+    user: dict = Depends(get_current_user)
+):
+    """
+    Admin: Ingests verified external bank execution results.
+    Success: PROCESSING -> PAID (requires valid external payment ref, matching amount, settled_at).
+    Failed: PROCESSING -> FAILED (preserves creator earnings in creator_ledger).
+    """
+    actor_id = user.get("sub", "admin_operator")
+    try:
+        results = batch.get("results")
+        if not results or not isinstance(results, list):
+            raise ValueError("Field 'results' must be a non-empty list of external execution results.")
+
+        res = commercial_payment_run_service.record_external_results(
+            run_id=run_id,
+            results=results,
+            actor_id=actor_id,
+            idempotency_key=batch.get("idempotency_key")
+        )
+        return res
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/commercial/runs/{run_id}/reconcile")
+def reconcile_payment_run(
+    run_id: str,
+    user: dict = Depends(get_current_user)
+):
+    """Admin: Executes forensic reconciliation of a payment run across all accounting layers."""
+    try:
+        res = commercial_payment_run_service.reconcile_run(run_id=run_id)
+        return res
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+

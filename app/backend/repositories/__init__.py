@@ -8,9 +8,12 @@ from .series_repository import SeriesRepository, series_repository
 from .ledger_repository import LedgerRepository, ledger_repository
 from .event_repository import EventRepository, event_repository
 
+from .commercial_accounting_repository import CommercialAccountingRepository, commercial_accounting_repository
+
 __all__ = [
     "IPRepository", "ip_repository",
     "SeriesRepository", "series_repository",
     "LedgerRepository", "ledger_repository",
-    "EventRepository", "event_repository"
+    "EventRepository", "event_repository",
+    "CommercialAccountingRepository", "commercial_accounting_repository"
 ]

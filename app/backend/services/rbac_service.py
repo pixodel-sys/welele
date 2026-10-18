@@ -59,6 +59,29 @@ ROLE_PERMISSIONS: Dict[str, List[str]] = {
         "ledger:audit:read",
         "series:manage:all",
     ],
+    "admin_operator": [
+        "commercial:run:create",
+        "commercial:run:read",
+        "commercial:run:submit",
+        "commercial:run:export",
+        "commercial:run:results",
+        "commercial:reconciliation:read",
+    ],
+    "admin_supervisor": [
+        "commercial:run:read",
+        "commercial:run:approve",
+        "commercial:run:cancel",
+        "commercial:run:reconcile",
+        "commercial:reconciliation:read",
+    ],
+    "finance": [
+        "commercial:run:read",
+        "commercial:run:approve",
+        "commercial:run:export",
+        "commercial:run:results",
+        "commercial:run:reconcile",
+        "commercial:reconciliation:read",
+    ],
 }
 
 def _b64_encode(data: bytes) -> str:

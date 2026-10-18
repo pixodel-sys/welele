@@ -8,12 +8,13 @@ import { AuditChainInspector } from './AuditChainInspector';
 import { AdminIntakeQueue } from './AdminIntakeQueue';
 import { ProvenanceBadge } from '../common/patterns/ProvenanceBadge';
 import { Project40Evidence } from './Project40Evidence';
-import { Shield, Users, Video, Coins, Activity, CheckCircle, AlertTriangle, Layers, Lock, FileText, Inbox, BarChart2 } from 'lucide-react';
+import { PaymentRunsManager } from './PaymentRunsManager';
+import { Shield, Users, Video, Coins, Activity, CheckCircle, AlertTriangle, Layers, Lock, FileText, Inbox, BarChart2, DollarSign } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
   const { stories, attemptModeChange } = useApp();
   const [metrics, setMetrics] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'evidence' | 'intake' | 'studio' | 'moderation' | 'verification' | 'audit'>('evidence');
+  const [activeTab, setActiveTab] = useState<'overview' | 'evidence' | 'intake' | 'studio' | 'moderation' | 'verification' | 'audit' | 'commercial'>('evidence');
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
@@ -112,6 +113,17 @@ export const AdminDashboard: React.FC = () => {
           }`}
         >
           Creator KYC
+        </button>
+        <button
+          onClick={() => setActiveTab('commercial')}
+          className={`px-4 py-2 rounded-[7px] font-bold transition-all flex items-center gap-1.5 shrink-0 ${
+            activeTab === 'commercial'
+              ? 'bg-gradient-to-r from-emerald-500 to-teal-400 text-black shadow-lg font-black'
+              : 'text-emerald-400 hover:text-white hover:bg-white/5 border border-emerald-500/30'
+          }`}
+        >
+          <DollarSign className="w-3.5 h-3.5" />
+          Payment Operations
         </button>
         <button
           onClick={() => setActiveTab('audit')}
@@ -215,6 +227,7 @@ export const AdminDashboard: React.FC = () => {
       {activeTab === 'studio' && <WeleleAdminStudio stories={stories} />}
       {activeTab === 'moderation' && <ModerationQueue />}
       {activeTab === 'verification' && <CreatorVerification />}
+      {activeTab === 'commercial' && <PaymentRunsManager />}
       {activeTab === 'audit' && <AuditChainInspector />}
     </div>
   );

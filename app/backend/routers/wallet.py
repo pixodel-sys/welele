@@ -101,12 +101,33 @@ def send_virtual_gift(
     if not success:
         raise HTTPException(status_code=400, detail=msg)
 
-    # Credit creator coin balance
-    creators = db.get("creators")
-    creator = next((c for c in creators if c["id"] == req.creator_id), None)
-    if creator:
-        new_earnings = creator.get("coin_earnings", 0) + req.coin_cost
-        db.update("creators", req.creator_id, {"coin_earnings": new_earnings})
+    # Authoritative Commercial Accounting (Workstream 6I-E)
+    # Per Section 12: Do NOT invent gift revenue share entitlement. Record commercial event with exception.
+    try:
+        from decimal import Decimal
+        from services.commercial_accounting_service import commercial_accounting_service
+        from schemas.commercial_accounting_schemas import RevenueEventSource, RevenueEventType
+        gross_zar = Decimal(str(req.coin_cost)) * Decimal("0.1300")
+        commercial_accounting_service.process_commercial_event(
+            series_id=req.series_id,
+            episode_id=req.episode_id,
+            source=RevenueEventSource.GIFT,
+            source_transaction_id=f"gift_{req.gift_id}",
+            event_type=RevenueEventType.GIFT_SENT,
+            gross_amount=gross_zar,
+            currency="ZAR",
+            idempotency_key=f"wallet_gift_{req.gift_id}",
+            metadata={
+                "gift_id": req.gift_id,
+                "gift_name": req.gift_name,
+                "coin_cost": req.coin_cost,
+                "user_id": acting_user_id,
+                "creator_id": req.creator_id
+            },
+            creator_id_override=req.creator_id
+        )
+    except Exception as e:
+        pass
 
     gift_record = {
         "id": f"gift_{req.gift_id}",

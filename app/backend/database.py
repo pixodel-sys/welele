@@ -54,7 +54,9 @@ class Database:
                         "content_intelligence_records": [],
                         "content_decisions": [],
                         "content_intelligence_evidence_packages": [],
-                        "security_audit_ledger": []
+                        "security_audit_ledger": [],
+                        "creator_payment_runs": [],
+                        "creator_payment_run_items": []
                     }
                     cls._instance._supabase = None
                     cls._instance._canonical_store_path = os.path.abspath(settings.DATA_FILE)
@@ -268,8 +270,14 @@ class Database:
                         payload_to_sync["id"] = self._to_uuid(str(payload_to_sync["id"]))
                     if "series_id" in payload_to_sync:
                         payload_to_sync["series_id"] = self._to_uuid(str(payload_to_sync["series_id"]))
-                elif collection in ("wallets", "coin_ledger", "unlocked_episodes"):
-                    # Managed authoritatively by LedgerRepository with domain logic
+                elif collection in (
+                    "wallets", "coin_ledger", "unlocked_episodes",
+                    "commercial_agreements", "commercial_agreement_versions",
+                    "revenue_events", "revenue_deductions", "creator_ledger",
+                    "creator_statements", "creator_statement_lines",
+                    "creator_payouts", "creator_payout_allocations"
+                ):
+                    # Managed authoritatively by LedgerRepository and CommercialAccountingRepository with domain logic
                     return item
 
                 if on_conflict:
