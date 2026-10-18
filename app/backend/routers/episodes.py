@@ -264,16 +264,11 @@ def unlock_episode(
     else:
         target_user = caller_id
 
-    all_episodes = series_repository.local_get("episodes")
-    all_series = series_repository.local_get("series")
-    story = next((s for s in all_series if s["id"] == series_id), None)
+    story = series_repository.get_series(series_id)
     if not story:
-        stories = db.get("stories")
-        story = next((s for s in stories if s["id"] == series_id), None)
-        if not story:
-            raise HTTPException(status_code=404, detail="Series not found")
+        raise HTTPException(status_code=404, detail="Series not found")
     
-    episode = next((ep for ep in all_episodes if ep["id"] == episode_id and ep.get("series_id") == series_id), None)
+    episode = series_repository.get_episode(episode_id)
     if not episode:
         raise HTTPException(status_code=404, detail="Episode not found")
 
