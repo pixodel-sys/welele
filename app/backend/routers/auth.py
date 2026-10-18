@@ -118,7 +118,30 @@ def verify_phone_otp(req: VerifyOtpRequest):
                 detail=msg or "Invalid or expired verification code."
             )
 
-        user_id = f"usr_{uuid.uuid4().hex[:8]}"
+        user_id = None
+        from repositories.ledger_repository import ledger_repository
+        if ledger_repository.is_live:
+            try:
+                res = ledger_repository.get_table("users").select("*").eq("phone_number", req.phone_number).limit(1).execute()
+                if res and res.data:
+                    user_id = str(res.data[0]["id"])
+                else:
+                    new_user = {
+                        "phone_number": req.phone_number,
+                        "display_name": req.display_name or "Welele Viewer",
+                        "region_code": req.region_code or "ZA",
+                        "preferred_language": "isiZulu",
+                        "role": "viewer",
+                        "is_verified": True
+                    }
+                    ins = ledger_repository.get_table("users").insert(new_user).execute()
+                    if ins and ins.data:
+                        user_id = str(ins.data[0]["id"])
+            except Exception as e:
+                logger.warning(f"[verify_phone_otp] User PostgreSQL resolution failed: {e}")
+
+        if not user_id:
+            user_id = f"usr_{uuid.uuid4().hex[:8]}"
         
         # Initialize wallet with promotional coins if not existing
         ledger_service.create_wallet_for_user(user_id, initial_coins=50)

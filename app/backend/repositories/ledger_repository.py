@@ -177,35 +177,46 @@ class LedgerRepository(BaseRepository):
 
             # Persist to authoritative PostgreSQL database when live
             if self.is_live:
+                user_exists = False
                 try:
-                    db_wallet = {
-                        "id": to_uuid(wallet["id"]),
-                        "user_id": to_uuid(user_id),
-                        "coin_balance": new_base,
-                        "bonus_coins": new_bonus,
-                        "lifetime_coins_spent": wallet.get("lifetime_coins_spent", 0) + amount,
-                        "updated_at": datetime.now(timezone.utc).isoformat()
-                    }
-                    self.get_table("wallets").upsert(db_wallet).execute()
+                    target_u = to_uuid(user_id)
+                    u_check = self.get_table("users").select("id").eq("id", target_u).limit(1).execute()
+                    user_exists = bool(u_check and u_check.data)
+                except Exception:
+                    user_exists = False
 
-                    db_ledger = {
-                        "id": to_uuid(ledger_entry["id"]),
-                        "wallet_id": to_uuid(wallet["id"]),
-                        "user_id": to_uuid(user_id),
-                        "amount": -amount,
-                        "balance_before": total_available,
-                        "balance_after": new_total,
-                        "transaction_type": transaction_type,
-                        "reference_id": reference_id,
-                        "idempotency_key": ledger_entry["idempotency_key"],
-                        "description": description or f"Debited {amount} coins for {transaction_type}",
-                        "created_at": ledger_entry["created_at"]
-                    }
-                    self.get_table("coin_ledger").insert(db_ledger).execute()
-                except Exception as e:
-                    logger.error(f"[LedgerRepository:DB] Remote debit persistence error: {e}")
-                    if settings.IS_PRODUCTION_OR_STAGING:
-                        raise RuntimeError(f"Database write failure: Unable to persist coin debit for user '{user_id}': {e}")
+                if user_exists:
+                    try:
+                        db_wallet = {
+                            "id": to_uuid(wallet["id"]),
+                            "user_id": to_uuid(user_id),
+                            "coin_balance": new_base,
+                            "bonus_coins": new_bonus,
+                            "lifetime_coins_spent": wallet.get("lifetime_coins_spent", 0) + amount,
+                            "updated_at": datetime.now(timezone.utc).isoformat()
+                        }
+                        self.get_table("wallets").upsert(db_wallet).execute()
+
+                        db_ledger = {
+                            "id": to_uuid(ledger_entry["id"]),
+                            "wallet_id": to_uuid(wallet["id"]),
+                            "user_id": to_uuid(user_id),
+                            "amount": -amount,
+                            "balance_before": total_available,
+                            "balance_after": new_total,
+                            "transaction_type": transaction_type,
+                            "reference_id": reference_id,
+                            "idempotency_key": ledger_entry["idempotency_key"],
+                            "description": description or f"Debited {amount} coins for {transaction_type}",
+                            "created_at": ledger_entry["created_at"]
+                        }
+                        self.get_table("coin_ledger").insert(db_ledger).execute()
+                    except Exception as e:
+                        logger.error(f"[LedgerRepository:DB] Remote debit persistence error: {e}")
+                        if settings.IS_PRODUCTION_OR_STAGING:
+                            raise RuntimeError(f"Database write failure: Unable to persist coin debit for user '{user_id}': {e}")
+                else:
+                    logger.info(f"[LedgerRepository:DB] User '{user_id}' not in PostgreSQL users table; local ledger debited successfully")
 
             return True, "Debit executed successfully", ledger_entry
 
