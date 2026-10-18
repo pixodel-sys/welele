@@ -157,8 +157,8 @@ def verify_phone_otp(req: VerifyOtpRequest):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"[verify_phone_otp error] {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"verify_otp_error: {type(e).__name__}: {str(e)}")
+        logger.error(f"[verify_phone_otp] Error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal authentication processing failure")
 
 @router.post("/guest")
 def guest_login(req: GuestAuthRequest):
@@ -205,8 +205,8 @@ def guest_login(req: GuestAuthRequest):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"[guest_login error] {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"guest_login_error: {type(e).__name__}: {str(e)}")
+        logger.error(f"[guest_login] Error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal guest session processing failure")
 
 @router.post("/creator/login")
 def creator_login(req: CreatorLoginRequest):

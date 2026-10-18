@@ -268,6 +268,9 @@ class Database:
                         payload_to_sync["id"] = self._to_uuid(str(payload_to_sync["id"]))
                     if "series_id" in payload_to_sync:
                         payload_to_sync["series_id"] = self._to_uuid(str(payload_to_sync["series_id"]))
+                elif collection in ("wallets", "coin_ledger", "unlocked_episodes"):
+                    # Managed authoritatively by LedgerRepository with domain logic
+                    return item
 
                 if on_conflict:
                     self._supabase.table(table_name).upsert(payload_to_sync, on_conflict=on_conflict).execute()
