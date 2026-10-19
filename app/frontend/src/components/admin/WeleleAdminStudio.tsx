@@ -794,126 +794,131 @@ export const WeleleAdminStudio: React.FC<WeleleAdminStudioProps> = ({ stories })
                 )}
 
                 {/* Ingestion Mode */}
-                <div className="space-y-2 pt-2 border-t border-white/10">
-                  <div className="flex items-center justify-between">
-                    <label className="text-[11px] font-bold text-welele-muted block">
-                      Placement Origin & Ingestion Mode
-                    </label>
-                    <ProvenanceBadge
-                      tier={selectedSection.source.mode === 'algorithmic' ? 'SYSTEM_DERIVED' : 'ADMIN_CONTROLLED'}
-                      label={selectedSection.source.mode === 'algorithmic' ? 'SYSTEM / RULE_BASED' : 'ADMIN_CURATED'}
-                      size="sm"
-                    />
-                  </div>
-                  <div className="grid grid-cols-3 gap-1.5 bg-welele-surface p-1 rounded-[7px] border border-white/5 text-xs">
-                    {(['manual', 'hybrid', 'algorithmic'] as const).map((mode) => (
-                      <button
-                        key={mode}
-                        onClick={() => {
-                          const updated = manifest.sections.map((s) =>
-                            s.section_id === selectedSection.section_id
-                              ? { ...s, source: { ...s.source, mode } }
-                              : s
-                          );
-                          setManifest({ ...manifest, sections: updated });
-                        }}
-                        className={`py-1.5 rounded-[7px] font-bold capitalize transition-all cursor-pointer ${
-                          selectedSection.source.mode === mode
-                            ? 'bg-welele-orange text-black shadow-md'
-                            : 'text-white/60 hover:text-white'
-                        }`}
-                      >
-                        {mode}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Algorithmic & Hybrid Merchandising Policy Controls */}
-                  {selectedSection.source.mode !== 'manual' && (
-                    <div className="p-3 rounded-[7px] bg-black/40 border border-welele-orange/20 space-y-3 mt-2 animate-fade-in">
+                {(() => {
+                  const sectionSource = selectedSection.source || { mode: 'manual', algo_type: 'velocity_24h', max_items: 8 };
+                  return (
+                    <div className="space-y-2 pt-2 border-t border-white/10">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-mono font-bold text-welele-orange uppercase tracking-wider flex items-center gap-1">
-                          <Sparkles className="w-3 h-3" /> Merchandising Policy (v2026.1)
-                        </span>
-                        <span className="text-[9px] text-welele-muted">Derived from Spine</span>
-                      </div>
-
-                      {/* Algorithm Type */}
-                      <div>
-                        <label className="text-[10px] font-bold text-welele-muted block mb-1">
-                          Audience Evidence Algorithm
+                        <label className="text-[11px] font-bold text-welele-muted block">
+                          Placement Origin & Ingestion Mode
                         </label>
-                        <select
-                          value={selectedSection.source.algo_type || 'velocity_24h'}
-                          onChange={(e) => {
-                            const updated = manifest.sections.map((s) =>
-                              s.section_id === selectedSection.section_id
-                                ? { ...s, source: { ...s.source, algo_type: e.target.value as any } }
-                                : s
-                            );
-                            setManifest({ ...manifest, sections: updated });
-                          }}
-                          className="w-full px-2.5 py-1.5 rounded-[7px] bg-welele-surface border border-white/10 text-xs text-white focus:outline-none focus:border-welele-orange font-medium"
-                        >
-                          <option value="velocity_24h">24h Playback Velocity (Spine Momentum)</option>
-                          <option value="completion_rate">Completion Rate (100% Episode 1 Reached)</option>
-                          <option value="trending">Trending (7d Evidence Velocity + Unlocks)</option>
-                          <option value="new_releases">New Releases (Publication Eligibility)</option>
-                        </select>
-                      </div>
-
-                      {/* Genre Constraint Filter */}
-                      <div>
-                        <label className="text-[10px] font-bold text-welele-muted block mb-1">
-                          Genre Constraint Filter (Strict)
-                        </label>
-                        <select
-                          value={selectedSection.source.genre_filter || ''}
-                          onChange={(e) => {
-                            const val = e.target.value || undefined;
-                            const updated = manifest.sections.map((s) =>
-                              s.section_id === selectedSection.section_id
-                                ? { ...s, source: { ...s.source, genre_filter: val } }
-                                : s
-                            );
-                            setManifest({ ...manifest, sections: updated });
-                          }}
-                          className="w-full px-2.5 py-1.5 rounded-[7px] bg-welele-surface border border-white/10 text-xs text-white focus:outline-none focus:border-welele-orange font-medium"
-                        >
-                          <option value="">All Genres (Unconstrained)</option>
-                          <option value="Drama">Drama</option>
-                          <option value="Crime">Crime & Heist</option>
-                          <option value="Romance">Romance & Melodrama</option>
-                          <option value="Family">Family & Betrayal</option>
-                          <option value="Billionaire">Billionaire & Corporate</option>
-                        </select>
-                      </div>
-
-                      {/* Max Capacity */}
-                      <div>
-                        <div className="flex items-center justify-between text-[10px] text-welele-muted mb-1">
-                          <label className="font-bold">Max Dynamic Slots</label>
-                          <span className="font-mono text-white">{selectedSection.source.max_items || 8} items</span>
-                        </div>
-                        <input
-                          type="range"
-                          min={3}
-                          max={15}
-                          value={selectedSection.source.max_items || 8}
-                          onChange={(e) => {
-                            const updated = manifest.sections.map((s) =>
-                              s.section_id === selectedSection.section_id
-                                ? { ...s, source: { ...s.source, max_items: parseInt(e.target.value, 10) } }
-                                : s
-                            );
-                            setManifest({ ...manifest, sections: updated });
-                          }}
-                          className="w-full accent-welele-orange cursor-pointer"
+                        <ProvenanceBadge
+                          tier={sectionSource.mode === 'algorithmic' ? 'SYSTEM_DERIVED' : 'ADMIN_CONTROLLED'}
+                          label={sectionSource.mode === 'algorithmic' ? 'SYSTEM / RULE_BASED' : 'ADMIN_CURATED'}
+                          size="sm"
                         />
                       </div>
+                      <div className="grid grid-cols-3 gap-1.5 bg-welele-surface p-1 rounded-[7px] border border-white/5 text-xs">
+                        {(['manual', 'hybrid', 'algorithmic'] as const).map((mode) => (
+                          <button
+                            key={mode}
+                            onClick={() => {
+                              const updated = manifest.sections.map((s) =>
+                                s.section_id === selectedSection.section_id
+                                  ? { ...s, source: { ...(s.source || { mode: 'manual' }), mode } }
+                                  : s
+                              );
+                              setManifest({ ...manifest, sections: updated });
+                            }}
+                            className={`py-1.5 rounded-[7px] font-bold capitalize transition-all cursor-pointer ${
+                              sectionSource.mode === mode
+                                ? 'bg-welele-orange text-black shadow-md'
+                                : 'text-white/60 hover:text-white'
+                            }`}
+                          >
+                            {mode}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Algorithmic & Hybrid Merchandising Policy Controls */}
+                      {sectionSource.mode !== 'manual' && (
+                        <div className="p-3 rounded-[7px] bg-black/40 border border-welele-orange/20 space-y-3 mt-2 animate-fade-in">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-mono font-bold text-welele-orange uppercase tracking-wider flex items-center gap-1">
+                              <Sparkles className="w-3 h-3" /> Merchandising Policy (v2026.1)
+                            </span>
+                            <span className="text-[9px] text-welele-muted">Derived from Spine</span>
+                          </div>
+
+                          {/* Algorithm Type */}
+                          <div>
+                            <label className="text-[10px] font-bold text-welele-muted block mb-1">
+                              Audience Evidence Algorithm
+                            </label>
+                            <select
+                              value={sectionSource.algo_type || 'velocity_24h'}
+                              onChange={(e) => {
+                                const updated = manifest.sections.map((s) =>
+                                  s.section_id === selectedSection.section_id
+                                    ? { ...s, source: { ...(s.source || { mode: 'manual' }), algo_type: e.target.value as any } }
+                                    : s
+                                );
+                                setManifest({ ...manifest, sections: updated });
+                              }}
+                              className="w-full px-2.5 py-1.5 rounded-[7px] bg-welele-surface border border-white/10 text-xs text-white focus:outline-none focus:border-welele-orange font-medium"
+                            >
+                              <option value="velocity_24h">24h Playback Velocity (Spine Momentum)</option>
+                              <option value="completion_rate">Completion Rate (100% Episode 1 Reached)</option>
+                              <option value="trending">Trending (7d Evidence Velocity + Unlocks)</option>
+                              <option value="new_releases">New Releases (Publication Eligibility)</option>
+                            </select>
+                          </div>
+
+                          {/* Genre Constraint Filter */}
+                          <div>
+                            <label className="text-[10px] font-bold text-welele-muted block mb-1">
+                              Genre Constraint Filter (Strict)
+                            </label>
+                            <select
+                              value={sectionSource.genre_filter || ''}
+                              onChange={(e) => {
+                                const val = e.target.value || undefined;
+                                const updated = manifest.sections.map((s) =>
+                                  s.section_id === selectedSection.section_id
+                                    ? { ...s, source: { ...(s.source || { mode: 'manual' }), genre_filter: val } }
+                                    : s
+                                );
+                                setManifest({ ...manifest, sections: updated });
+                              }}
+                              className="w-full px-2.5 py-1.5 rounded-[7px] bg-welele-surface border border-white/10 text-xs text-white focus:outline-none focus:border-welele-orange font-medium"
+                            >
+                              <option value="">All Genres (Unconstrained)</option>
+                              <option value="Drama">Drama</option>
+                              <option value="Crime">Crime & Heist</option>
+                              <option value="Romance">Romance & Melodrama</option>
+                              <option value="Family">Family & Betrayal</option>
+                              <option value="Billionaire">Billionaire & Corporate</option>
+                            </select>
+                          </div>
+
+                          {/* Max Capacity */}
+                          <div>
+                            <div className="flex items-center justify-between text-[10px] text-welele-muted mb-1">
+                              <label className="font-bold">Max Dynamic Slots</label>
+                              <span className="font-mono text-white">{sectionSource.max_items || 8} items</span>
+                            </div>
+                            <input
+                              type="range"
+                              min={3}
+                              max={15}
+                              value={sectionSource.max_items || 8}
+                              onChange={(e) => {
+                                const updated = manifest.sections.map((s) =>
+                                  s.section_id === selectedSection.section_id
+                                    ? { ...s, source: { ...(s.source || { mode: 'manual' }), max_items: parseInt(e.target.value, 10) } }
+                                    : s
+                                );
+                                setManifest({ ...manifest, sections: updated });
+                              }}
+                              className="w-full accent-welele-orange cursor-pointer"
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
+                  );
+                })()}
 
                 {/* Slot Manager */}
                 <div className="space-y-3 pt-2 border-t border-white/10">

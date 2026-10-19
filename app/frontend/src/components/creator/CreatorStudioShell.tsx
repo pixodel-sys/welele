@@ -49,12 +49,14 @@ export const CreatorStudioShell: React.FC = () => {
 
   const fetchCreatorShows = async () => {
     try {
-      const res = await creatorApi.getDashboard(user?.id || 'creator_zola');
+      const targetCreatorId = user?.creator_id || 'creator_zola';
+      const res = await creatorApi.getDashboard(targetCreatorId);
       if (res && res.series) {
         setCreatorShows(res.series);
       }
     } catch (e) {
       console.warn('Could not load creator specific dashboard shows:', e);
+      setCreatorShows([]);
     }
   };
 
@@ -182,7 +184,7 @@ export const CreatorStudioShell: React.FC = () => {
             </div>
             <div className="flex items-center gap-2.5 mt-1 text-[11px] text-welele-muted">
               <span className="inline-flex items-center gap-1">
-                <Globe className="w-3 h-3 text-welele-gold" /> Studio: <strong className="text-white">Mzansi Epic Films</strong>
+                <Globe className="w-3 h-3 text-welele-gold" /> Studio: <strong className="text-white">{user?.studio_name || user?.name || 'Showrunner Studio'}</strong>
               </span>
               <span>•</span>
               <span className="inline-flex items-center gap-1">
@@ -261,105 +263,128 @@ export const CreatorStudioShell: React.FC = () => {
                 </div>
               </div>
 
-              {/* Show Cards Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
-                {(creatorShows.length > 0 ? creatorShows : stories).map((story) => {
-                  const contract4d = getShow4DContract(story);
-                  const franchiseCode = story.franchise_code || `IP-WEL-${story.id.replace(/[^a-zA-Z0-9]/g, '').slice(-4).toUpperCase()}`;
-
-                  return (
-                    <div
-                      key={story.id}
-                      onClick={() => handleOpenShow(story.id)}
-                      className="p-4 rounded-[7px] bg-[#14151B] border border-white/10 hover:border-[#E6007A]/50 transition-all group flex flex-col justify-between cursor-pointer hover:shadow-xl hover:shadow-pink-500/10"
-                    >
-                      <div className="space-y-3">
-                        <div className="aspect-[9/16] w-full max-h-56 rounded-[7px] overflow-hidden relative">
-                          <img
-                            src={story.vertical_poster}
-                            alt={story.title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          />
-                          <div className="absolute top-2 left-2">
-                            <span className="px-2 py-0.5 rounded-[7px] bg-black/80 border border-white/20 text-welele-gold text-[10px] font-mono font-bold shadow">
-                              {franchiseCode}
-                            </span>
-                          </div>
-                          <div className="absolute top-2 right-2">
-                            <ReadinessBadge level={contract4d.readiness} size="sm" />
-                          </div>
-                        </div>
-
-                        <div>
-                          <div className="flex items-center justify-between gap-1 mb-1">
-                            <span className="text-[10px] font-mono text-welele-muted uppercase">
-                              {story.genre}
-                            </span>
-                            <span className="text-[10px] font-mono text-welele-gold font-semibold">
-                              {contract4d.audienceDimension.label}
-                            </span>
-                          </div>
-                          <h3 className="text-base font-black text-white group-hover:text-[#FF2A6D] truncate uppercase tracking-tight">
-                            {story.title}
-                          </h3>
-                          <p className="text-xs text-welele-muted mt-1">
-                            {story.total_episodes || story.episodes?.length || 1}{' '}
-                            {(story.total_episodes || story.episodes?.length || 1) === 1 ? 'Episode' : 'Episodes'}
-                            {story.under_review_episodes_count > 0 ? (
-                              <span className="text-amber-300 font-semibold"> ({story.under_review_episodes_count} in review)</span>
-                            ) : ''}
-                          </p>
-                        </div>
-
-                        {/* Canonical 4-Dimensional Readiness Snapshot */}
-                        <div className="p-2.5 rounded-[7px] bg-black/40 border border-white/5 grid grid-cols-2 gap-1.5 text-[10px]">
-                          <div className="flex items-center gap-1.5 text-white/80">
-                            <span className={`w-1.5 h-1.5 rounded-full ${contract4d.storyDimension.dotColor}`} />
-                            <span className="truncate">{contract4d.storyDimension.label}</span>
-                          </div>
-                          <div className="flex items-center gap-1.5 text-white/80">
-                            <span className={`w-1.5 h-1.5 rounded-full ${contract4d.mediaDimension.dotColor}`} />
-                            <span className="truncate">{contract4d.mediaDimension.label}</span>
-                          </div>
-                          <div className="flex items-center gap-1.5 text-white/80">
-                            <span className={`w-1.5 h-1.5 rounded-full ${contract4d.rightsDimension.dotColor}`} />
-                            <span className="truncate">{contract4d.rightsDimension.label}</span>
-                          </div>
-                          <div className="flex items-center gap-1.5 text-white/80">
-                            <span className={`w-1.5 h-1.5 rounded-full ${contract4d.audienceDimension.dotColor}`} />
-                            <span className="truncate">{contract4d.audienceDimension.label}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between">
-                        <div className="w-full py-2 rounded-[7px] bg-white/5 group-hover:bg-gradient-to-r group-hover:from-[#E6007A] group-hover:to-[#FF2A6D] text-white text-xs font-bold border border-white/10 group-hover:border-transparent transition-all flex items-center justify-center gap-1.5">
-                          <span>Open Show Workspace</span>
-                          <ArrowRight className="w-3.5 h-3.5" />
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-
-                {/* Create Show Quick Card */}
-                <div
-                  onClick={() => setIsCreateShowOpen(true)}
-                  className="p-6 rounded-[7px] border-2 border-dashed border-white/15 hover:border-pink-500/50 bg-[#14151B]/50 hover:bg-pink-950/10 cursor-pointer transition-all flex flex-col items-center justify-center text-center space-y-3 min-h-[260px] group"
-                >
-                  <div className="w-12 h-12 rounded-full bg-pink-500/10 text-pink-400 group-hover:scale-110 transition-transform flex items-center justify-center">
-                    <PlusCircle className="w-6 h-6" />
+              {/* Show Cards Grid or Empty Workspace State */}
+              {creatorShows.length === 0 ? (
+                <div className="p-8 sm:p-12 rounded-[7px] bg-[#14151B] border border-white/10 text-center space-y-4 max-w-xl mx-auto my-8">
+                  <div className="w-14 h-14 rounded-full bg-pink-500/10 text-[#FF2A6D] border border-pink-500/20 flex items-center justify-center mx-auto shadow-lg shadow-pink-500/5">
+                    <PlusCircle className="w-7 h-7" />
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold text-white group-hover:text-pink-400">
-                      + Create Show
-                    </h4>
-                    <p className="text-xs text-welele-muted mt-1 max-w-[200px]">
-                      Start a new microdrama production and upload Episode 1.
+                    <h3 className="text-base sm:text-lg font-black text-white uppercase tracking-tight font-cinematic">
+                      No Shows In This Studio Yet
+                    </h3>
+                    <p className="text-xs text-welele-muted mt-1.5 max-w-md mx-auto">
+                      Your studio catalog is currently empty. Create your first microdrama franchise to launch episodes, track audience retention, and receive earnings.
                     </p>
                   </div>
+                  <button
+                    onClick={() => setIsCreateShowOpen(true)}
+                    className="px-5 py-2.5 rounded-[7px] bg-gradient-to-r from-[#FF6500] to-[#E6007A] text-white font-extrabold text-xs inline-flex items-center gap-2 shadow-lg shadow-pink-500/20 hover:opacity-95 transition-all cursor-pointer"
+                  >
+                    <PlusCircle className="w-4 h-4" />
+                    <span>+ Create First Show</span>
+                  </button>
                 </div>
-              </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
+                  {creatorShows.map((story) => {
+                    const contract4d = getShow4DContract(story);
+                    const franchiseCode = story.franchise_code || `IP-WEL-${story.id.replace(/[^a-zA-Z0-9]/g, '').slice(-4).toUpperCase()}`;
+
+                    return (
+                      <div
+                        key={story.id}
+                        onClick={() => handleOpenShow(story.id)}
+                        className="p-4 rounded-[7px] bg-[#14151B] border border-white/10 hover:border-[#E6007A]/50 transition-all group flex flex-col justify-between cursor-pointer hover:shadow-xl hover:shadow-pink-500/10"
+                      >
+                        <div className="space-y-3">
+                          <div className="aspect-[9/16] w-full max-h-56 rounded-[7px] overflow-hidden relative">
+                            <img
+                              src={story.vertical_poster}
+                              alt={story.title}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
+                            <div className="absolute top-2 left-2">
+                              <span className="px-2 py-0.5 rounded-[7px] bg-black/80 border border-white/20 text-welele-gold text-[10px] font-mono font-bold shadow">
+                                {franchiseCode}
+                              </span>
+                            </div>
+                            <div className="absolute top-2 right-2">
+                              <ReadinessBadge level={contract4d.readiness} size="sm" />
+                            </div>
+                          </div>
+
+                          <div>
+                            <div className="flex items-center justify-between gap-1 mb-1">
+                              <span className="text-[10px] font-mono text-welele-muted uppercase">
+                                {story.genre}
+                              </span>
+                              <span className="text-[10px] font-mono text-welele-gold font-semibold">
+                                {contract4d.audienceDimension.label}
+                              </span>
+                            </div>
+                            <h3 className="text-base font-black text-white group-hover:text-[#FF2A6D] truncate uppercase tracking-tight">
+                              {story.title}
+                            </h3>
+                            <p className="text-xs text-welele-muted mt-1">
+                              {story.total_episodes || story.episodes?.length || 1}{' '}
+                              {(story.total_episodes || story.episodes?.length || 1) === 1 ? 'Episode' : 'Episodes'}
+                              {story.under_review_episodes_count > 0 ? (
+                                <span className="text-amber-300 font-semibold"> ({story.under_review_episodes_count} in review)</span>
+                              ) : ''}
+                            </p>
+                          </div>
+
+                          {/* Canonical 4-Dimensional Readiness Snapshot */}
+                          <div className="p-2.5 rounded-[7px] bg-black/40 border border-white/5 grid grid-cols-2 gap-1.5 text-[10px]">
+                            <div className="flex items-center gap-1.5 text-white/80">
+                              <span className={`w-1.5 h-1.5 rounded-full ${contract4d.storyDimension.dotColor}`} />
+                              <span className="truncate">{contract4d.storyDimension.label}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-white/80">
+                              <span className={`w-1.5 h-1.5 rounded-full ${contract4d.mediaDimension.dotColor}`} />
+                              <span className="truncate">{contract4d.mediaDimension.label}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-white/80">
+                              <span className={`w-1.5 h-1.5 rounded-full ${contract4d.rightsDimension.dotColor}`} />
+                              <span className="truncate">{contract4d.rightsDimension.label}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-white/80">
+                              <span className={`w-1.5 h-1.5 rounded-full ${contract4d.audienceDimension.dotColor}`} />
+                              <span className="truncate">{contract4d.audienceDimension.label}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between">
+                          <div className="w-full py-2 rounded-[7px] bg-white/5 group-hover:bg-gradient-to-r group-hover:from-[#E6007A] group-hover:to-[#FF2A6D] text-white text-xs font-bold border border-white/10 group-hover:border-transparent transition-all flex items-center justify-center gap-1.5">
+                            <span>Open Show Workspace</span>
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {/* Create Show Quick Card */}
+                  <div
+                    onClick={() => setIsCreateShowOpen(true)}
+                    className="p-6 rounded-[7px] border-2 border-dashed border-white/15 hover:border-pink-500/50 bg-[#14151B]/50 hover:bg-pink-950/10 cursor-pointer transition-all flex flex-col items-center justify-center text-center space-y-3 min-h-[260px] group"
+                  >
+                    <div className="w-12 h-12 rounded-full bg-pink-500/10 text-pink-400 group-hover:scale-110 transition-transform flex items-center justify-center">
+                      <PlusCircle className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-white group-hover:text-pink-400">
+                        + Create Show
+                      </h4>
+                      <p className="text-xs text-welele-muted mt-1 max-w-[200px]">
+                        Start a new microdrama production and upload Episode 1.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -388,6 +413,8 @@ export const CreatorStudioShell: React.FC = () => {
         isOpen={isCreateShowOpen}
         onClose={() => setIsCreateShowOpen(false)}
         onSuccess={(newId) => {
+          fetchCreatorShows();
+          refreshStories();
           setSelectedSeriesId(newId);
           setActiveNavTab('shows');
         }}

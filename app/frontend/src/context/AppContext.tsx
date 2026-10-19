@@ -12,6 +12,7 @@ interface UserProfile {
   city: string;
   role: 'viewer' | 'creator' | 'admin';
   creator_id?: string;
+  studio_name?: string;
   permissions?: string[];
   token?: string;
   coins?: number;

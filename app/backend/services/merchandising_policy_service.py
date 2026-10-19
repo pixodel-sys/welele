@@ -246,11 +246,12 @@ class MerchandisingPolicyService:
         - If insufficient eligible inventory matches genre, returns fewer items without violating genre.
         - Attaches merchandising provenance metadata to the section.
         """
-        mode = section.get("source", {}).get("mode", "manual").lower()
-        max_items = section.get("source", {}).get("max_items", 10)
-        genre_filter = section.get("source", {}).get("genre_filter")
-        algo_type = section.get("source", {}).get("algo_type", "velocity_24h")
-        pinned_ids = section.get("source", {}).get("pinned_content_ids", [])
+        source_cfg = section.get("source") or {}
+        mode = source_cfg.get("mode", "manual").lower()
+        max_items = source_cfg.get("max_items", 10)
+        genre_filter = source_cfg.get("genre_filter")
+        algo_type = source_cfg.get("algo_type", "velocity_24h")
+        pinned_ids = source_cfg.get("pinned_content_ids", [])
         explicit_items = section.get("items", [])
 
         # Step 1: In MANUAL mode, preserve explicitly configured editorial items

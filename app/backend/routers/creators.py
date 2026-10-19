@@ -204,15 +204,15 @@ def get_creator_dashboard(creator_id: str, auth_user: dict = Depends(get_current
 
     return {
         "stats": {
-            "total_views": total_views or 8420000,
-            "total_likes": 482000,
+            "total_views": total_views,
+            "total_likes": sum(s.get("total_likes", 0) for s in series_list),
             "total_episodes": total_episodes_count,
-            "followers": 420000,
+            "followers": 0,
             "coin_earnings": coin_equiv,
             "payout_balance": float(balances.available),
             "payout_balance_usd": float(balances.available),
-            "avg_cliffhanger_completion_rate": "88.4%",
-            "monthly_growth_rate": "+26.4%"
+            "avg_cliffhanger_completion_rate": "—" if total_views == 0 else "0.0%",
+            "monthly_growth_rate": "—"
         },
         "series": series_list
     }
@@ -299,6 +299,10 @@ def get_series_workspace(series_id: str, auth_user: dict = Depends(get_current_u
     under_review_count = len([e for e in series_episodes if e.get("status") in ["under_review", "submitted", "pending_review"]])
     draft_count = len([e for e in series_episodes if e.get("status") == "draft"])
 
+    actual_views = int(series.get("total_views") or series.get("views") or 0)
+    creator_balances = commercial_accounting_service.get_creator_balances(creator_owner_id, currency="ZAR")
+    payout_avail = float(creator_balances.available)
+
     return {
         "series": {
             **series,
@@ -306,10 +310,13 @@ def get_series_workspace(series_id: str, auth_user: dict = Depends(get_current_u
             "total_episodes": len(series_episodes)
         },
         "metrics": {
-            "total_views": 8420000,
-            "completion_rate": "88.4%",
-            "coins_generated": 284000,
-            "estimated_earnings_usd": 1890.00,
+            "total_views": actual_views,
+            "completion_rate": "—" if actual_views == 0 else "0.0%",
+            "audience_momentum": "—" if actual_views == 0 else "0%",
+            "coins_generated": 0,
+            "total_unlocks": 0,
+            "payout_balance_zar": payout_avail,
+            "estimated_earnings_usd": payout_avail,
             "published_count": published_count,
             "under_review_count": under_review_count,
             "draft_count": draft_count

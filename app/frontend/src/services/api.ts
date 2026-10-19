@@ -376,14 +376,14 @@ export const creatorApi = {
     } catch {
       return {
         stats: {
-          total_views: 8420000,
-          total_likes: 482000,
-          total_episodes: 12,
-          followers: 420000,
-          coin_earnings: 284000,
-          payout_balance_usd: 1890.00,
-          avg_cliffhanger_completion_rate: "88.4%",
-          monthly_growth_rate: "+26.4%"
+          total_views: 0,
+          total_likes: 0,
+          total_episodes: 0,
+          followers: 0,
+          coin_earnings: 0,
+          payout_balance_usd: 0,
+          avg_cliffhanger_completion_rate: "—",
+          monthly_growth_rate: "—"
         },
         series: []
       };

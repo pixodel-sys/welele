@@ -446,7 +446,16 @@ class ExperienceEngine:
             if sec_end and datetime.fromisoformat(sec_end.replace("Z", "+00:00")) < now_dt.replace(tzinfo=None):
                 continue
 
-            sec_copy = dict(sec)
+            # Normalize source dict to ensure clients never encounter null source
+            sec_copy = copy.deepcopy(sec)
+            source_cfg = sec_copy.get("source") or {}
+            sec_copy["source"] = {
+                "mode": source_cfg.get("mode", "manual"),
+                "algo_type": source_cfg.get("algo_type", "velocity_24h"),
+                "pinned_content_ids": source_cfg.get("pinned_content_ids", []),
+                "max_items": source_cfg.get("max_items", 10),
+                "genre_filter": source_cfg.get("genre_filter")
+            }
 
             # Resolve items using the canonical MerchandisingPolicyService boundary
             sec_copy["items"] = merchandising_policy_service.resolve_section_items(
@@ -458,8 +467,8 @@ class ExperienceEngine:
             sec_copy["merchandising_metadata"] = {
                 "policy_version": merchandising_policy_service.POLICY_VERSION,
                 "methodology_version": merchandising_policy_service.METHODOLOGY_VERSION,
-                "mode": sec_copy.get("source", {}).get("mode", "manual"),
-                "algo_type": sec_copy.get("source", {}).get("algo_type", "velocity_24h"),
+                "mode": sec_copy["source"]["mode"],
+                "algo_type": sec_copy["source"]["algo_type"],
                 "resolved_item_count": len(sec_copy["items"])
             }
             resolved_sections.append(sec_copy)

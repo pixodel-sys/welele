@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Story, Episode } from '../../types';
-import { creatorApi } from '../../services/api';
-import { mediaStore } from '../../services/mediaStore';
+import { creatorApi, storageApi } from '../../services/api';
 import { EntityHierarchyCrumb } from '../common/patterns/EntityHierarchyCrumb';
 import { ProvenanceBadge } from '../common/patterns/ProvenanceBadge';
 import { ReadinessBadge } from '../common/patterns/ReadinessBadge';
@@ -97,15 +96,27 @@ export const SeriesCommandRoom: React.FC<SeriesCommandRoomProps> = ({
   }, [seriesId]);
 
   const handleUpdatePoster = async (file: File) => {
-    const key = `series_poster_${seriesId}`;
-    const url = await mediaStore.saveMedia(key, file);
-    setCustomPoster(url);
+    try {
+      const res = await storageApi.uploadBinary(file, seriesId);
+      const cdnUrl = res?.public_cdn_url;
+      if (cdnUrl) {
+        setCustomPoster(cdnUrl);
+      }
+    } catch (err) {
+      console.error('Failed to upload series poster:', err);
+    }
   };
 
   const handleUpdateBanner = async (file: File) => {
-    const key = `series_banner_${seriesId}`;
-    const url = await mediaStore.saveMedia(key, file);
-    setCustomBanner(url);
+    try {
+      const res = await storageApi.uploadBinary(file, seriesId);
+      const cdnUrl = res?.public_cdn_url;
+      if (cdnUrl) {
+        setCustomBanner(cdnUrl);
+      }
+    } catch (err) {
+      console.error('Failed to upload series banner:', err);
+    }
   };
 
   const series: Story | undefined = workspaceData?.series || localFallbackStory;
@@ -135,9 +146,11 @@ export const SeriesCommandRoom: React.FC<SeriesCommandRoomProps> = ({
 
   const metrics = workspaceData?.metrics || {
     total_views: series.total_views || 0,
-    completion_rate: "88.4%",
+    completion_rate: "—",
     coins_generated: 0,
     estimated_earnings_usd: 0,
+    payout_balance_zar: 0,
+    audience_momentum: "—",
     published_count: series.episodes?.filter(e => e.status === 'published').length || 0,
     under_review_count: series.under_review_episodes_count || 0,
     draft_count: 0
@@ -597,23 +610,25 @@ export const SeriesCommandRoom: React.FC<SeriesCommandRoomProps> = ({
             <div className="p-4 rounded-[7px] bg-[#14151B] border border-white/5 space-y-1">
               <span className="text-xs text-welele-muted">Average Completion Rate</span>
               <div className="text-2xl font-black text-emerald-400 font-cinematic">
-                {metrics?.completion_rate || '89.1%'}
+                {metrics?.completion_rate ?? '—'}
               </div>
-              <span className="text-[10px] text-welele-muted">Strong audience retention</span>
+              <span className="text-[10px] text-welele-muted">Spine audience retention</span>
             </div>
 
             <div className="p-4 rounded-[7px] bg-[#14151B] border border-white/5 space-y-1">
               <span className="text-xs text-welele-muted">Total Views</span>
               <div className="text-2xl font-black text-white font-cinematic">
-                {metrics?.total_views?.toLocaleString() || '1.2M'}
+                {metrics?.total_views != null ? Number(metrics.total_views).toLocaleString() : '0'}
               </div>
               <span className="text-[10px] text-welele-muted">Across all episodes</span>
             </div>
 
             <div className="p-4 rounded-[7px] bg-[#14151B] border border-white/5 space-y-1">
               <span className="text-xs text-welele-muted">Audience Momentum</span>
-              <div className="text-2xl font-black text-[#FF2A6D] font-cinematic">+34%</div>
-              <span className="text-[10px] text-emerald-400 font-bold">Trending this week</span>
+              <div className="text-2xl font-black text-[#FF2A6D] font-cinematic">
+                {metrics?.audience_momentum ?? '—'}
+              </div>
+              <span className="text-[10px] text-welele-muted">Telemetry velocity signal</span>
             </div>
           </div>
         </div>
@@ -626,7 +641,7 @@ export const SeriesCommandRoom: React.FC<SeriesCommandRoomProps> = ({
             <div className="p-5 rounded-[7px] bg-[#14151B] border border-white/5 space-y-2">
               <span className="text-xs text-welele-muted">Total Episode Unlocks</span>
               <div className="text-2xl font-black text-welele-gold font-cinematic">
-                142,500 🪙
+                {metrics?.coins_generated != null ? `${Number(metrics.coins_generated).toLocaleString()} 🪙` : '0 🪙'}
               </div>
               <p className="text-[11px] text-welele-muted">From paid coin & airtime unlocks</p>
             </div>
@@ -634,9 +649,13 @@ export const SeriesCommandRoom: React.FC<SeriesCommandRoomProps> = ({
             <div className="p-5 rounded-[7px] bg-[#14151B] border border-white/5 space-y-2">
               <span className="text-xs text-welele-muted">Creator Payout Balance</span>
               <div className="text-2xl font-black text-emerald-400 font-cinematic">
-                R{((metrics?.estimated_earnings_usd || 780) * 18.5).toFixed(2)}
+                {metrics?.payout_balance_zar != null
+                  ? `R${Number(metrics.payout_balance_zar).toFixed(2)}`
+                  : (metrics?.estimated_earnings_usd != null && Number(metrics.estimated_earnings_usd) > 0
+                      ? `R${(Number(metrics.estimated_earnings_usd) * 18.5).toFixed(2)}`
+                      : 'R0.00')}
               </div>
-              <p className="text-[11px] text-welele-muted">Available for next settlement cycle</p>
+              <p className="text-[11px] text-welele-muted">Authoritative double-entry ledger balance</p>
             </div>
           </div>
         </div>
