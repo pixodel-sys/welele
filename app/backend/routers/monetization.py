@@ -1,6 +1,6 @@
 import uuid
 from typing import Optional
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, status
 from database import db
 from schemas.monetization_schemas import (
     TopupRequest,
@@ -61,57 +61,17 @@ def detect_carrier(phone: str = Query(..., description="South African phone numb
 
 @router.post("/airtime/charge")
 def charge_airtime(req: AirtimeChargeRequest):
-    result = payment_service.process_airtime_charge(
-        user_id=req.user_id,
-        carrier_id=req.carrier_id,
-        phone_number=req.phone_number,
-        charge_type=req.charge_type,
-        target_id=req.target_id,
-        amount_zar=req.amount_zar,
-        coins_equivalent=req.coins_equivalent or 0
+    """
+    DEPRECATED (Phase 6O-4): Unauthenticated carrier billing ingress is decommissioned.
+    All legitimate customer billing MUST route through /api/v1/payments/airtime/charge
+    with verified identity and cryptographic gateway settlement proof.
+    """
+    logger.warning("[Monetization] Call to deprecated /monetization/airtime/charge rejected.")
+    raise HTTPException(
+        status_code=status.HTTP_410_GONE,
+        detail="The /monetization/airtime/charge endpoint has been permanently deprecated. Please use the authenticated /api/v1/payments/airtime/charge route."
     )
 
-    # Authoritative Commercial Accounting (Workstream 6I-E)
-    # Airtime unlock uses actual monetary consideration (req.amount_zar) per Section 11
-    if req.charge_type == "episode_unlock" and req.series_id:
-        try:
-            commercial_accounting_service.process_commercial_event(
-                series_id=req.series_id,
-                episode_id=req.target_id,
-                source=RevenueEventSource.AIRTIME_UNLOCK,
-                source_transaction_id=result["transaction_id"],
-                event_type=RevenueEventType.AIRTIME_CHARGE,
-                gross_amount=Decimal(str(req.amount_zar)),
-                currency="ZAR",
-                idempotency_key=f"airtime_unlock_{result['transaction_id']}",
-                metadata={
-                    "user_id": req.user_id,
-                    "carrier": result.get("carrier_name"),
-                    "coins_equivalent": req.coins_equivalent or 0
-                }
-            )
-        except Exception as e:
-            logger.error(f"[CommercialAccounting] Airtime commercial event error: {e}")
-
-    # Save transaction record
-    db.insert("transactions", {
-        "id": result["transaction_id"],
-        "user_id": req.user_id,
-        "type": f"airtime_{req.charge_type}",
-        "carrier": result["carrier_name"],
-        "phone": req.phone_number,
-        "amount_zar": req.amount_zar,
-        "coins": req.coins_equivalent or 0,
-        "target_id": req.target_id,
-        "reference": result["reference"],
-        "timestamp": result["timestamp"]
-    })
-
-    return {
-        "success": True,
-        "message": f"Deducted R{req.amount_zar:.2f} via {result['carrier_name']} Airtime!",
-        "transaction": result
-    }
 
 @router.post("/airtime/ussd")
 def simulate_ussd(req: USSDSessionRequest):

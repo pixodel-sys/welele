@@ -8,14 +8,21 @@ from typing import Optional, List, Dict, Any
 from fastapi import APIRouter, HTTPException, Depends, Query, Response
 from pydantic import BaseModel
 from datetime import datetime, timezone, timedelta
-from services.rbac_service import require_role, get_current_user
+from services.rbac_service import require_role, get_current_user, require_authenticated_user
 from services.audit_service import audit_service
 from repositories.series_repository import series_repository
 from services.evidence_projection_service import evidence_projection_service
 from services.commercial_reconciliation_service import commercial_reconciliation_service
 from services.commercial_payment_run_service import commercial_payment_run_service
 
-router = APIRouter(prefix="/admin", tags=["Admin Platform"], dependencies=[Depends(require_role(["admin", "admin_operator", "admin_supervisor", "finance"]))])
+router = APIRouter(
+    prefix="/admin",
+    tags=["Admin Platform"],
+    dependencies=[
+        Depends(require_authenticated_user),
+        Depends(require_role(["admin", "admin_operator", "admin_supervisor", "finance"]))
+    ]
+)
 
 class ModerationFeedbackRequest(BaseModel):
     feedback: Optional[str] = None
@@ -617,6 +624,8 @@ def approve_payment_run(
         updated = commercial_payment_run_service.approve_run(run_id=run_id, approver_id=actor_id)
         return {"success": True, "run": updated}
     except ValueError as e:
+        if "DUAL-CONTROL" in str(e).upper():
+            raise HTTPException(status_code=403, detail=str(e))
         raise HTTPException(status_code=400, detail=str(e))
 
 

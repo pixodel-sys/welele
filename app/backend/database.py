@@ -56,7 +56,9 @@ class Database:
                         "content_intelligence_evidence_packages": [],
                         "security_audit_ledger": [],
                         "creator_payment_runs": [],
-                        "creator_payment_run_items": []
+                        "creator_payment_run_items": [],
+                        "creator_profiles": [],
+                        "workspace_members": []
                     }
                     cls._instance._supabase = None
                     cls._instance._canonical_store_path = os.path.abspath(settings.DATA_FILE)

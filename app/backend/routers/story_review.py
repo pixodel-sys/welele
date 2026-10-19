@@ -18,7 +18,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
 
 from repositories.base_repository import BaseRepository
-from services.rbac_service import require_role, get_current_user
+from services.rbac_service import require_role, get_current_user, require_authenticated_user
 from services.audit_service import audit_service
 from story_forge.adapters.providers.http_provider import HttpLLMProvider
 
@@ -457,31 +457,42 @@ Full Draft / Notes:
 # Endpoints
 # -----------------------------------------------------------------------------
 
-@router.get("/drafts")
-def list_story_drafts(creator_id: Optional[str] = "creator_zola"):
-    """Lists persistent story drafts for the active creator."""
-    return story_review_repo.get_drafts(creator_id)
+@router.get("/drafts", dependencies=[Depends(require_authenticated_user), Depends(require_role(["creator", "admin"]))])
+def list_story_drafts(creator_id: Optional[str] = None, auth_user: dict = Depends(get_current_user)):
+    """Lists persistent story drafts for the active creator (Protected Canonical Route)."""
+    user_role = auth_user.get("role", "viewer")
+    effective_creator_id = creator_id
+    if user_role != "admin":
+        effective_creator_id = auth_user.get("creator_id") or auth_user.get("sub")
+    return story_review_repo.get_drafts(effective_creator_id)
 
 
-@router.post("/drafts")
-def save_story_draft(draft: StoryDraftPayload):
-    """Saves or updates a persistent story draft in Story Review™."""
+@router.post("/drafts", dependencies=[Depends(require_authenticated_user), Depends(require_role(["creator", "admin"]))])
+def save_story_draft(draft: StoryDraftPayload, auth_user: dict = Depends(get_current_user)):
+    """Saves or updates a persistent story draft in Story Review™ (Protected Canonical Route)."""
+    user_role = auth_user.get("role", "viewer")
     data = draft.dict()
+    if user_role != "admin":
+        data["creator_id"] = auth_user.get("creator_id") or auth_user.get("sub")
     saved = story_review_repo.save_draft(data)
     return {"success": True, "draft": saved}
 
 
-@router.get("/drafts/{draft_id}")
-def get_story_draft(draft_id: str):
-    """Retrieves a single persistent story draft."""
+@router.get("/drafts/{draft_id}", dependencies=[Depends(require_authenticated_user), Depends(require_role(["creator", "admin"]))])
+def get_story_draft(draft_id: str, auth_user: dict = Depends(get_current_user)):
+    """Retrieves a single persistent story draft (Protected Canonical Route)."""
     draft = story_review_repo.get_draft(draft_id)
     if not draft:
         raise HTTPException(status_code=404, detail="Story draft not found")
+    user_role = auth_user.get("role", "viewer")
+    caller_creator_id = auth_user.get("creator_id") or auth_user.get("sub")
+    if user_role != "admin" and draft.get("creator_id") != caller_creator_id:
+        raise HTTPException(status_code=403, detail="Access denied: Cannot access drafts belonging to another creator.")
     return draft
 
 
-@router.post("/diagnose", response_model=StoryReviewDiagnosticResponse)
-def diagnose_story(draft: StoryDraftPayload):
+@router.post("/diagnose", response_model=StoryReviewDiagnosticResponse, dependencies=[Depends(require_authenticated_user), Depends(require_role(["creator", "admin"]))])
+def diagnose_story(draft: StoryDraftPayload, auth_user: dict = Depends(get_current_user)):
     """
     Generates a structured creator-facing diagnostic review.
     Evaluates Premise, Character Tension, Episodic Structure, and Production Feasibility.
@@ -490,7 +501,7 @@ def diagnose_story(draft: StoryDraftPayload):
     return evaluate_story_draft(draft)
 
 
-@router.post("/submit-pitch", response_model=CreatorSubmissionResponse)
+@router.post("/submit-pitch", response_model=CreatorSubmissionResponse, dependencies=[Depends(require_authenticated_user), Depends(require_role(["creator", "admin"]))])
 def submit_pitch_for_greenlight(req: PitchSubmitRequest, auth_user: dict = Depends(get_current_user)):
     """
     IP Pipeline Intake Entry Point: Submits a creator's story pitch to Welele editorial review.
@@ -502,11 +513,12 @@ def submit_pitch_for_greenlight(req: PitchSubmitRequest, auth_user: dict = Depen
     existing = story_review_repo.find_submission_by_draft(req.draft_id) if req.draft_id else None
     
     submission_id = existing["submission_id"] if existing else f"sub_{uuid.uuid4().hex[:12]}"
+    caller_creator_id = auth_user.get("creator_id") or auth_user.get("sub")
 
     sub_record = {
         "submission_id": submission_id,
         "draft_id": req.draft_id,
-        "creator_id": auth_user.get("sub", req.creator_id),
+        "creator_id": caller_creator_id,
         "creator_name": req.creator_name,
         "title": req.title,
         "logline": req.logline,
@@ -553,16 +565,24 @@ def submit_pitch_for_greenlight(req: PitchSubmitRequest, auth_user: dict = Depen
     )
 
 
-@router.get("/submissions")
-def list_submissions(creator_id: Optional[str] = None):
-    """Lists creator submissions in the IP Pipeline (accessible by creator and admin intake)."""
-    return story_review_repo.get_submissions(creator_id)
+@router.get("/submissions", dependencies=[Depends(require_authenticated_user), Depends(require_role(["creator", "admin"]))])
+def list_submissions(creator_id: Optional[str] = None, auth_user: dict = Depends(get_current_user)):
+    """Lists creator submissions in the IP Pipeline (Protected Canonical Route)."""
+    user_role = auth_user.get("role", "viewer")
+    effective_creator_id = creator_id
+    if user_role != "admin":
+        effective_creator_id = auth_user.get("creator_id") or auth_user.get("sub")
+    return story_review_repo.get_submissions(effective_creator_id)
 
 
-@router.get("/submissions/{submission_id}")
-def get_submission_detail(submission_id: str):
-    """Retrieves a specific creator submission intake record."""
+@router.get("/submissions/{submission_id}", dependencies=[Depends(require_authenticated_user), Depends(require_role(["creator", "admin"]))])
+def get_submission_detail(submission_id: str, auth_user: dict = Depends(get_current_user)):
+    """Retrieves a specific creator submission intake record (Protected Canonical Route)."""
     sub = story_review_repo.get_submission(submission_id)
     if not sub:
         raise HTTPException(status_code=404, detail="Submission intake record not found")
+    user_role = auth_user.get("role", "viewer")
+    caller_creator_id = auth_user.get("creator_id") or auth_user.get("sub")
+    if user_role != "admin" and sub.get("creator_id") != caller_creator_id:
+        raise HTTPException(status_code=403, detail="Access denied: Cannot access submissions belonging to another creator.")
     return sub

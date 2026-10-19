@@ -309,10 +309,26 @@ def enforce_tenant_access(
     action: str = "mutate"
 ) -> bool:
     """
-    Enforces strict Creator Tenant Isolation.
+    Enforces strict Creator Tenant Isolation (Canonical 6O-1 Boundary).
     A creator can only read/mutate their own IP/series/episodes/analytics.
     Admins hold universal administrative override.
+    Zero legacy fallback: Unauthenticated or mismatched tenant requests fail closed.
     """
+    if not auth_user or not auth_user.get("is_authenticated"):
+        audit_service.record_trust_event(
+            domain="SECURITY",
+            event_type="security.permission_denied",
+            actor_id="unauthenticated",
+            actor_role="none",
+            target_type="creator_tenant_boundary",
+            target_id=resource_creator_id or "unknown_resource",
+            metadata={"reason": "Unauthenticated access attempt to tenant resource (fail closed)"}
+        )
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required to access tenant resources."
+        )
+
     user_role = auth_user.get("role", "viewer")
     if user_role == "admin":
         return True

@@ -233,26 +233,59 @@ def guest_login(req: GuestAuthRequest):
 
 @router.post("/creator/login")
 def creator_login(req: CreatorLoginRequest):
-    """Authenticates an African Showrunner / Production Studio account and issues a ROLE_CREATOR JWT."""
+    """
+    Authenticates a Creator Studio account via Canonical Identity resolution.
+    Strictly fails closed: arbitrary or unregistered creator IDs are rejected.
+    Zero legacy public.users fallback.
+    """
     creator_id = req.creator_id
     if not creator_id:
         raise HTTPException(status_code=400, detail="Creator ID is required")
         
-    creators = db.get("creators")
-    creator = next((c for c in creators if c.get("id") == creator_id), None)
+    from services.creator_profile_service import creator_profile_service
+    profile = creator_profile_service.get_profile(creator_id)
     
+    # Fail closed: Creator identity MUST be a registered, recognized creator profile
+    if not profile or profile.get("status") != "active":
+        audit_service.record_trust_event(
+            domain="AUTH",
+            event_type="auth.failed_login",
+            actor_id=creator_id,
+            actor_role="creator",
+            target_type="creator_account",
+            target_id=creator_id,
+            metadata={"reason": "Unregistered or inactive creator profile (fail closed)"}
+        )
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication failed: Unregistered or invalid Creator Studio profile."
+        )
+
     # Secure check: Verify against stored studio PIN/pass or configured studio key
-    expected_pin = creator.get("studio_pin") if creator else None
+    expected_pin = profile.get("studio_pin")
     configured_key = os.getenv("CREATOR_STUDIO_KEY")
     supplied_credential = req.studio_pin or req.password
     
     is_valid = False
     if expected_pin and req.studio_pin and hmac.compare_digest(str(req.studio_pin), str(expected_pin)):
         is_valid = True
-    elif configured_key and supplied_credential and hmac.compare_digest(str(supplied_credential), str(configured_key)):
-        is_valid = True
-    elif not settings.IS_PRODUCTION_OR_STAGING and settings.ENVIRONMENT in ("development", "test") and (req.studio_pin == "1234" or req.password == "welele_dev_pass"):
-        # Explicitly allowed ONLY in non-staging local development / test mock environments
+    elif (configured_key and supplied_credential and hmac.compare_digest(str(supplied_credential), str(configured_key))) or \
+         (not settings.IS_PRODUCTION_OR_STAGING and settings.ENVIRONMENT in ("development", "test") and (req.studio_pin == "1234" or req.password == "welele_dev_pass")):
+        # 6O-2 Invariant: Passkey allowed ONLY if creator profile has legacy_passkey_enabled == true
+        if not creator_profile_service.is_legacy_passkey_allowed(creator_id):
+            audit_service.record_trust_event(
+                domain="AUTH",
+                event_type="auth.failed_login",
+                actor_id=creator_id,
+                actor_role="creator",
+                target_type="creator_account",
+                target_id=creator_id,
+                metadata={"reason": "Legacy passkey authentication disabled for creator"}
+            )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Legacy studio passkey authentication is disabled for this creator. Please use individual credentials."
+            )
         is_valid = True
 
     if not is_valid:
@@ -267,25 +300,29 @@ def creator_login(req: CreatorLoginRequest):
         )
         raise HTTPException(status_code=401, detail="Invalid Showrunner Studio PIN or credentials.")
 
-    user_id = f"usr_{creator_id}"
+    # Canonical persistent identity resolution: Use creator profile's owner_user_id or anchor to verified creator slug
+    owner_user_id = str(profile.get("owner_user_id") or f"usr_{creator_id}")
+    membership = creator_profile_service.get_workspace_membership(owner_user_id, creator_id)
+    workspace_role = membership.get("role", "owner") if membership else "owner"
+
     token = create_access_token(
-        user_id=user_id,
+        user_id=owner_user_id,
         role="creator",
         creator_id=creator_id,
-        phone="+27828912345",
-        market="ZA",
+        phone=profile.get("contact_phone", "+27828912345"),
+        market=profile.get("country", "ZA"),
         kyc_status="VERIFIED"
     )
 
     audit_service.record_trust_event(
         domain="AUTH",
         event_type="auth.login",
-        actor_id=user_id,
+        actor_id=owner_user_id,
         actor_role="creator",
         target_type="creator_workstation",
         target_id=creator_id,
         after_state={"creator_id": creator_id, "role": "creator", "kyc_status": "VERIFIED"},
-        metadata={"method": "studio_pin", "studio": creator.get("stage_name", "Studio") if creator else "Studio"}
+        metadata={"method": "canonical_profile", "studio": profile.get("display_name", "Studio"), "workspace_role": workspace_role}
     )
     
     return {
@@ -293,10 +330,11 @@ def creator_login(req: CreatorLoginRequest):
         "access_token": token,
         "token_type": "bearer",
         "user": {
-            "id": user_id,
+            "id": owner_user_id,
             "creator_id": creator_id,
-            "name": creator.get("stage_name", "Creator") if creator else "Creator",
-            "studio_name": creator.get("stage_name", "Studio") if creator else "Studio",
+            "name": profile.get("display_name", "Creator"),
+            "studio_name": profile.get("display_name", "Studio"),
+            "workspace_role": workspace_role,
             "role": "creator",
             "kyc_status": "VERIFIED"
         }
@@ -344,10 +382,15 @@ def admin_login(req: AdminLoginRequest):
         )
         raise HTTPException(status_code=401, detail="Invalid Administrator Key or 2FA Token.")
 
-    admin_id = "admin_supervisor"
+    from services.admin_profile_service import admin_profile_service
+    admin_id = admin_profile_service.resolve_admin_id(req.email)
+    profile = admin_profile_service.get_profile(admin_id)
+    admin_name = profile.get("full_name", "Welele Operations Admin") if profile else "Welele Operations Admin"
+    admin_role = profile.get("role", "admin") if profile else "admin"
+
     token = create_access_token(
         user_id=admin_id,
-        role="admin",
+        role=admin_role,
         email=req.email or "ops@welele.media",
         market="ALL",
         kyc_status="SUPER_ADMIN"
@@ -357,10 +400,10 @@ def admin_login(req: AdminLoginRequest):
         domain="AUTH",
         event_type="auth.login",
         actor_id=admin_id,
-        actor_role="admin",
+        actor_role=admin_role,
         target_type="admin_console",
         target_id="global_operations",
-        after_state={"role": "admin", "kyc_status": "SUPER_ADMIN"},
+        after_state={"role": admin_role, "kyc_status": "SUPER_ADMIN"},
         metadata={"method": "enterprise_2fa", "operator": req.email or "ops@welele.media"}
     )
     
@@ -370,10 +413,10 @@ def admin_login(req: AdminLoginRequest):
         "token_type": "bearer",
         "user": {
             "id": admin_id,
-            "name": "Welele Operations Admin",
+            "name": admin_name,
             "email": req.email or "ops@welele.media",
-            "role": "admin",
-            "permissions": ["*"]
+            "role": admin_role,
+            "permissions": profile.get("permissions", ["*"]) if profile else ["*"]
         }
     }
 

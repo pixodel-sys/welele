@@ -31,7 +31,8 @@ from routers import (
     content_intelligence,
     story_review,
     forge_configurations,
-    production
+    production,
+    media
 )
 
 # Story Forge Stateful Narrative Engine Module (Decoupled Service)
@@ -82,7 +83,9 @@ app.mount("/media", StaticFiles(directory=media_dir), name="media")
 # Register Canonical Domain Routers (Digital IP Spine)
 # -----------------------------------------------------------------------------
 app.include_router(auth.router, prefix=settings.API_V1_STR)
+app.include_router(auth.router, prefix="/api/v1")
 app.include_router(ip.router, prefix=settings.API_V1_STR)
+app.include_router(ip.router, prefix="/api/v1")
 app.include_router(series.router, prefix=settings.API_V1_STR)
 app.include_router(series.router, prefix="/api/v1")
 app.include_router(episodes.router, prefix=settings.API_V1_STR)
@@ -90,6 +93,8 @@ app.include_router(episodes.router, prefix="/api/v1")
 app.include_router(wallet.router, prefix=settings.API_V1_STR)
 app.include_router(payments.router, prefix=settings.API_V1_STR)
 app.include_router(storage.router, prefix=settings.API_V1_STR)
+app.include_router(media.router, prefix=settings.API_V1_STR)
+app.include_router(media.router, prefix="/api/v1")
 app.include_router(chat.router, prefix=settings.API_V1_STR)
 app.include_router(ai.router, prefix=settings.API_V1_STR)
 app.include_router(admin.router, prefix=settings.API_V1_STR)

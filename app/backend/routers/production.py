@@ -13,15 +13,41 @@ from schemas.production_schemas import (
     EpisodeProductionPackCreateRequest,
     EpisodeProductionPackModel
 )
-from services.rbac_service import require_role, get_current_user
+from services.rbac_service import require_role, get_current_user, require_authenticated_user
 from services.audit_service import audit_service
 
-router = APIRouter(prefix="/production", tags=["Production Engine"])
+router = APIRouter(
+    prefix="/production",
+    tags=["Production Engine"],
+    dependencies=[
+        Depends(require_authenticated_user),
+        Depends(require_role(["creator", "admin", "admin_supervisor", "admin_operator"]))
+    ]
+)
 
+def _assert_ip_access(ip_id: str, auth_user: dict):
+    """Enforces workspace membership and creator ownership for IP production assets."""
+    user_role = auth_user.get("role", "viewer")
+    if user_role in ["admin", "admin_supervisor", "admin_operator", "finance"]:
+        return
+    caller_creator = auth_user.get("creator_id") or auth_user.get("sub")
+    from repositories.ip_repository import ip_repository
+    ip_obj = ip_repository.get_ip(ip_id)
+    if ip_obj and ip_obj.get("master_owner_id"):
+        owner = ip_obj.get("master_owner_id")
+        if caller_creator != owner:
+            from services.creator_profile_service import creator_profile_service
+            membership = creator_profile_service.get_workspace_membership(auth_user.get("sub"), owner)
+            if not membership:
+                raise HTTPException(
+                    status_code=403,
+                    detail=f"Access denied: Creator '{caller_creator}' does not have production authorization for IP '{ip_id}'."
+                )
 
-@router.post("/bibles/generate", response_model=ProductionBibleModel, dependencies=[Depends(require_role(["creator", "admin"]))])
+@router.post("/bibles/generate", response_model=ProductionBibleModel)
 def generate_production_bible(req: ProductionBibleCreateRequest, auth_user: dict = Depends(get_current_user)):
     """Transforms an M3 8-pillar Story Package into a comprehensive 10-Section Production Bible."""
+    _assert_ip_access(req.ip_id, auth_user)
     try:
         bible = production_bible_service.generate_production_bible(
             ip_id=req.ip_id,
@@ -48,8 +74,9 @@ def generate_production_bible(req: ProductionBibleCreateRequest, auth_user: dict
 
 
 @router.get("/bibles/{ip_id}", response_model=ProductionBibleModel)
-def get_production_bible_by_ip(ip_id: str):
-    """Fetches the active Production Bible for a given Digital IP."""
+def get_production_bible_by_ip(ip_id: str, auth_user: dict = Depends(get_current_user)):
+    """Fetches the active Production Bible for a given Digital IP (Protected Canonical Route)."""
+    _assert_ip_access(ip_id, auth_user)
     bible = production_repository.get_production_bible_by_ip(ip_id)
     if not bible:
         try:
@@ -60,14 +87,15 @@ def get_production_bible_by_ip(ip_id: str):
 
 
 @router.get("/bibles", response_model=List[ProductionBibleModel])
-def list_production_bibles():
-    """Returns all Production Bibles."""
+def list_production_bibles(auth_user: dict = Depends(get_current_user)):
+    """Returns all Production Bibles (Protected Canonical Route)."""
     return production_repository.list_production_bibles()
 
 
-@router.post("/packs/generate", response_model=EpisodeProductionPackModel, dependencies=[Depends(require_role(["creator", "admin"]))])
+@router.post("/packs/generate", response_model=EpisodeProductionPackModel)
 def generate_episode_production_pack(req: EpisodeProductionPackCreateRequest, auth_user: dict = Depends(get_current_user)):
     """Generates an Episode Production Pack using the 5-Track Production Model (VIDEO, DIALOGUE, NARRATION, AMBIENCE, MUSIC)."""
+    _assert_ip_access(req.ip_id, auth_user)
     try:
         pack = production_bible_service.generate_episode_production_pack(
             ip_id=req.ip_id,
@@ -94,8 +122,9 @@ def generate_episode_production_pack(req: EpisodeProductionPackCreateRequest, au
 
 
 @router.get("/packs/{ip_id}/episodes/{episode_number}", response_model=EpisodeProductionPackModel)
-def get_episode_production_pack(ip_id: str, episode_number: int):
-    """Fetches the 5-track Episode Production Pack for a given IP and episode number."""
+def get_episode_production_pack(ip_id: str, episode_number: int, auth_user: dict = Depends(get_current_user)):
+    """Fetches the 5-track Episode Production Pack for a given IP and episode number (Protected Canonical Route)."""
+    _assert_ip_access(ip_id, auth_user)
     pack = production_repository.get_episode_pack(ip_id=ip_id, episode_number=episode_number)
     if not pack:
         try:
@@ -131,6 +160,7 @@ def get_episode_production_pack(ip_id: str, episode_number: int):
 
 
 @router.get("/packs/{ip_id}", response_model=List[EpisodeProductionPackModel])
-def list_episode_packs_for_ip(ip_id: str):
-    """Returns all Episode Production Packs for a given IP."""
+def list_episode_packs_for_ip(ip_id: str, auth_user: dict = Depends(get_current_user)):
+    """Returns all Episode Production Packs for a given IP (Protected Canonical Route)."""
+    _assert_ip_access(ip_id, auth_user)
     return production_repository.list_episode_packs(ip_id=ip_id)

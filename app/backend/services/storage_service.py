@@ -346,6 +346,22 @@ class StorageService:
             "expires_in_seconds": expires_in_seconds
         }
 
+    def generate_playback_token(
+        self,
+        storage_key: str,
+        user_id: Optional[str] = None,
+        ttl_seconds: int = 60
+    ) -> Dict[str, Any]:
+        """
+        Phase 6O-5: Generates a short-lived, time-bounded presigned playback URL (default 60s)
+        for authorized media sessions. Rejects empty/blob references.
+        """
+        clean_key = self._clean_key(storage_key)
+        presigned = self.generate_presigned_download_url(clean_key, expires_in_seconds=ttl_seconds)
+        presigned["user_id"] = user_id
+        presigned["ttl_seconds"] = ttl_seconds
+        return presigned
+
     def generate_adaptive_renditions(self, video_path_or_url: str) -> List[Dict[str, Any]]:
         """
         Generates multi-bitrate rendition specifications for vertical microdramas.

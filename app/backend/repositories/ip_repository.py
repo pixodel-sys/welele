@@ -203,6 +203,10 @@ class IPRepository(BaseRepository):
             result.append(ip_copy)
         return result
 
+    def get_ip(self, ip_id: str) -> Optional[Dict[str, Any]]:
+        ips = self.local_get("digital_ips") or []
+        return next((i for i in ips if i.get("id") == ip_id or i.get("franchise_code") == ip_id), None)
+
     def get_ip_detail(self, ip_id: str) -> Optional[Dict[str, Any]]:
         ips = self.local_get("digital_ips")
         ip = next((i for i in ips if i["id"] == ip_id or i["franchise_code"] == ip_id), None)

@@ -232,8 +232,15 @@ def get_creator_episodes(creator_id: str, status: str = Query(None), auth_user: 
         if status and ep_status != status:
             continue
         s = series_map.get(ep.get("series_id"), {})
+        
+        # 6O-3 Invariant: Enforce explicit relational ownership check
+        ep_creator = ep.get("creator_id") or series_repository.resolve_series_creator_id(s)
+        if ep_creator != creator_id:
+            continue
+
         filtered.append({
             **ep,
+            "creator_id": ep_creator,
             "series_title": s.get("title", ""),
             "series_cover": s.get("vertical_poster", s.get("cover_image", "")),
             "genre": s.get("genre", "")

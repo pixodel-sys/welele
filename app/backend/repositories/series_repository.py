@@ -1089,39 +1089,45 @@ class SeriesRepository(BaseRepository):
 
     def resolve_series_creator_id(self, series: Dict[str, Any]) -> Optional[str]:
         """
-        Resolves series creator from canonical persisted ownership relationship:
-        series → digital_ips → master_owner_id → creator.
-        Strictly avoids title-based heuristics, series name guessing, or arbitrary defaults.
+        Resolves series creator from direct relational ownership:
+        1. Direct series.creator_id attribute.
+        2. Relational digital_ips -> creator_profile link.
+        Strictly eliminates hardcoded user->creator python dictionaries and arbitrary fallbacks.
         """
         if not series:
             return None
 
-        # 1. Identify digital IP ID from series
-        ip_id = series.get("ip_id")
-        target_series_id = str(series.get("id", ""))
+        # 1. Primary: Direct normalized creator_id on series
+        if series.get("creator_id"):
+            return str(series["creator_id"])
 
-        # If ip_id is not directly on series, check local store series record or live database
-        if not ip_id and target_series_id:
+        target_series_id = str(series.get("id", ""))
+        if target_series_id:
             local_series = self.local_get("series") or []
             target_uuid = to_uuid(target_series_id)
             matched_s = next(
                 (s for s in local_series if str(s.get("id", "")) in (target_series_id, target_uuid) or to_uuid(str(s.get("id", ""))) == target_uuid),
                 None
             )
+            if matched_s and matched_s.get("creator_id"):
+                return str(matched_s["creator_id"])
+
+        # 2. Relational fallback via digital_ips -> master_owner_id
+        ip_id = series.get("ip_id")
+        if not ip_id and target_series_id:
             if matched_s:
                 ip_id = matched_s.get("ip_id")
-
-            if not ip_id and self.is_live:
+            elif self.is_live:
                 try:
-                    res = self.get_table("series").select("ip_id").or_(f"id.eq.{target_series_id},id.eq.{target_uuid}").limit(1).execute()
+                    res = self.get_table("series").select("ip_id,creator_id").or_(f"id.eq.{target_series_id},id.eq.{target_uuid}").limit(1).execute()
                     if res and res.data and len(res.data) > 0:
+                        if res.data[0].get("creator_id"):
+                            return str(res.data[0]["creator_id"])
                         ip_id = res.data[0].get("ip_id")
                 except Exception as e:
-                    logger.warning(f"[SeriesRepository] Remote series ip_id lookup failed: {e}")
+                    logger.warning(f"[SeriesRepository] Remote series lookup failed: {e}")
 
-        target_ip_record = None
         if ip_id:
-            # 2. Resolve digital_ips record
             target_ip_uuid = to_uuid(str(ip_id))
             all_ips = self.local_get("digital_ips") or []
             target_ip_record = next(
@@ -1136,78 +1142,21 @@ class SeriesRepository(BaseRepository):
                 except Exception as e:
                     logger.warning(f"[SeriesRepository] Remote digital_ips lookup failed: {e}")
 
-        # 3. Resolve master_owner_id from digital_ips
-        if target_ip_record and target_ip_record.get("master_owner_id"):
-            master_owner_id = str(target_ip_record["master_owner_id"])
-            
-            # 4. Resolve master_owner_id -> creator
-            # A. If master_owner_id is already a creator_id (e.g. 'creator_zola', 'creator_amaka')
-            if master_owner_id.startswith("creator_"):
-                return master_owner_id
-
-            # B. Check local or remote creators table for user_id == master_owner_id or id == master_owner_id
-            local_creators = self.local_get("creators") or []
-            target_owner_uuid = to_uuid(master_owner_id)
-            matched_creator = next(
-                (c for c in local_creators if str(c.get("user_id", "")) in (master_owner_id, target_owner_uuid) 
-                 or to_uuid(str(c.get("user_id", ""))) == target_owner_uuid
-                 or str(c.get("id", "")) in (master_owner_id, target_owner_uuid)
-                 or to_uuid(str(c.get("id", ""))) == target_owner_uuid),
-                None
-            )
-            if matched_creator and matched_creator.get("id"):
-                return str(matched_creator["id"])
-
-            # C. Check remote creators if live
-            if self.is_live:
-                try:
-                    res = self.get_table("creators").select("*").or_(f"user_id.eq.{master_owner_id},user_id.eq.{target_owner_uuid},id.eq.{master_owner_id},id.eq.{target_owner_uuid}").execute()
-                    if res and res.data and len(res.data) > 0:
-                        creator_row = res.data[0]
-                        c_id = creator_row.get("id")
-                        if c_id:
-                            return str(c_id)
-                except Exception as e:
-                    logger.warning(f"[SeriesRepository] Remote creator lookup failed: {e}")
-
-            # D. Known canonical user -> creator mappings (conforming to Schema v2 and seed contracts)
-            known_user_to_creator = {
-                "user_zola": "creator_zola",
-                to_uuid("user_zola"): "creator_zola",
-                to_uuid("creator_zola"): "creator_zola",
-                "user_amaka": "creator_amaka",
-                to_uuid("user_amaka"): "creator_amaka",
-                to_uuid("creator_amaka"): "creator_amaka",
-                "user_sa_02": "creator_lerato",
-                to_uuid("user_sa_02"): "creator_lerato",
-                to_uuid("creator_lerato"): "creator_lerato",
-                "user_kofi": "creator_kofi",
-                to_uuid("user_kofi"): "creator_kofi",
-                to_uuid("creator_kofi"): "creator_kofi",
-                "user_wanjiku": "creator_wanjiku",
-                to_uuid("user_wanjiku"): "creator_wanjiku",
-                to_uuid("creator_wanjiku"): "creator_wanjiku",
-            }
-            if master_owner_id in known_user_to_creator:
-                return known_user_to_creator[master_owner_id]
-            if target_owner_uuid in known_user_to_creator:
-                return known_user_to_creator[target_owner_uuid]
-
-            return master_owner_id
-
-        # 5. Fallback to persisted creator_id on series if set
-        if series.get("creator_id"):
-            return str(series["creator_id"])
-
-        if target_series_id:
-            local_series = self.local_get("series") or []
-            target_uuid = to_uuid(target_series_id)
-            matched_s = next(
-                (s for s in local_series if str(s.get("id", "")) in (target_series_id, target_uuid) or to_uuid(str(s.get("id", ""))) == target_uuid),
-                None
-            )
-            if matched_s and matched_s.get("creator_id"):
-                return str(matched_s["creator_id"])
+            if target_ip_record and target_ip_record.get("master_owner_id"):
+                master_owner_id = str(target_ip_record["master_owner_id"])
+                if master_owner_id.startswith("creator_"):
+                    return master_owner_id
+                
+                # Check creator profiles by owner_user_id
+                from services.creator_profile_service import creator_profile_service
+                profiles = creator_profile_service.local_get("creator_profiles") or []
+                owner_uuid = to_uuid(master_owner_id)
+                matched_profile = next(
+                    (p for p in profiles if str(p.get("owner_user_id")) in (master_owner_id, owner_uuid)),
+                    None
+                )
+                if matched_profile:
+                    return str(matched_profile["id"])
 
         return None
 

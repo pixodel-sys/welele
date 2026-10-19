@@ -85,16 +85,39 @@ def verify_storage_asset(storage_key: str):
     }
 
 
+PUBLIC_STREAM_ALLOWLIST = {
+    "videos/welele_ident_v2.mp4",
+    "videos/welele_placeholder.mp4",
+    "videos/ocean_waves.mp4",
+    "videos/sample_drama.mp4",
+    "videos/flower_bloom.mp4",
+    "videos/jellyfish.mp4",
+    "videos/sintel.mp4",
+    "videos/big_buck.mp4",
+    "videos/Isibusiso_Ep01_The_Midnight_Sovereign_v1.mp4",
+}
+
 @router.get("/stream/{storage_key:path}")
 def stream_storage_object(storage_key: str):
     """
-    Direct streaming redirect endpoint: Resolves an object storage key to a secure presigned R2 download URL
-    and issues an HTTP 307 Temporary Redirect.
-    Allows standard HTML5 <video src="..."> elements, brand idents, trailers, and public assets
-    to stream directly from Cloudflare R2 without local filesystem dependencies.
+    Direct streaming redirect endpoint: Resolves public object storage keys to a secure presigned R2 download URL.
+    Protected episode masters (masters/*) and private media assets CANNOT be streamed via this endpoint.
+    Direct calls for protected media return HTTP 403 Forbidden.
+    Clients MUST request an authorized media session via POST /media/sessions/create.
     """
     clean_key = storage_service._clean_key(storage_key)
+    
+    # Phase 6O-5: Direct streaming of protected episode masters or non-allowlisted objects is strictly forbidden
+    if clean_key.startswith("masters/") or clean_key.startswith("private/") or clean_key not in PUBLIC_STREAM_ALLOWLIST:
+        raise HTTPException(
+            status_code=403,
+            detail="Direct streaming of protected media assets is prohibited. Please request an authorized playback session via POST /media/sessions/create."
+        )
+
     if not storage_service.object_exists(clean_key):
+        if not storage_service.s3_client and clean_key in PUBLIC_STREAM_ALLOWLIST:
+            presigned = storage_service.generate_presigned_download_url(clean_key, expires_in_seconds=3600)
+            return RedirectResponse(url=presigned["download_url"], status_code=307)
         raise HTTPException(status_code=404, detail=f"Media asset '{clean_key}' not found in object storage")
     presigned = storage_service.generate_presigned_download_url(clean_key, expires_in_seconds=3600)
     return RedirectResponse(url=presigned["download_url"], status_code=307)
