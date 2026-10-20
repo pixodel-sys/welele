@@ -16,6 +16,8 @@ from schemas.experience_schemas import (
     PublishRequest
 )
 
+from repositories.series_repository import series_repository, to_uuid
+
 router = APIRouter(prefix="/experience", tags=["Experience Engine (WEE)"])
 
 @router.get("/pages")
@@ -38,6 +40,17 @@ def get_live_page_experience(page_id: str):
     if not manifest:
         raise HTTPException(status_code=404, detail=f"Page experience '{page_id}' not found.")
     return manifest
+
+@router.get("/page/{page_id}/draft", dependencies=[Depends(require_role(["admin"]))])
+def get_page_draft_experience(page_id: str):
+    """
+    Retrieves the raw unhydrated editorial draft layout without executing runtime merchandising resolution.
+    Used exclusively by Welele Admin Studio for authoring editorial configurations.
+    """
+    draft = ExperienceEngine.get_stored_manifest(page_id, state="draft")
+    if not draft:
+        raise HTTPException(status_code=404, detail=f"Draft experience '{page_id}' not found.")
+    return draft
 
 @router.get("/preview/{page_id}", dependencies=[Depends(require_role(["admin"]))])
 def preview_page_experience(
@@ -72,7 +85,41 @@ def save_page_draft(page_id: str, request: SaveDraftRequest, auth_user: dict = D
     # Update fields
     if request.meta:
         current_draft["meta"] = request.meta.model_dump()
-    current_draft["sections"] = [s.model_dump() for s in request.sections]
+
+    # Clean and canonicalize sections:
+    # 1. Prevent dynamic merchandising output from being persisted as editorial configuration
+    # 2. Canonicalize known series references to canonical series.id (UUID), preserving unresolved IDs
+    feed = series_repository.list_feed()
+    known_canonical_ids = {to_uuid(str(s.get("id", ""))) for s in feed}
+    known_slugs = {str(s.get("slug")) for s in feed if s.get("slug")}
+
+    clean_sections = []
+    for s in request.sections:
+        sec_dict = s.model_dump()
+        mode = (sec_dict.get("source") or {}).get("mode", "manual").lower()
+        items = sec_dict.get("items", [])
+
+        # Strip dynamic fill items from persisted editorial configuration
+        if mode in ("hybrid", "algorithmic"):
+            items = [
+                it for it in items
+                if not it.get("slot_id", "").startswith("slot_dyn_")
+                and not it.get("is_dynamic")
+            ]
+
+        # Canonicalize content_id to series.id (UUID) if known; preserve unresolved IDs exactly
+        for it in items:
+            cid = it.get("content_id")
+            if cid:
+                str_cid = str(cid)
+                can_uuid = to_uuid(str_cid)
+                if can_uuid in known_canonical_ids or str_cid in known_slugs:
+                    it["content_id"] = can_uuid
+
+        sec_dict["items"] = items
+        clean_sections.append(sec_dict)
+
+    current_draft["sections"] = clean_sections
     current_draft["status"] = "draft"
     current_draft["updated_at"] = now_ts
 
@@ -88,7 +135,7 @@ def save_page_draft(page_id: str, request: SaveDraftRequest, auth_user: dict = D
         actor_role="admin",
         target_type="experience_draft",
         target_id=page_id,
-        after_state={"sections_count": len(request.sections), "page_id": page_id},
+        after_state={"sections_count": len(clean_sections), "page_id": page_id},
         metadata={"updated_at": now_ts}
     )
 

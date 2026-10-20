@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
 import copy
 from database import db
-from repositories.series_repository import series_repository
+from repositories.series_repository import series_repository, to_uuid, SERIES_UUID_TO_SLUG
 from schemas.experience_schemas import (
     ExperienceManifest,
     ExperienceSection,
@@ -424,9 +424,16 @@ class ExperienceEngine:
         feed = series_repository.list_feed()
         all_stories = {}
         for s in feed:
-            all_stories[str(s["id"])] = s
+            sid = str(s["id"])
+            all_stories[sid] = s
+            can_uuid = to_uuid(sid)
+            all_stories[can_uuid] = s
             if s.get("slug"):
                 all_stories[str(s["slug"])] = s
+                all_stories[to_uuid(str(s["slug"]))] = s
+            slug_lookup = SERIES_UUID_TO_SLUG.get(can_uuid)
+            if slug_lookup:
+                all_stories[slug_lookup] = s
         stories_list = feed
 
         resolved_sections = []

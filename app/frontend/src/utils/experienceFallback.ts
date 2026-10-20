@@ -30,9 +30,13 @@ export function hydrateManifest(
 ): ExperienceManifest {
   const catalog = storiesCatalog && storiesCatalog.length > 0 ? storiesCatalog : DEFAULT_STORIES;
   const storyMap = new Map<string, Story>();
-  catalog.forEach((s) => storyMap.set(s.id, s));
+  catalog.forEach((s) => {
+    storyMap.set(s.id, s);
+    if (s.slug) storyMap.set(s.slug, s);
+  });
   DEFAULT_STORIES.forEach((s) => {
     if (!storyMap.has(s.id)) storyMap.set(s.id, s);
+    if (s.slug && !storyMap.has(s.slug)) storyMap.set(s.slug, s);
   });
 
   const hydratedSections: ExperienceSection[] = rawManifest.sections.map((section) => {
@@ -41,7 +45,7 @@ export function hydrateManifest(
     // If items are empty but pinned_content_ids exist, populate items
     if (items.length === 0 && section.source?.pinned_content_ids && section.source.pinned_content_ids.length > 0) {
       items = section.source.pinned_content_ids.map((id, idx) => ({
-        slot_id: `slot_${section.section_id}_${id}_${idx}`,
+        slot_id: `slot_pin_${section.section_id}_${id}_${idx}`,
         content_type: 'series',
         content_id: id,
         badge: section.type === 'HERO_CAROUSEL' ? (idx === 0 ? 'SPOTLIGHT ORIGINAL' : 'TOP RATED #1') : undefined,
@@ -52,11 +56,31 @@ export function hydrateManifest(
     }
 
     // Hydrate each slotItem with story object
-    const hydratedItems: SlotItem[] = items.map((item, idx) => {
-      const story = item.story || (item.content_id ? storyMap.get(item.content_id) : undefined) || catalog[idx % catalog.length];
+    const hydratedItems: SlotItem[] = items.map((item) => {
+      let story = item.story;
+      if (!story && item.content_id) {
+        story = storyMap.get(item.content_id);
+      }
+      const isUnresolved = !story && Boolean(item.content_id);
+      if (isUnresolved) {
+        // Explicitly flag unresolved content without silent substitution
+        story = {
+          id: item.content_id,
+          title: `⚠️ [Unresolved: ${item.content_id}]`,
+          tagline: 'Content missing in catalog',
+          synopsis: `Referenced content '${item.content_id}' cannot be resolved in the catalog.`,
+          genre: 'Unresolved',
+          vertical_poster: '/posters/placeholder_unresolved.jpg',
+          cover_image: '/banners/placeholder_unresolved.jpg',
+          episodes: [],
+          is_unresolved: true,
+        } as any;
+      }
+
       return {
         ...item,
         story,
+        is_unresolved: isUnresolved,
         artwork_overrides: {
           mobile_9_16: item.artwork_overrides?.mobile_9_16 || story?.vertical_poster || story?.cover_image || '/posters/blood_ties.jpg',
           desktop_16_9: item.artwork_overrides?.desktop_16_9 || story?.cover_image || story?.vertical_poster || '/banners/blood_ties_banner.jpg',
@@ -87,13 +111,29 @@ export function getDefaultExperienceManifest(
 ): ExperienceManifest {
   const catalog = storiesCatalog && storiesCatalog.length > 0 ? storiesCatalog : DEFAULT_STORIES;
   const storyMap = new Map<string, Story>();
-  catalog.forEach((s) => storyMap.set(s.id, s));
+  catalog.forEach((s) => {
+    storyMap.set(s.id, s);
+    if (s.slug) storyMap.set(s.slug, s);
+  });
   DEFAULT_STORIES.forEach((s) => {
     if (!storyMap.has(s.id)) storyMap.set(s.id, s);
+    if (s.slug && !storyMap.has(s.slug)) storyMap.set(s.slug, s);
   });
 
-  const getStory = (id: string, fallbackIdx = 0): Story => {
-    return storyMap.get(id) || catalog[fallbackIdx % catalog.length] || DEFAULT_STORIES[0];
+  const getStory = (id: string, _fallbackIdx?: number): Story => {
+    const found = storyMap.get(id);
+    if (found) return found;
+    return {
+      id,
+      title: `⚠️ [Unresolved: ${id}]`,
+      tagline: 'Content missing in catalog',
+      synopsis: `Referenced content '${id}' cannot be resolved in the catalog.`,
+      genre: 'Unresolved',
+      vertical_poster: '/posters/placeholder_unresolved.jpg',
+      cover_image: '/banners/placeholder_unresolved.jpg',
+      episodes: [],
+      is_unresolved: true,
+    } as any;
   };
 
   if (pageId === 'discover') {

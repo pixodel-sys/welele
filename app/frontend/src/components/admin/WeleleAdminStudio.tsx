@@ -59,6 +59,23 @@ export const WeleleAdminStudio: React.FC<WeleleAdminStudioProps> = ({ stories })
   // Load draft experience
   const loadDraft = async (pageId: string) => {
     try {
+      const data = await experienceApi.getDraftExperience(pageId);
+      if (data && data.sections) {
+        setManifest(data);
+        if (data.sections.length > 0 && !selectedSectionId) {
+          setSelectedSectionId(data.sections[0].section_id);
+        }
+        if (data.updated_at) {
+          const d = new Date(data.updated_at);
+          setLastSaved(d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+        }
+        return;
+      }
+    } catch (err) {
+      console.warn('Draft layout fetch error, falling back to draft preview or published layout:', err);
+    }
+
+    try {
       const data = await experienceApi.getPreviewExperience(pageId, 'draft', simulatedTime || undefined);
       if (data && data.sections) {
         setManifest(data);
@@ -280,15 +297,25 @@ export const WeleleAdminStudio: React.FC<WeleleAdminStudioProps> = ({ stories })
     handleSelectSection(newSec.section_id, 'tree');
   };
 
-  // Clean sections by stripping hydrated catalog story objects before sending to backend
+  // Clean sections: prevent dynamic merchandising fill items from being persisted as editorial configuration
   const prepareSectionsForSave = (sections: ExperienceSection[]) => {
-    return sections.map((sec) => ({
-      ...sec,
-      items: (sec.items || []).map((item) => {
-        const { story, ...rest } = item as any;
-        return rest;
-      }),
-    }));
+    return sections.map((sec) => {
+      const mode = sec.source?.mode || 'manual';
+      let items = sec.items || [];
+      // Prevent dynamic runtime merchandising fill items from being persisted as editorial configuration
+      if (mode === 'hybrid' || mode === 'algorithmic') {
+        items = items.filter(
+          (item: any) => !item.is_dynamic && !item.slot_id?.startsWith('slot_dyn_')
+        );
+      }
+      return {
+        ...sec,
+        items: items.map((item) => {
+          const { story, is_unresolved, is_dynamic, ...rest } = item as any;
+          return rest;
+        }),
+      };
+    });
   };
 
   // Save Draft
@@ -932,9 +959,9 @@ export const WeleleAdminStudio: React.FC<WeleleAdminStudioProps> = ({ stories })
                         const existingContentIds = new Set((selectedSection.items || []).map((it) => it.content_id));
                         const candidateStory = stories.find((st) => !existingContentIds.has(st.id)) || stories[0];
                         const newSlot: SlotItem = {
-                          slot_id: `slot_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`,
+                          slot_id: `slot_${selectedSection.section_id}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`,
                           content_type: 'series',
-                          content_id: candidateStory?.id || 'story_blood_ties',
+                          content_id: candidateStory?.id || 'c3e9302a-9809-51c2-b219-4e2a3079787f',
                           badge: 'SPOTLIGHT ORIGINAL',
                           headline_override: '',
                           subheadline_override: '',
@@ -980,31 +1007,60 @@ export const WeleleAdminStudio: React.FC<WeleleAdminStudioProps> = ({ stories })
                         </div>
 
                         {/* Series Content Picker */}
-                        <div>
-                          <label className="text-[10px] font-bold text-welele-muted block mb-0.5">
-                            Target Series
-                          </label>
-                          <select
-                            value={slot.content_id || ''}
-                            onChange={(e) => {
-                              const updatedItems = [...selectedSection.items];
-                              updatedItems[sIdx] = { ...updatedItems[sIdx], content_id: e.target.value };
-                              const updated = manifest.sections.map((s) =>
-                                s.section_id === selectedSection.section_id
-                                  ? { ...s, items: updatedItems }
-                                  : s
-                              );
-                              setManifest({ ...manifest, sections: updated });
-                            }}
-                            className="w-full px-2.5 py-1.5 rounded-[7px] bg-black/40 border border-white/10 text-white font-semibold focus:outline-none"
-                          >
-                            {stories.map((st) => (
-                              <option key={st.id} value={st.id}>
-                                {st.title} ({st.genre?.split('•')[0]})
-                              </option>
-                            ))}
-                          </select>
-                        </div>
+                        {(() => {
+                          const matchingStory = stories.find(
+                            (st) => st.id === slot.content_id || st.slug === slot.content_id
+                          );
+                          const isUnresolved = Boolean(slot.content_id) && !matchingStory;
+                          const selectValue = matchingStory ? matchingStory.id : slot.content_id || '';
+
+                          return (
+                            <div className="space-y-1">
+                              <div className="flex items-center justify-between">
+                                <label className="text-[10px] font-bold text-welele-muted block">
+                                  Target Series
+                                </label>
+                                {isUnresolved && (
+                                  <span className="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[9px] font-bold">
+                                    ⚠️ Unresolved Content
+                                  </span>
+                                )}
+                              </div>
+                              <select
+                                value={selectValue}
+                                onChange={(e) => {
+                                  const updatedItems = [...selectedSection.items];
+                                  updatedItems[sIdx] = { ...updatedItems[sIdx], content_id: e.target.value };
+                                  const updated = manifest.sections.map((s) =>
+                                    s.section_id === selectedSection.section_id
+                                      ? { ...s, items: updatedItems }
+                                      : s
+                                  );
+                                  setManifest({ ...manifest, sections: updated });
+                                }}
+                                className={`w-full px-2.5 py-1.5 rounded-[7px] bg-black/40 border text-white font-semibold focus:outline-none ${
+                                  isUnresolved ? 'border-rose-500/50 text-rose-300' : 'border-white/10'
+                                }`}
+                              >
+                                {isUnresolved && (
+                                  <option value={slot.content_id} disabled>
+                                    ⚠️ [Unresolved: {slot.content_id}]
+                                  </option>
+                                )}
+                                {stories.map((st) => (
+                                  <option key={st.id} value={st.id}>
+                                    {st.title} ({st.genre?.split('•')[0]})
+                                  </option>
+                                ))}
+                              </select>
+                              {isUnresolved && (
+                                <p className="text-[9px] text-rose-400 font-mono">
+                                  ID '{slot.content_id}' not found in catalog. Preserved without automatic substitution.
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })()}
 
                         {/* Badge Override */}
                         <div>

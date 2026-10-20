@@ -56,6 +56,8 @@ export interface Episode {
 
 export interface Story {
   id: string;
+  slug?: string;
+  is_unresolved?: boolean;
   title: string;
   tagline: string;
   synopsis: string;

@@ -563,6 +563,10 @@ export const experienceApi = {
     const res = await API.get(`/experience/page/${pageId}`);
     return res.data;
   },
+  getDraftExperience: async (pageId: string): Promise<ExperienceManifest> => {
+    const res = await API.get(`/experience/page/${pageId}/draft`);
+    return res.data;
+  },
   getPreviewExperience: async (pageId: string, state = 'draft', simulatedTime?: string): Promise<ExperienceManifest> => {
     const res = await API.get(`/experience/preview/${pageId}`, {
       params: { state, simulated_time: simulatedTime },

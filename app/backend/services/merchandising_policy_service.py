@@ -14,7 +14,7 @@ Governing Principles:
 from typing import Dict, Any, List, Optional, Set
 from datetime import datetime, timezone
 
-from repositories.series_repository import series_repository
+from repositories.series_repository import series_repository, to_uuid, SERIES_UUID_TO_SLUG
 from services.evidence_projection_service import EvidenceProjectionService
 from schemas.projection_models import ConfidenceTier, ContentEvidenceProjection
 
@@ -254,63 +254,118 @@ class MerchandisingPolicyService:
         pinned_ids = source_cfg.get("pinned_content_ids", [])
         explicit_items = section.get("items", [])
 
+        if not all_stories:
+            feed = series_repository.list_feed()
+            all_stories = {}
+            for s in feed:
+                sid = str(s["id"])
+                all_stories[sid] = s
+                can_uuid = to_uuid(sid)
+                all_stories[can_uuid] = s
+                if s.get("slug"):
+                    all_stories[str(s["slug"])] = s
+                    all_stories[to_uuid(str(s["slug"]))] = s
+                slug_lookup = SERIES_UUID_TO_SLUG.get(can_uuid)
+                if slug_lookup:
+                    all_stories[slug_lookup] = s
+
+        def lookup_story(raw_id: Any) -> Optional[Dict[str, Any]]:
+            if not raw_id:
+                return None
+            str_id = str(raw_id)
+            if str_id in all_stories:
+                return all_stories[str_id]
+            can_uuid = to_uuid(str_id)
+            if can_uuid in all_stories:
+                return all_stories[can_uuid]
+            slug = SERIES_UUID_TO_SLUG.get(can_uuid)
+            if slug and slug in all_stories:
+                return all_stories[slug]
+            return None
+
         # Step 1: In MANUAL mode, preserve explicitly configured editorial items
         if mode == "manual":
-            # If explicit items exist, respect them and hydrate story metadata
+            # If explicit items exist, respect them and hydrate story metadata without substitution
             if explicit_items:
                 resolved = []
                 for item in explicit_items[:max_items]:
                     item_copy = dict(item)
                     cid = item.get("content_id")
-                    if cid and cid in all_stories:
-                        item_copy["story"] = all_stories[cid]
+                    story = lookup_story(cid)
+                    if story:
+                        item_copy["story"] = story
+                    else:
+                        item_copy["story"] = None
+                        item_copy["is_unresolved"] = True
                     resolved.append(item_copy)
                 return resolved
+
             # If no items defined but pinned_ids exist, populate pinned
             resolved = []
-            seen = set()
+            seen_canonical: Set[str] = set()
             for pid in pinned_ids:
-                if pid in all_stories and pid not in seen and len(resolved) < max_items:
-                    story = all_stories[pid]
+                can_id = to_uuid(str(pid))
+                if can_id not in seen_canonical and len(resolved) < max_items:
+                    story = lookup_story(pid)
+                    slot_id = f"slot_pin_{section.get('section_id', 'sec')}_{can_id.replace('-', '')[:12]}"
                     resolved.append({
-                        "slot_id": f"slot_{section.get('section_id', 'sec')}_{pid}",
+                        "slot_id": slot_id,
                         "content_type": "series",
                         "content_id": pid,
-                        "badge": "SPOTLIGHT" if story.get("is_original") else None,
+                        "badge": "SPOTLIGHT" if (story and story.get("is_original")) else None,
                         "story": story,
+                        "is_unresolved": story is None,
                         "is_active": True
                     })
-                    seen.add(pid)
+                    seen_canonical.add(can_id)
             return resolved
 
         # Step 2: HYBRID or ALGORITHMIC
         resolved_items: List[Dict[str, Any]] = []
-        existing_ids: Set[str] = set()
+        existing_canonical_ids: Set[str] = set()
 
-        # In HYBRID mode: Pinned items retain absolute precedence
+        # In HYBRID mode: Pinned items and explicit items retain absolute precedence
         if mode == "hybrid":
-            # First, any explicit items in section
+            # First: Explicit items configured in section
             for item in explicit_items:
                 cid = item.get("content_id")
-                if cid and cid in all_stories and cid not in existing_ids and len(resolved_items) < max_items:
-                    item_copy = dict(item)
-                    item_copy["story"] = all_stories[cid]
-                    resolved_items.append(item_copy)
-                    existing_ids.add(cid)
+                if not cid:
+                    continue
+                can_id = to_uuid(str(cid))
+                if can_id in existing_canonical_ids or len(resolved_items) >= max_items:
+                    continue
+                item_copy = dict(item)
+                story = lookup_story(cid)
+                if story:
+                    item_copy["story"] = story
+                else:
+                    item_copy["story"] = None
+                    item_copy["is_unresolved"] = True
+                
+                # Ensure deterministic slot_id if empty
+                if not item_copy.get("slot_id"):
+                    item_copy["slot_id"] = f"slot_{section.get('section_id', 'sec')}_{can_id.replace('-', '')[:12]}"
 
-            # Second, any pinned_ids in source
+                resolved_items.append(item_copy)
+                existing_canonical_ids.add(can_id)
+
+            # Second: Pinned content IDs in source
             for pid in pinned_ids:
-                if pid in all_stories and pid not in existing_ids and len(resolved_items) < max_items:
-                    story = all_stories[pid]
-                    resolved_items.append({
-                        "slot_id": f"slot_{section.get('section_id', 'sec')}_{pid}",
-                        "content_type": "series",
-                        "content_id": pid,
-                        "badge": "PINNED",
-                        "story": story,
-                        "is_active": True
-                    })
-                    existing_ids.add(pid)
+                can_id = to_uuid(str(pid))
+                if can_id in existing_canonical_ids or len(resolved_items) >= max_items:
+                    continue
+                story = lookup_story(pid)
+                slot_id = f"slot_pin_{section.get('section_id', 'sec')}_{can_id.replace('-', '')[:12]}"
+                resolved_items.append({
+                    "slot_id": slot_id,
+                    "content_type": "series",
+                    "content_id": pid,
+                    "badge": "PINNED",
+                    "story": story,
+                    "is_unresolved": story is None,
+                    "is_active": True
+                })
+                existing_canonical_ids.add(can_id)
 
         # Step 3: Dynamic Fill for ALGORITHMIC or remaining HYBRID slots
         remaining_slots = max_items - len(resolved_items)
@@ -321,26 +376,35 @@ class MerchandisingPolicyService:
             # 2. Enforce genre filtering BEFORE ranking
             genre_filtered_catalog = self.filter_by_genre(eligible_catalog, genre_filter)
 
-            # 3. Exclude already placed/pinned items (Strict duplicate prevention)
-            candidates = [s for s in genre_filtered_catalog if s["id"] not in existing_ids]
+            # 3. Exclude already placed/pinned items (Strict canonical UUID duplicate prevention)
+            candidates = [
+                s for s in genre_filtered_catalog 
+                if to_uuid(str(s.get("id", ""))) not in existing_canonical_ids
+            ]
 
             # 4. Rank candidates through policy algorithm
             ranked_candidates = self.rank_candidates(candidates, algo_type=algo_type, eval_time=eval_time)
 
-            # 5. Populate remaining slots
+            # 5. Populate remaining slots with deterministic, collision-free slot IDs
             for story in ranked_candidates:
                 if len(resolved_items) >= max_items:
                     break
-                sid = story["id"]
+                can_sid = to_uuid(str(story.get("id", "")))
+                if can_sid in existing_canonical_ids:
+                    continue
+                
+                # Dynamic fill slot: deterministic prefix slot_dyn_ + collision-free hash
+                slot_id = f"slot_dyn_{section.get('section_id', 'sec')}_{can_sid.replace('-', '')[:12]}"
                 resolved_items.append({
-                    "slot_id": f"slot_{section.get('section_id', 'sec')}_{sid}",
+                    "slot_id": slot_id,
                     "content_type": "series",
-                    "content_id": sid,
-                    "badge": None,  # Separate viewer-facing badges from merchandising signals
+                    "content_id": story["id"],
+                    "badge": None,
                     "story": story,
+                    "is_dynamic": True,
                     "is_active": True
                 })
-                existing_ids.add(sid)
+                existing_canonical_ids.add(can_sid)
 
         return resolved_items
 
