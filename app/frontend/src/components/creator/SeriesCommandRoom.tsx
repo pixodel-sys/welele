@@ -54,6 +54,8 @@ export const SeriesCommandRoom: React.FC<SeriesCommandRoomProps> = ({
   const [isUploadingBanner, setIsUploadingBanner] = useState<boolean>(false);
   const [isSavingArtwork, setIsSavingArtwork] = useState<boolean>(false);
   const [artworkStatusMessage, setArtworkStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [posterLoadError, setPosterLoadError] = useState<boolean>(false);
+  const [bannerLoadError, setBannerLoadError] = useState<boolean>(false);
 
   // Phase 6J-2R-F: Show Metadata Edit & Persistence State
   const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
@@ -120,9 +122,15 @@ export const SeriesCommandRoom: React.FC<SeriesCommandRoomProps> = ({
 
   useEffect(() => {
     fetchWorkspace();
+    setPosterLoadError(false);
+    setBannerLoadError(false);
   }, [seriesId]);
 
   const handleUpdatePoster = async (file: File) => {
+    if (!seriesId || seriesId === 'undefined' || seriesId === 'null') {
+      setArtworkStatusMessage({ type: 'error', text: 'Valid series ID is required to update show poster.' });
+      return;
+    }
     if (!file.type.startsWith('image/')) {
       setArtworkStatusMessage({ type: 'error', text: 'Poster file must be an image (JPEG, PNG, WebP).' });
       return;
@@ -140,11 +148,15 @@ export const SeriesCommandRoom: React.FC<SeriesCommandRoomProps> = ({
           throw new Error('Storage returned an expiring presigned URL instead of a durable CDN URL.');
         }
         setCustomPoster(cdnUrl);
+        setPosterLoadError(false);
         setArtworkStatusMessage({ type: 'success', text: 'Poster uploaded to durable storage. Click "Save Artwork Changes" to persist.' });
       }
     } catch (err: any) {
       console.error('Failed to upload series poster:', err);
-      const detail = err?.response?.data?.detail || err?.message || 'Failed to upload poster.';
+      const isTimeout = err?.code === 'ECONNABORTED' || err?.message?.includes('timeout');
+      const detail = isTimeout
+        ? 'Upload timed out after 60s. The upload status is unknown. Please check your network and retry.'
+        : err?.response?.data?.detail || err?.message || 'Failed to upload poster.';
       setArtworkStatusMessage({ type: 'error', text: detail });
     } finally {
       setIsUploadingPoster(false);
@@ -152,6 +164,10 @@ export const SeriesCommandRoom: React.FC<SeriesCommandRoomProps> = ({
   };
 
   const handleUpdateBanner = async (file: File) => {
+    if (!seriesId || seriesId === 'undefined' || seriesId === 'null') {
+      setArtworkStatusMessage({ type: 'error', text: 'Valid series ID is required to update show banner.' });
+      return;
+    }
     if (!file.type.startsWith('image/')) {
       setArtworkStatusMessage({ type: 'error', text: 'Hero banner file must be an image (JPEG, PNG, WebP).' });
       return;
@@ -169,11 +185,15 @@ export const SeriesCommandRoom: React.FC<SeriesCommandRoomProps> = ({
           throw new Error('Storage returned an expiring presigned URL instead of a durable CDN URL.');
         }
         setCustomBanner(cdnUrl);
+        setBannerLoadError(false);
         setArtworkStatusMessage({ type: 'success', text: 'Hero banner uploaded to durable storage. Click "Save Artwork Changes" to persist.' });
       }
     } catch (err: any) {
       console.error('Failed to upload series banner:', err);
-      const detail = err?.response?.data?.detail || err?.message || 'Failed to upload banner.';
+      const isTimeout = err?.code === 'ECONNABORTED' || err?.message?.includes('timeout');
+      const detail = isTimeout
+        ? 'Upload timed out after 60s. The upload status is unknown. Please check your network and retry.'
+        : err?.response?.data?.detail || err?.message || 'Failed to upload banner.';
       setArtworkStatusMessage({ type: 'error', text: detail });
     } finally {
       setIsUploadingBanner(false);
@@ -845,12 +865,25 @@ export const SeriesCommandRoom: React.FC<SeriesCommandRoomProps> = ({
 
                 <div className="w-36 aspect-[9/16] rounded-[7px] overflow-hidden border border-white/20 bg-black relative shadow-lg">
                   {isUploadingPoster ? (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 space-y-2">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 space-y-2 z-10">
                       <div className="w-6 h-6 border-2 border-pink-500 border-t-transparent rounded-full animate-spin" />
                       <span className="text-[10px] text-pink-300 font-bold">Uploading...</span>
                     </div>
                   ) : null}
-                  <img src={displayPoster} alt="Poster" className="w-full h-full object-cover" />
+                  {posterLoadError || !displayPoster ? (
+                    <div className="w-full h-full flex flex-col items-center justify-center p-3 text-center bg-[#1a131b] border border-white/10 text-white/50 space-y-2">
+                      <ImageIcon className="w-8 h-8 text-pink-400/40" />
+                      <span className="text-[11px] font-bold text-white/70">Artwork Unavailable</span>
+                      <span className="text-[9px] text-white/40 leading-tight">Click 'Replace Poster' to upload</span>
+                    </div>
+                  ) : (
+                    <img
+                      src={displayPoster}
+                      alt="Poster"
+                      onError={() => setPosterLoadError(true)}
+                      className="w-full h-full object-cover"
+                    />
+                  )}
                 </div>
               </div>
 
@@ -882,12 +915,25 @@ export const SeriesCommandRoom: React.FC<SeriesCommandRoomProps> = ({
 
                 <div className="w-full aspect-video rounded-[7px] overflow-hidden border border-white/20 bg-black relative shadow-lg">
                   {isUploadingBanner ? (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 space-y-2">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 space-y-2 z-10">
                       <div className="w-6 h-6 border-2 border-welele-gold border-t-transparent rounded-full animate-spin" />
                       <span className="text-[10px] text-yellow-300 font-bold">Uploading...</span>
                     </div>
                   ) : null}
-                  <img src={displayBanner} alt="Hero Banner" className="w-full h-full object-cover" />
+                  {bannerLoadError || !displayBanner ? (
+                    <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center bg-[#1b1913] border border-white/10 text-white/50 space-y-2">
+                      <ImageIcon className="w-8 h-8 text-welele-gold/40" />
+                      <span className="text-xs font-bold text-white/70">16:9 Banner Unavailable</span>
+                      <span className="text-[10px] text-white/40 leading-tight">Click 'Replace Banner' to upload</span>
+                    </div>
+                  ) : (
+                    <img
+                      src={displayBanner}
+                      alt="Hero Banner"
+                      onError={() => setBannerLoadError(true)}
+                      className="w-full h-full object-cover"
+                    />
+                  )}
                 </div>
               </div>
             </div>

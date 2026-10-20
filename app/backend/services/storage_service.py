@@ -30,15 +30,34 @@ except ImportError:
 
 
 class StorageService:
+    @staticmethod
+    def _sanitize_cdn_base_url(url: Optional[str]) -> str:
+        """Phase 6J-2R-H: Defensive sanitization of CDN base URL."""
+        if not url:
+            return ""
+        val = str(url).strip()
+        if val.startswith("CDN_BASE_URL="):
+            val = val[len("CDN_BASE_URL="):].strip()
+        if (val.startswith('"') and val.endswith('"')) or (val.startswith("'") and val.endswith("'")):
+            val = val[1:-1].strip()
+        return val.rstrip("/")
+
     def __init__(self):
         self.account_id = os.getenv("R2_ACCOUNT_ID") or getattr(settings, "R2_ACCOUNT_ID", None) or ""
         self.access_key = os.getenv("R2_ACCESS_KEY_ID") or getattr(settings, "R2_ACCESS_KEY_ID", None) or ""
         self.secret_key = os.getenv("R2_SECRET_ACCESS_KEY") or getattr(settings, "R2_SECRET_ACCESS_KEY", None) or ""
-        if getattr(settings, "ENVIRONMENT", "") == "staging" or os.getenv("ENVIRONMENT") == "staging":
+        is_staging = getattr(settings, "ENVIRONMENT", "") == "staging" or os.getenv("ENVIRONMENT") == "staging"
+        if is_staging:
             self.storage_bucket = "welele-vod-staging"
+            raw_cdn = self._sanitize_cdn_base_url(os.getenv("CDN_BASE_URL") or getattr(settings, "CDN_BASE_URL", None))
+            # In staging, route through proven Railway storage proxy if unset or pointing to Cloudflare Pages SPA
+            if not raw_cdn or "staging.welele.app" in raw_cdn or "cdn.welele.media" in raw_cdn:
+                self.cdn_base_url = "https://welele-staging.up.railway.app/api/storage"
+            else:
+                self.cdn_base_url = raw_cdn
         else:
             self.storage_bucket = os.getenv("R2_BUCKET_NAME") or os.getenv("STORAGE_BUCKET") or getattr(settings, "R2_BUCKET_NAME", None) or getattr(settings, "STORAGE_BUCKET", None) or "welele-vod-masters"
-        self.cdn_base_url = (os.getenv("CDN_BASE_URL") or getattr(settings, "CDN_BASE_URL", None) or "https://cdn.welele.media").rstrip("/")
+            self.cdn_base_url = self._sanitize_cdn_base_url(os.getenv("CDN_BASE_URL") or getattr(settings, "CDN_BASE_URL", None)) or "https://cdn.welele.media"
         self.supported_formats = ["video/mp4", "video/quicktime", "application/x-mpegURL"]
 
         # Local physical disk backing for local dev & object verification
@@ -182,7 +201,17 @@ class StorageService:
             ext = "jpg"
         clean_ext = f".{ext}"
 
-        clean_series_id = str(series_id).replace("/", "_").strip() if series_id else "creator_uploads"
+        # Phase 6J-2R-H: Defensively guard against missing, "undefined", or malformed series_id
+        raw_series_id = str(series_id).strip() if series_id is not None else ""
+        if not raw_series_id or raw_series_id.lower() in ["undefined", "null", "none", ""]:
+            clean_series_id = "creator_uploads"
+        else:
+            clean_series_id = raw_series_id.replace("/", "_")
+
+        # Invariant: Never allow literal "undefined" as a storage key directory
+        if clean_series_id.lower() == "undefined":
+            clean_series_id = "creator_uploads"
+
         asset_uuid = uuid.uuid4().hex[:8]
         clean_type = "poster" if "poster" in str(artwork_type).lower() else "banner"
         storage_key = f"artwork/{clean_series_id}/{clean_type}_{asset_uuid}{clean_ext}"
@@ -230,7 +259,13 @@ class StorageService:
 
         # 3. Permanent, durable public CDN delivery URL (NO EXPIRATION!)
         if self.s3_client:
-            public_cdn_url = f"{self.cdn_base_url}/{storage_key}"
+            base = self._sanitize_cdn_base_url(self.cdn_base_url)
+            # If base is host-only (e.g. https://welele-staging.up.railway.app), append /api/storage
+            if "welele-staging.up.railway.app" in base and not base.endswith("/api/storage") and not base.endswith("/api/storage/artwork"):
+                base = f"{base}/api/storage"
+            elif base.endswith("/artwork"):
+                base = base[:-len("/artwork")]
+            public_cdn_url = f"{base}/{storage_key}"
         else:
             public_cdn_url = f"/media/{storage_key}"
 

@@ -94,9 +94,16 @@ async def upload_artwork_asset(
         if not content_type.startswith("image/"):
             raise HTTPException(status_code=400, detail=f"Invalid content type '{content_type}': Artwork must be an image.")
 
+        # Phase 6J-2R-H: Clean series_id defensively to prevent "undefined" storage keys
+        clean_sid = None
+        if series_id:
+            s_val = series_id.strip()
+            if s_val.lower() not in ["undefined", "null", "none", ""]:
+                clean_sid = s_val
+
         result = storage_service.save_artwork(
             file_bytes=contents,
-            series_id=series_id,
+            series_id=clean_sid,
             artwork_type=artwork_type,
             filename=file.filename or "artwork.jpg",
             content_type=content_type

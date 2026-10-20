@@ -182,7 +182,7 @@ export const storageApi = {
   },
   uploadArtwork: async (
     file: File,
-    series_id: string,
+    series_id?: string,
     artwork_type: 'poster' | 'banner' = 'poster'
   ): Promise<{
     success: boolean;
@@ -194,12 +194,15 @@ export const storageApi = {
   }> => {
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('series_id', series_id);
+    if (series_id && series_id !== 'undefined' && series_id !== 'null' && series_id.trim() !== '') {
+      formData.append('series_id', series_id.trim());
+    }
     formData.append('artwork_type', artwork_type);
     const res = await API.post('/storage/upload-artwork', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
+      timeout: 60000,
     });
     return res.data;
   },

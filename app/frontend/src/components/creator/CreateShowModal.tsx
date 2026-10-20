@@ -93,7 +93,10 @@ export const CreateShowModal: React.FC<CreateShowModalProps> = ({
       setVerticalPoster(cdnUrl);
     } catch (err: any) {
       console.error('Failed to upload custom poster:', err);
-      const msg = err?.response?.data?.detail || err?.message || 'Failed to upload poster to storage.';
+      const isTimeout = err?.code === 'ECONNABORTED' || err?.message?.includes('timeout');
+      const msg = isTimeout
+        ? 'Upload timed out after 60s. Please check your network and retry.'
+        : err?.response?.data?.detail || err?.message || 'Failed to upload poster to storage.';
       setErrorMessage(`Poster upload error: ${msg}`);
     } finally {
       setIsUploadingPoster(false);
@@ -112,7 +115,10 @@ export const CreateShowModal: React.FC<CreateShowModalProps> = ({
       setCoverBanner(cdnUrl);
     } catch (err: any) {
       console.error('Failed to upload custom banner:', err);
-      const msg = err?.response?.data?.detail || err?.message || 'Failed to upload banner to storage.';
+      const isTimeout = err?.code === 'ECONNABORTED' || err?.message?.includes('timeout');
+      const msg = isTimeout
+        ? 'Upload timed out after 60s. Please check your network and retry.'
+        : err?.response?.data?.detail || err?.message || 'Failed to upload banner to storage.';
       setErrorMessage(`Banner upload error: ${msg}`);
     } finally {
       setIsUploadingBanner(false);

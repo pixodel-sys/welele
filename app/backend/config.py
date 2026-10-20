@@ -246,9 +246,17 @@ class Settings:
                     "Production/staging configuration cannot start with known insecure/fallback JWT secrets."
                 )
 
-    # Cloud Object Storage (Pillar 4 / Cloudflare R2)
-    CDN_BASE_URL: str = os.getenv("CDN_BASE_URL", "https://cdn.welele.media").rstrip("/")
+    # Cloud Object Storage (Pillar 4 / Cloudflare R2) - Phase 6J-2R-H defensive sanitization
+    _raw_cdn_env = (os.getenv("CDN_BASE_URL") or "").strip()
+    if _raw_cdn_env.startswith("CDN_BASE_URL="):
+        _raw_cdn_env = _raw_cdn_env[len("CDN_BASE_URL="):].strip()
+    if (_raw_cdn_env.startswith('"') and _raw_cdn_env.endswith('"')) or (_raw_cdn_env.startswith("'") and _raw_cdn_env.endswith("'")):
+        _raw_cdn_env = _raw_cdn_env[1:-1].strip()
     _env_val = os.getenv("ENVIRONMENT", "").strip().lower()
+    if _env_val == "staging":
+        CDN_BASE_URL: str = (_raw_cdn_env or "https://welele-staging.up.railway.app/api/storage").rstrip("/")
+    else:
+        CDN_BASE_URL: str = (_raw_cdn_env or "https://cdn.welele.media").rstrip("/")
     STORAGE_BUCKET: str = "welele-vod-staging" if _env_val == "staging" else (os.getenv("STORAGE_BUCKET") or os.getenv("R2_BUCKET_NAME", "welele-vod-masters"))
     R2_ACCOUNT_ID: str = os.getenv("R2_ACCOUNT_ID") or ""
     R2_ACCESS_KEY_ID: str = os.getenv("R2_ACCESS_KEY_ID") or ""
