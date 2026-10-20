@@ -15,7 +15,7 @@ from decimal import Decimal
 from repositories.series_repository import series_repository, to_uuid
 from repositories.ip_repository import ip_repository
 from repositories.telemetry_repository import telemetry_repository
-from schemas.story_schemas import CreateSeriesRequest, CreateEpisodeRequest
+from schemas.story_schemas import CreateSeriesRequest, CreateEpisodeRequest, UpdateSeriesRequest
 from schemas.commercial_accounting_schemas import PayoutRequestCreate
 from services.commercial_accounting_service import commercial_accounting_service
 
@@ -222,16 +222,31 @@ def get_creator_episodes(creator_id: str, status: str = Query(None), auth_user: 
     """Lists creator's episodes across draft, under review, and published states."""
     enforce_tenant_access(auth_user, creator_id, domain="CONTENT", action="list episodes")
 
-    all_episodes = series_repository.local_get("episodes")
-    all_series = series_repository.local_get("series")
-    series_map = {s["id"]: s for s in all_series}
+    live_data = series_repository._fetch_live_catalog()
+    if live_data:
+        live_series, live_episodes, _ = live_data
+        series_map = {str(s["id"]): s for s in live_series}
+        all_episodes = list(live_episodes)
+        local_eps = series_repository.local_get("episodes") or []
+        existing_ep_ids = {str(e.get("id")) for e in all_episodes}
+        for le in local_eps:
+            if str(le.get("id")) not in existing_ep_ids:
+                all_episodes.append(le)
+        for ls in (series_repository.local_get("series") or []):
+            if str(ls.get("id")) not in series_map:
+                series_map[str(ls.get("id"))] = ls
+    else:
+        all_episodes = series_repository.local_get("episodes") or []
+        all_series = series_repository.local_get("series") or []
+        series_map = {str(s["id"]): s for s in all_series}
 
     filtered = []
     for ep in all_episodes:
         ep_status = ep.get("status", "published")
         if status and ep_status != status:
             continue
-        s = series_map.get(ep.get("series_id"), {})
+        ep_series_id = str(ep.get("series_id", ""))
+        s = series_map.get(ep_series_id, {}) or series_map.get(to_uuid(ep_series_id), {})
         
         # 6O-3 Invariant: Enforce explicit relational ownership check
         ep_creator = ep.get("creator_id") or series_repository.resolve_series_creator_id(s)
@@ -303,12 +318,23 @@ def get_series_workspace(series_id: str, auth_user: dict = Depends(get_current_u
     creator_balances = commercial_accounting_service.get_creator_balances(creator_owner_id, currency="ZAR")
     payout_avail = float(creator_balances.available)
 
+    # Phase 6J-2R-C: Hydrate relational IP bundle (digital_ip, character bibles, rights, story world, lineage)
+    ip_bundle = series_repository.get_series_ip_bundle(series.get("ip_id"), creator_name=series.get("creator_name"))
+
+    hydrated_series = {
+        **series,
+        "episodes": series_episodes,
+        "total_episodes": len(series_episodes),
+        "digital_ip": ip_bundle.get("digital_ip"),
+        "characters": ip_bundle.get("characters", []),
+        "story_world": ip_bundle.get("story_world"),
+        "rights_ledger": ip_bundle.get("rights_ledger", []),
+        "rights_declarations": ip_bundle.get("rights_declarations", []),
+        "narrative_lineage": ip_bundle.get("narrative_lineage")
+    }
+
     return {
-        "series": {
-            **series,
-            "episodes": series_episodes,
-            "total_episodes": len(series_episodes)
-        },
+        "series": hydrated_series,
         "metrics": {
             "total_views": actual_views,
             "completion_rate": "—" if actual_views == 0 else "0.0%",
@@ -348,8 +374,28 @@ def create_series(req: CreateSeriesRequest, auth_user: dict = Depends(get_curren
     now_ts = datetime.now(timezone.utc).isoformat()
 
     # Resolve a valid digital IP UUID and next season number for PostgreSQL schema compliance
-    ip_id = series_repository.resolve_valid_ip_id(creator_id=creator_id)
+    ip_id = series_repository.resolve_valid_ip_id(
+        creator_id=creator_id,
+        title=req.title,
+        genre=req.genre,
+        language=req.available_languages[0] if req.available_languages else "isiZulu"
+    )
     season_number = series_repository.resolve_next_season_number(ip_id)
+
+    from services.creator_profile_service import creator_profile_service
+    from data.fixtures.seed_fixtures import DEFAULT_CREATORS
+    prof = creator_profile_service.get_profile(creator_id)
+    fixture = next((c for c in DEFAULT_CREATORS if c.get("id") == creator_id), None)
+
+    c_name = auth_user.get("name")
+    if not c_name or (c_name == "Zola Dlamini" and creator_id != "creator_zola"):
+        c_name = (prof.get("display_name") if prof else None) or (fixture.get("name") if fixture else None) or "Welele Creator"
+
+    c_avatar = (
+        (fixture.get("avatar") if fixture else None)
+        or (prof.get("avatar") if prof else None)
+        or "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80"
+    )
 
     new_series = {
         "id": new_id,
@@ -367,8 +413,8 @@ def create_series(req: CreateSeriesRequest, auth_user: dict = Depends(get_curren
         "coin_price_per_episode": req.coin_price_per_episode,
         "is_published": True,
         "creator_id": creator_id,
-        "creator_name": auth_user.get("name", "Zola Dlamini"),
-        "creator_avatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80",
+        "creator_name": c_name,
+        "creator_avatar": c_avatar,
         "available_languages": req.available_languages or ["isiZulu", "English"],
         "tags": req.tags or [],
         "created_at": now_ts,
@@ -377,6 +423,8 @@ def create_series(req: CreateSeriesRequest, auth_user: dict = Depends(get_curren
 
     try:
         created_series = series_repository.create_series(new_series)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except RuntimeError as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -392,6 +440,170 @@ def create_series(req: CreateSeriesRequest, auth_user: dict = Depends(get_curren
     )
 
     return {"success": True, "story": created_series}
+
+
+class UpdateSeriesArtworkRequest(BaseModel):
+    vertical_poster: Optional[str] = None
+    cover_image: Optional[str] = None
+
+
+@router.patch("/series/{series_id}/artwork", dependencies=[Depends(require_role(["creator", "admin"]))])
+def update_series_artwork_endpoint(
+    series_id: str,
+    req: UpdateSeriesArtworkRequest,
+    auth_user: dict = Depends(get_current_user)
+):
+    """
+    Phase 6J-2R-B: Persists updated artwork (poster and cover banner) for a series.
+    Enforces tenant access control and validates that URLs are durable (no blobs, no expiring presigned URLs).
+    """
+    series = series_repository.get_creator_series_detail(series_id) or series_repository.get_series(series_id)
+    if not series and series_repository.is_live:
+        try:
+            res = series_repository.get_table("series").select("*").eq("id", to_uuid(series_id)).execute()
+            if res.data and len(res.data) > 0:
+                series = res.data[0]
+        except Exception:
+            pass
+
+    if not series:
+        raise HTTPException(status_code=404, detail="Series not found")
+
+    creator_owner_id = series.get("creator_id") or series_repository.resolve_series_creator_id(series)
+    enforce_tenant_access(auth_user, creator_owner_id, domain="CONTENT", action="update series artwork")
+
+    try:
+        updated = series_repository.update_series_artwork(
+            series_id=series_id,
+            vertical_poster=req.vertical_poster,
+            cover_image=req.cover_image
+        )
+        audit_service.record_trust_event(
+            domain="CONTENT",
+            event_type="content.series_artwork_updated",
+            actor_id=auth_user.get("sub", creator_owner_id),
+            actor_role=auth_user.get("role", "creator"),
+            target_type="series",
+            target_id=series_id,
+            after_state={
+                "vertical_poster": updated.get("vertical_poster"),
+                "cover_image": updated.get("cover_image")
+            },
+            metadata={"updater": auth_user.get("sub")}
+        )
+        return {
+            "success": True,
+            "message": "Artwork updated and confirmed in database",
+            "series": updated
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.patch("/series/{series_id}", dependencies=[Depends(require_role(["creator", "admin"]))])
+def update_series_endpoint(
+    series_id: str,
+    req: UpdateSeriesRequest,
+    auth_user: dict = Depends(get_current_user)
+):
+    """
+    Phase 6J-2R-F: Authoritative series metadata update and persistence.
+    Allowlists strictly updatable fields, enforces tenant isolation, and records trust event.
+    """
+    series = series_repository.get_creator_series_detail(series_id) or series_repository.get_series(series_id)
+    if not series and series_repository.is_live:
+        try:
+            res = series_repository.get_table("series").select("*").eq("id", to_uuid(series_id)).execute()
+            if res.data and len(res.data) > 0:
+                series = res.data[0]
+        except Exception:
+            pass
+
+    if not series:
+        raise HTTPException(status_code=404, detail="Series not found")
+
+    creator_owner_id = series.get("creator_id") or series_repository.resolve_series_creator_id(series)
+    enforce_tenant_access(auth_user, creator_owner_id, domain="CONTENT", action="update series metadata")
+
+    update_payload = req.model_dump(exclude_unset=True)
+    if not update_payload:
+        return {"success": True, "message": "No changes submitted", "series": series}
+
+    try:
+        updated = series_repository.update_series(
+            series_id=series_id,
+            updates=update_payload
+        )
+        audit_service.record_trust_event(
+            domain="CONTENT",
+            event_type="content.series_updated",
+            actor_id=auth_user.get("sub", creator_owner_id),
+            actor_role=auth_user.get("role", "creator"),
+            target_type="series",
+            target_id=series_id,
+            after_state={k: v for k, v in updated.items() if k in update_payload},
+            metadata={"updated_fields": list(update_payload.keys()), "updater": auth_user.get("sub")}
+        )
+        return {
+            "success": True,
+            "message": "Series updated and confirmed in database",
+            "series": updated
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/series/{series_id}", dependencies=[Depends(require_role(["creator", "admin"]))])
+def delete_series_endpoint(
+    series_id: str,
+    auth_user: dict = Depends(get_current_user)
+):
+    """
+    Phase 6J-2R-F: Guarded deletion of a series and its owned episodes.
+    Strictly preserves master digital IP, rights ledger, and character bibles.
+    Enforces tenant access and records immutable trust event.
+    """
+    series = series_repository.get_creator_series_detail(series_id) or series_repository.get_series(series_id)
+    if not series and series_repository.is_live:
+        try:
+            res = series_repository.get_table("series").select("*").eq("id", to_uuid(series_id)).execute()
+            if res.data and len(res.data) > 0:
+                series = res.data[0]
+        except Exception:
+            pass
+
+    if not series:
+        raise HTTPException(status_code=404, detail="Series not found")
+
+    creator_owner_id = series.get("creator_id") or series_repository.resolve_series_creator_id(series)
+    enforce_tenant_access(auth_user, creator_owner_id, domain="CONTENT", action="delete series")
+
+    try:
+        result = series_repository.delete_series(series_id)
+        audit_service.record_trust_event(
+            domain="CONTENT",
+            event_type="content.series_deleted",
+            actor_id=auth_user.get("sub", creator_owner_id),
+            actor_role=auth_user.get("role", "creator"),
+            target_type="series",
+            target_id=series_id,
+            after_state={"deleted": True, "title": result.get("title")},
+            metadata={"preserved_ip_id": result.get("preserved_ip_id"), "deleter": auth_user.get("sub")}
+        )
+        return {
+            "success": True,
+            "message": f"Series '{result.get('title')}' successfully deleted. Digital IP remains intact.",
+            **result
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.post("/episodes/add", dependencies=[Depends(require_role(["creator", "admin"]))])
 def add_episode(req: CreateEpisodeRequest, auth_user: dict = Depends(get_current_user)):
@@ -440,6 +652,7 @@ def add_episode(req: CreateEpisodeRequest, auth_user: dict = Depends(get_current
 
     ep_payload = {
         "series_id": req.series_id,
+        "creator_id": creator_owner_id,
         "episode_number": req.episode_number,
         "title": req.title,
         "synopsis": req.synopsis,

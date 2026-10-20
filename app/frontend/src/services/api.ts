@@ -180,6 +180,29 @@ export const storageApi = {
     const res = await API.get('/storage/renditions', { params: { storage_key } });
     return res.data;
   },
+  uploadArtwork: async (
+    file: File,
+    series_id: string,
+    artwork_type: 'poster' | 'banner' = 'poster'
+  ): Promise<{
+    success: boolean;
+    storage_key: string;
+    public_cdn_url: string;
+    file_size_bytes: number;
+    content_type: string;
+    provider: string;
+  }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('series_id', series_id);
+    formData.append('artwork_type', artwork_type);
+    const res = await API.post('/storage/upload-artwork', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return res.data;
+  },
 };
 
 // ============================================================================
@@ -407,6 +430,34 @@ export const creatorApi = {
   },
   createSeries: async (payload: any) => {
     const res = await API.post('/creators/series/create', payload);
+    return res.data;
+  },
+  updateSeries: async (
+    seriesId: string,
+    payload: {
+      title?: string;
+      tagline?: string;
+      synopsis?: string;
+      genre?: string;
+      coin_price_per_episode?: number;
+      available_languages?: string[];
+      tags?: string[];
+      vertical_poster?: string;
+      cover_image?: string;
+    }
+  ) => {
+    const res = await API.patch(`/creators/series/${seriesId}`, payload);
+    return res.data;
+  },
+  deleteSeries: async (seriesId: string) => {
+    const res = await API.delete(`/creators/series/${seriesId}`);
+    return res.data;
+  },
+  updateSeriesArtwork: async (
+    seriesId: string,
+    payload: { vertical_poster?: string; cover_image?: string }
+  ) => {
+    const res = await API.patch(`/creators/series/${seriesId}/artwork`, payload);
     return res.data;
   },
   addEpisode: async (payload: any) => {

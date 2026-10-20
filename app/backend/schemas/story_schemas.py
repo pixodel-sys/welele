@@ -95,3 +95,15 @@ class CreateEpisodeRequest(BaseModel):
     scheduled_at: Optional[str] = None
     preflight_health: Optional[Dict[str, Any]] = None
 
+class UpdateSeriesRequest(BaseModel):
+    title: Optional[str] = None
+    tagline: Optional[str] = None
+    synopsis: Optional[str] = None
+    genre: Optional[str] = None
+    coin_price_per_episode: Optional[int] = None
+    available_languages: Optional[List[str]] = None
+    tags: Optional[List[str]] = None
+    vertical_poster: Optional[str] = None
+    cover_image: Optional[str] = None
+
+

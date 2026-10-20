@@ -85,13 +85,12 @@ export const CreateShowModal: React.FC<CreateShowModalProps> = ({
     setIsUploadingPoster(true);
     setErrorMessage(null);
     try {
-      const res = await storageApi.uploadBinary(file, 'creator_uploads');
+      const res = await storageApi.uploadArtwork(file, undefined, 'poster');
       const cdnUrl = res?.public_cdn_url;
-      if (cdnUrl) {
-        setVerticalPoster(cdnUrl);
-      } else {
-        throw new Error('Upload succeeded but no canonical URL returned');
+      if (!cdnUrl || cdnUrl.startsWith('blob:') || cdnUrl.includes('X-Amz-Expires') || cdnUrl.includes('Expires=')) {
+        throw new Error('Upload succeeded but server did not return a durable, non-expiring CDN URL');
       }
+      setVerticalPoster(cdnUrl);
     } catch (err: any) {
       console.error('Failed to upload custom poster:', err);
       const msg = err?.response?.data?.detail || err?.message || 'Failed to upload poster to storage.';
@@ -105,13 +104,12 @@ export const CreateShowModal: React.FC<CreateShowModalProps> = ({
     setIsUploadingBanner(true);
     setErrorMessage(null);
     try {
-      const res = await storageApi.uploadBinary(file, 'creator_uploads');
+      const res = await storageApi.uploadArtwork(file, undefined, 'banner');
       const cdnUrl = res?.public_cdn_url;
-      if (cdnUrl) {
-        setCoverBanner(cdnUrl);
-      } else {
-        throw new Error('Upload succeeded but no canonical URL returned');
+      if (!cdnUrl || cdnUrl.startsWith('blob:') || cdnUrl.includes('X-Amz-Expires') || cdnUrl.includes('Expires=')) {
+        throw new Error('Upload succeeded but server did not return a durable, non-expiring CDN URL');
       }
+      setCoverBanner(cdnUrl);
     } catch (err: any) {
       console.error('Failed to upload custom banner:', err);
       const msg = err?.response?.data?.detail || err?.message || 'Failed to upload banner to storage.';
@@ -124,6 +122,20 @@ export const CreateShowModal: React.FC<CreateShowModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
+
+    if (verticalPoster.startsWith('blob:') || coverBanner.startsWith('blob:')) {
+      setErrorMessage('Local temporary (blob:) URLs cannot be saved as series artwork. Please select or upload valid artwork.');
+      return;
+    }
+    if (
+      verticalPoster.includes('X-Amz-Expires') ||
+      coverBanner.includes('X-Amz-Expires') ||
+      verticalPoster.includes('Expires=') ||
+      coverBanner.includes('Expires=')
+    ) {
+      setErrorMessage('Presigned expiring URLs cannot be saved as series artwork. Please upload artwork to obtain permanent CDN URLs.');
+      return;
+    }
 
     setIsSubmitting(true);
     setErrorMessage(null);

@@ -20,6 +20,7 @@ class BinaryUploadResponse(BaseModel):
     content_type: str
     provider: str
     media_asset_id: Optional[str] = None
+    is_durable: Optional[bool] = None
 
 @router.post("/upload-binary", response_model=BinaryUploadResponse, dependencies=[Depends(require_role(["creator", "admin"]))])
 async def upload_binary_master(
@@ -73,6 +74,50 @@ async def upload_binary_master(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.post("/upload-artwork", response_model=BinaryUploadResponse, dependencies=[Depends(require_role(["creator", "admin"]))])
+async def upload_artwork_asset(
+    file: UploadFile = File(...),
+    series_id: Optional[str] = Form(None),
+    artwork_type: str = Form("poster")
+):
+    """
+    Phase 6J-2R-B: Direct artwork ingestion endpoint.
+    Uploads static poster or banner image to durable Cloudflare R2 storage.
+    Guarantees that public_cdn_url is a permanent, non-expiring public CDN URL.
+    """
+    try:
+        contents = await file.read()
+        if not contents:
+            raise HTTPException(status_code=400, detail="Empty artwork file payload")
+
+        content_type = file.content_type or "image/jpeg"
+        if not content_type.startswith("image/"):
+            raise HTTPException(status_code=400, detail=f"Invalid content type '{content_type}': Artwork must be an image.")
+
+        result = storage_service.save_artwork(
+            file_bytes=contents,
+            series_id=series_id,
+            artwork_type=artwork_type,
+            filename=file.filename or "artwork.jpg",
+            content_type=content_type
+        )
+
+        return {
+            "success": True,
+            "storage_key": result["storage_key"],
+            "public_cdn_url": result["public_cdn_url"],
+            "file_size_bytes": result["file_size_bytes"],
+            "content_type": result["content_type"],
+            "provider": result["provider"],
+            "media_asset_id": None,
+            "is_durable": True
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/verify-asset/{storage_key:path}")
 def verify_storage_asset(storage_key: str):
     """Verifies that an object exists durably in Cloudflare R2."""
@@ -104,11 +149,12 @@ def stream_storage_object(storage_key: str):
     Protected episode masters (masters/*) and private media assets CANNOT be streamed via this endpoint.
     Direct calls for protected media return HTTP 403 Forbidden.
     Clients MUST request an authorized media session via POST /media/sessions/create.
+    Public static artwork (artwork/*) is allowed.
     """
     clean_key = storage_service._clean_key(storage_key)
     
     # Phase 6O-5: Direct streaming of protected episode masters or non-allowlisted objects is strictly forbidden
-    if clean_key.startswith("masters/") or clean_key.startswith("private/") or clean_key not in PUBLIC_STREAM_ALLOWLIST:
+    if clean_key.startswith("masters/") or clean_key.startswith("private/") or (clean_key not in PUBLIC_STREAM_ALLOWLIST and not clean_key.startswith("artwork/")):
         raise HTTPException(
             status_code=403,
             detail="Direct streaming of protected media assets is prohibited. Please request an authorized playback session via POST /media/sessions/create."
@@ -121,6 +167,42 @@ def stream_storage_object(storage_key: str):
         raise HTTPException(status_code=404, detail=f"Media asset '{clean_key}' not found in object storage")
     presigned = storage_service.generate_presigned_download_url(clean_key, expires_in_seconds=3600)
     return RedirectResponse(url=presigned["download_url"], status_code=307)
+
+
+@router.get("/artwork/{storage_key:path}")
+def get_artwork_asset(storage_key: str):
+    """
+    Phase 6J-2R-B: Durable artwork retrieval endpoint.
+    Serves stored artwork binary with immutable caching headers.
+    """
+    from fastapi.responses import Response
+    clean_key = storage_service._clean_key(storage_key)
+    if not clean_key.startswith("artwork/"):
+        clean_key = f"artwork/{clean_key}"
+
+    binary = storage_service.get_stored_binary(clean_key)
+    if not binary:
+        raise HTTPException(status_code=404, detail=f"Artwork asset '{clean_key}' not found in storage")
+
+    ext = clean_key.rsplit(".", 1)[-1].lower() if "." in clean_key else "jpg"
+    media_types = {
+        "jpg": "image/jpeg",
+        "jpeg": "image/jpeg",
+        "png": "image/png",
+        "webp": "image/webp",
+        "gif": "image/gif",
+        "svg": "image/svg+xml"
+    }
+    media_type = media_types.get(ext, "image/jpeg")
+
+    return Response(
+        content=binary,
+        media_type=media_type,
+        headers={
+            "Cache-Control": "public, max-age=31536000, immutable",
+            "X-Content-Type-Options": "nosniff"
+        }
+    )
 
 
 

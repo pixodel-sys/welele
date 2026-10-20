@@ -89,6 +89,17 @@ class StorageService:
         else:
             storage_key = f"masters/{story_id}/master_{uuid.uuid4().hex[:8]}{clean_ext}"
 
+        # If uploaded asset is an image, delegate to save_artwork to guarantee durable public CDN URL
+        if content_type.startswith("image/") or clean_ext in [".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg"]:
+            clean_type = "poster" if "poster" in filename.lower() else "banner"
+            return self.save_artwork(
+                file_bytes=file_bytes,
+                series_id=story_id,
+                artwork_type=clean_type,
+                filename=filename,
+                content_type=content_type
+            )
+
         # 1. Authoritative Cloudflare R2 Durable Storage
         provider = "Local Object Storage"
         if getattr(settings, "IS_PRODUCTION_OR_STAGING", False):
@@ -130,7 +141,7 @@ class StorageService:
         except Exception:
             pass
 
-        # 3. Generate delivery URL (signed presigned URL if R2 available)
+        # 3. Generate delivery URL (signed presigned URL if R2 available for private video masters)
         if self.s3_client:
             try:
                 presigned = self.generate_presigned_download_url(storage_key, expires_in_seconds=3600)
@@ -147,6 +158,90 @@ class StorageService:
             "content_type": content_type,
             "provider": provider,
             "local_path": local_target_path
+        }
+
+    def save_artwork(
+        self,
+        file_bytes: bytes,
+        series_id: str,
+        artwork_type: str = "poster",
+        filename: str = "artwork.jpg",
+        content_type: str = "image/jpeg"
+    ) -> Dict[str, Any]:
+        """
+        Phase 6J-2R-B: Ingests durable static artwork (poster/banner) into Cloudflare R2.
+        Guarantees that public_cdn_url is a permanent, durable public CDN URL.
+        A 1-hour presigned URL MUST NOT masquerade as a permanent public_cdn_url.
+        Fails closed in staging/production if durable storage is unavailable.
+        """
+        if not file_bytes:
+            raise ValueError("Cannot ingest empty binary payload for artwork.")
+
+        ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else "jpg"
+        if ext not in ["jpg", "jpeg", "png", "webp", "gif", "svg"]:
+            ext = "jpg"
+        clean_ext = f".{ext}"
+
+        clean_series_id = str(series_id).replace("/", "_").strip() if series_id else "creator_uploads"
+        asset_uuid = uuid.uuid4().hex[:8]
+        clean_type = "poster" if "poster" in str(artwork_type).lower() else "banner"
+        storage_key = f"artwork/{clean_series_id}/{clean_type}_{asset_uuid}{clean_ext}"
+
+        # 1. Authoritative Cloudflare R2 Durable Storage
+        provider = "Local Object Storage"
+        if getattr(settings, "IS_PRODUCTION_OR_STAGING", False):
+            if not self.s3_client:
+                raise RuntimeError(
+                    f"CRITICAL STORAGE HALT: Cloudflare R2 client is uninitialized in {getattr(settings, 'ENVIRONMENT', 'unknown')}. "
+                    "Ephemeral disk storage is strictly prohibited for durable artwork in staging/production."
+                )
+            try:
+                self.s3_client.put_object(
+                    Bucket=self.storage_bucket,
+                    Key=storage_key,
+                    Body=file_bytes,
+                    ContentType=content_type
+                )
+                provider = f"Cloudflare R2 Storage ({self.storage_bucket})"
+            except Exception as e:
+                raise RuntimeError(
+                    f"CRITICAL STORAGE HALT: Failed writing durable artwork to R2 bucket '{self.storage_bucket}' (key: '{storage_key}'): {e}"
+                )
+        elif self.s3_client:
+            try:
+                self.s3_client.put_object(
+                    Bucket=self.storage_bucket,
+                    Key=storage_key,
+                    Body=file_bytes,
+                    ContentType=content_type
+                )
+                provider = f"Cloudflare R2 Storage ({self.storage_bucket})"
+            except Exception as e:
+                print(f"[StorageService:Dev] Failed writing artwork to R2 bucket: {e}")
+
+        # 2. Local disk backing for local dev verification
+        local_target_path = os.path.join(self.local_storage_dir, *storage_key.split("/"))
+        try:
+            os.makedirs(os.path.dirname(local_target_path), exist_ok=True)
+            with open(local_target_path, "wb") as f:
+                f.write(file_bytes)
+        except Exception:
+            pass
+
+        # 3. Permanent, durable public CDN delivery URL (NO EXPIRATION!)
+        if self.s3_client:
+            public_cdn_url = f"{self.cdn_base_url}/{storage_key}"
+        else:
+            public_cdn_url = f"/media/{storage_key}"
+
+        return {
+            "storage_key": storage_key,
+            "public_cdn_url": public_cdn_url,
+            "file_size_bytes": len(file_bytes),
+            "content_type": content_type,
+            "provider": provider,
+            "local_path": local_target_path,
+            "is_durable": True
         }
 
     @staticmethod

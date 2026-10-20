@@ -83,6 +83,18 @@ export interface Story {
   ip_id?: string;
   franchise_code?: string;
   characters?: any[];
+  digital_ip?: any;
+  rights_ledger?: any[];
+  rights_declarations?: any[];
+  story_world?: any;
+  narrative_lineage?: {
+    origin: 'STORY_FORGE' | 'CREATOR_ORIGINAL';
+    source_engine?: string;
+    version?: string;
+    human_approved?: boolean;
+    creative_authority?: string;
+    description?: string;
+  };
   under_review_episodes_count?: number;
   episodes: Episode[];
 }

@@ -1,0 +1,49 @@
+{
+  "timestamp": "2026-10-20T12:02:59.724724+00:00",
+  "phase": "6J-2R-F",
+  "database_ref": "dbsnaidhznofvyffdfni",
+  "steps": {
+    "step1_create": {
+      "series_id": "4f36b016-2807-413e-a635-1c11574f6d09",
+      "db_uuid": "4f36b016-2807-413e-a635-1c11574f6d09",
+      "ip_id": "692f2ce6-7fa0-575f-bea7-1d10c488fd10",
+      "initial_title": "6J-2R-F Staging Baseline 59523d",
+      "initial_pricing": 5
+    },
+    "step2_patch_response": {
+      "status_code": 200,
+      "returned_title": "6J-2R-F Persistence Proven \u2014 3969ed",
+      "returned_price": 15
+    },
+    "step3_postgresql_row": {
+      "verified_in_pg": true,
+      "pg_title": "6J-2R-F Persistence Proven \u2014 3969ed",
+      "pg_genre": "Legal Thriller \u2022 Dynasty",
+      "pg_price": 15,
+      "pg_updated_at": "2026-10-20T12:03:16.844763+00:00"
+    },
+    "step4_reload_workspace": {
+      "status_code": 200,
+      "reloaded_title": "6J-2R-F Persistence Proven \u2014 3969ed",
+      "reloaded_tagline": "The fix is real and confirmed in staging PostgreSQL",
+      "reloaded_price": 15,
+      "persistence_proven": true
+    },
+    "step5_security_enforcement": {
+      "unauthenticated_rejected_403": true,
+      "cross_tenant_update_rejected_403": true,
+      "cross_tenant_delete_rejected_403": true
+    },
+    "step6_guarded_deletion": {
+      "series_deleted_from_pg": true,
+      "digital_ip_preserved_in_pg": true,
+      "preserved_ip_id": "692f2ce6-7fa0-575f-bea7-1d10c488fd10",
+      "workspace_404_verified": true
+    },
+    "step7_protected_boundaries": {
+      "production_untouched": true,
+      "blood_ties_intact": true,
+      "migration_03_untouched": true
+    }
+  }
+}

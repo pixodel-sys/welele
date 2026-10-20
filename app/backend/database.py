@@ -256,6 +256,11 @@ class Database:
                         "available_languages", "tags", "created_at", "updated_at"
                     }
                     payload_to_sync = {k: v for k, v in item.items() if k in valid_series_cols}
+                    # Phase 6J-2R-B Invariant: Never allow blob: URLs in database
+                    for art_col in ("vertical_poster", "cover_image"):
+                        art_val = str(payload_to_sync.get(art_col) or "")
+                        if art_val.startswith("blob:"):
+                            raise ValueError(f"Database invariant violation: Ephemeral blob: URLs cannot be saved to series {art_col}.")
                     if "id" in payload_to_sync:
                         payload_to_sync["id"] = self._to_uuid(str(payload_to_sync["id"]))
                     if "ip_id" in payload_to_sync:
@@ -263,9 +268,9 @@ class Database:
                 elif collection == "episodes":
                     table_name = "episodes"
                     valid_ep_cols = {
-                        "id", "series_id", "story_package_id", "season_number", "episode_number",
+                        "id", "series_id", "episode_number",
                         "title", "synopsis", "duration_seconds", "is_free", "coin_price",
-                        "cliffhanger_time_seconds", "cliffhanger_hook", "status", "created_at", "updated_at"
+                        "cliffhanger_time_seconds", "cliffhanger_hook", "status", "created_at"
                     }
                     payload_to_sync = {k: v for k, v in item.items() if k in valid_ep_cols}
                     if "id" in payload_to_sync:

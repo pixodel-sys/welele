@@ -1158,6 +1158,22 @@ class SeriesRepository(BaseRepository):
                 if matched_profile:
                     return str(matched_profile["id"])
 
+                # Check default creator fixtures
+                from data.fixtures.seed_fixtures import DEFAULT_CREATORS
+                for c in DEFAULT_CREATORS:
+                    cid = c["id"]
+                    clean_c = cid.replace("creator_", "")
+                    possible_user_ids = {
+                        cid,
+                        to_uuid(cid),
+                        f"user_{cid}",
+                        to_uuid(f"user_{cid}"),
+                        f"user_{clean_c}",
+                        to_uuid(f"user_{clean_c}")
+                    }
+                    if master_owner_id in possible_user_ids or owner_uuid in possible_user_ids:
+                        return cid
+
         return None
 
     def get_creator_series(self, creator_id: Optional[str] = None) -> List[Dict[str, Any]]:
@@ -1215,7 +1231,15 @@ class SeriesRepository(BaseRepository):
                 if not s_copy.get("creator_avatar"):
                     s_copy["creator_avatar"] = matched_local.get("creator_avatar")
             if not s_copy.get("creator_name"):
-                if c_id == "creator_zola":
+                from services.creator_profile_service import creator_profile_service
+                from data.fixtures.seed_fixtures import DEFAULT_CREATORS
+                prof = creator_profile_service.get_profile(c_id) if c_id else None
+                fixture = next((c for c in DEFAULT_CREATORS if c.get("id") == c_id), None)
+                if prof and prof.get("display_name"):
+                    s_copy["creator_name"] = prof.get("display_name")
+                elif fixture and fixture.get("name"):
+                    s_copy["creator_name"] = fixture.get("name")
+                elif c_id == "creator_zola":
                     s_copy["creator_name"] = "Zola Dlamini"
                 elif c_id == "creator_amaka":
                     s_copy["creator_name"] = "Amaka Okafor"
@@ -1223,6 +1247,11 @@ class SeriesRepository(BaseRepository):
                     s_copy["creator_name"] = "Lerato Khumalo"
                 else:
                     s_copy["creator_name"] = "Welele Creator"
+            if not s_copy.get("creator_avatar") and c_id:
+                from data.fixtures.seed_fixtures import DEFAULT_CREATORS
+                fixture = next((c for c in DEFAULT_CREATORS if c.get("id") == c_id), None)
+                if fixture and fixture.get("avatar"):
+                    s_copy["creator_avatar"] = fixture.get("avatar")
             if s_slug:
                 s_copy["slug"] = s_slug
 
@@ -1323,59 +1352,392 @@ class SeriesRepository(BaseRepository):
 
         return None
 
-    def resolve_valid_ip_id(self, preferred_ip: Optional[str] = None, creator_id: Optional[str] = None) -> str:
+    def get_series_ip_bundle(self, ip_id: Optional[str], creator_name: Optional[str] = None) -> Dict[str, Any]:
         """
-        Resolves or selects a valid UUID for digital_ips.id conforming to PostgreSQL schema.
-        1. If preferred_ip is a valid UUID, returns it.
-        2. If creator_id is provided, finds an active digital_ips owned by this creator.
-        3. Queries live Supabase public.digital_ips for an active IP UUID.
-        4. Falls back to canonical staging seed UUID to_uuid('ip_blood_ties').
+        Phase 6J-2R-C: Retrieves hydrated relational IP metadata for a series workspace.
+        Queries live Supabase PostgreSQL (digital_ips, character_bibles, rights_ledger,
+        story_worlds, story_forge_packages) with deterministic fallback to local store.
+        Distinguishes Creator Original treatments from Story Forge AI originations.
+        """
+        if not ip_id:
+            return {
+                "digital_ip": None,
+                "characters": [],
+                "story_world": None,
+                "rights_ledger": [],
+                "rights_declarations": [
+                    {
+                        "stakeholder_role": "Showrunner & Master IP Owner",
+                        "royalty_split_pct": 100.0,
+                        "territory": "Worldwide Exclusive",
+                        "medium": "Digital Video On Demand (Welele Platform)",
+                        "contract_ref": "CREATOR_STANDARD_ORIGIN",
+                        "is_default": True
+                    },
+                    {
+                        "stakeholder_role": "Linear & Ancillary Rights",
+                        "royalty_split_pct": 100.0,
+                        "territory": "Global",
+                        "medium": "Broadcast & Sync (Retained by Creator)",
+                        "contract_ref": "CREATOR_RETAINED_RIGHTS",
+                        "is_default": True
+                    }
+                ],
+                "narrative_lineage": {
+                    "origin": "CREATOR_ORIGINAL",
+                    "source_engine": "Creator Original Treatment",
+                    "creative_authority": f"Sole Creator Origin ({creator_name or 'Showrunner'})",
+                    "human_approved": True,
+                    "description": "Original story world and premise originated directly by the showrunner. No generative narrative synthesis utilized."
+                }
+            }
+
+        target_uuid = to_uuid(ip_id)
+        digital_ip = None
+        characters = []
+        story_world = None
+        rights_ledger = []
+        story_forge_package = None
+
+        # 1. Query live PostgreSQL if active
+        if self.is_live:
+            try:
+                ip_res = self.get_table("digital_ips").select("*").or_(f"id.eq.{ip_id},id.eq.{target_uuid}").execute()
+                if ip_res.data and len(ip_res.data) > 0:
+                    digital_ip = ip_res.data[0]
+            except Exception as e:
+                logger.warning(f"[SeriesRepository] Failed querying digital_ips for {ip_id}: {e}")
+
+            try:
+                cb_res = self.get_table("character_bibles").select("*").or_(f"ip_id.eq.{ip_id},ip_id.eq.{target_uuid}").execute()
+                if cb_res.data:
+                    characters = cb_res.data
+            except Exception as e:
+                logger.warning(f"[SeriesRepository] Failed querying character_bibles for {ip_id}: {e}")
+
+            try:
+                rl_res = self.get_table("rights_ledger").select("*").or_(f"ip_id.eq.{ip_id},ip_id.eq.{target_uuid}").execute()
+                if rl_res.data:
+                    rights_ledger = rl_res.data
+            except Exception as e:
+                logger.warning(f"[SeriesRepository] Failed querying rights_ledger for {ip_id}: {e}")
+
+            try:
+                sw_res = self.get_table("story_worlds").select("*").or_(f"ip_id.eq.{ip_id},ip_id.eq.{target_uuid}").limit(1).execute()
+                if sw_res.data and len(sw_res.data) > 0:
+                    story_world = sw_res.data[0]
+            except Exception as e:
+                logger.warning(f"[SeriesRepository] Failed querying story_worlds for {ip_id}: {e}")
+
+            try:
+                sfp_res = self.get_table("story_forge_packages").select("*").or_(f"ip_id.eq.{ip_id},ip_id.eq.{target_uuid}").limit(1).execute()
+                if sfp_res.data and len(sfp_res.data) > 0:
+                    story_forge_package = sfp_res.data[0]
+            except Exception as e:
+                logger.warning(f"[SeriesRepository] Failed querying story_forge_packages for {ip_id}: {e}")
+
+        # 2. Local fallback if live query returned empty
+        if not digital_ip:
+            all_ips = self.local_get("digital_ips") or []
+            digital_ip = next((i for i in all_ips if str(i.get("id")) in (ip_id, target_uuid) or i.get("franchise_code") == ip_id), None)
+
+        if not characters:
+            all_cb = self.local_get("character_bibles") or []
+            characters = [c for c in all_cb if str(c.get("ip_id")) in (ip_id, target_uuid)]
+
+        if not rights_ledger:
+            all_rl = self.local_get("rights_ledger") or []
+            rights_ledger = [r for r in all_rl if str(r.get("ip_id")) in (ip_id, target_uuid)]
+
+        if not story_world:
+            all_sw = self.local_get("story_worlds") or []
+            story_world = next((w for w in all_sw if str(w.get("ip_id")) in (ip_id, target_uuid)), None)
+
+        if not story_forge_package:
+            all_sfp = self.local_get("story_forge_packages") or []
+            story_forge_package = next((p for p in all_sfp if str(p.get("ip_id")) in (ip_id, target_uuid)), None)
+
+        # 3. Derive rights declarations
+        if rights_ledger:
+            rights_declarations = [
+                {
+                    "stakeholder_role": r.get("stakeholder_role"),
+                    "royalty_split_pct": float(r.get("royalty_split_pct", 0)),
+                    "territory": r.get("territory", "GLOBAL"),
+                    "medium": r.get("medium", "ALL_MEDIA"),
+                    "contract_ref": r.get("contract_ref", "REGISTERED_CONTRACT"),
+                    "is_default": False
+                }
+                for r in rights_ledger
+            ]
+        else:
+            rights_declarations = [
+                {
+                    "stakeholder_role": "Showrunner & Master IP Owner",
+                    "royalty_split_pct": 100.0,
+                    "territory": "Worldwide Exclusive",
+                    "medium": "Digital Video On Demand (Welele Platform)",
+                    "contract_ref": "CREATOR_STANDARD_ORIGIN",
+                    "is_default": True
+                },
+                {
+                    "stakeholder_role": "Linear & Ancillary Rights",
+                    "royalty_split_pct": 100.0,
+                    "territory": "Global",
+                    "medium": "Broadcast & Sync (Retained by Creator)",
+                    "contract_ref": "CREATOR_RETAINED_RIGHTS",
+                    "is_default": True
+                }
+            ]
+
+        # 4. Derive narrative lineage
+        if story_forge_package:
+            narrative_lineage = {
+                "origin": "STORY_FORGE",
+                "source_engine": f"Story Forge™ AI ({story_forge_package.get('ai_model_used', 'v2')})",
+                "version": story_forge_package.get("version", "v1.0.0"),
+                "human_approved": story_forge_package.get("human_approved", True),
+                "creative_authority": f"Showrunner Review ({creator_name or 'Showrunner'})",
+                "description": "Narrative hooks and character bibles were originated with Story Forge assistance and accepted into the canonical franchise spine."
+            }
+        else:
+            narrative_lineage = {
+                "origin": "CREATOR_ORIGINAL",
+                "source_engine": "Creator Original Treatment",
+                "creative_authority": f"Sole Creator Origin ({creator_name or 'Showrunner'})",
+                "human_approved": True,
+                "description": "Original story world and premise originated directly by the showrunner. No generative narrative synthesis utilized."
+            }
+
+        return {
+            "digital_ip": digital_ip,
+            "characters": characters,
+            "story_world": story_world,
+            "rights_ledger": rights_ledger,
+            "rights_declarations": rights_declarations,
+            "narrative_lineage": narrative_lineage
+        }
+
+    def provision_creator_digital_ip(
+        self,
+        creator_id: str,
+        title: Optional[str] = None,
+        genre: Optional[str] = None,
+        language: Optional[str] = None
+    ) -> str:
+        """
+        Authoritatively provisions a canonical digital_ips record for a creator.
+        Ensures backing public.users record exists to satisfy foreign key constraints.
+        Persists to both local store and Supabase PostgreSQL (when live).
+        Guarantees strict tenant isolation: no creator borrows another's digital IP.
+        """
+        if not creator_id:
+            raise RuntimeError("Creator ownership provisioning failure: creator_id is required to provision digital IP.")
+
+        from services.creator_profile_service import creator_profile_service
+        from data.fixtures.seed_fixtures import DEFAULT_CREATORS
+
+        prof = creator_profile_service.get_profile(creator_id)
+        fixture = next((c for c in DEFAULT_CREATORS if c.get("id") == creator_id), None)
+
+        clean_slug = creator_id.replace("creator_", "") if creator_id.startswith("creator_") else creator_id
+        creator_name = (
+            (prof.get("display_name") if prof else None)
+            or (fixture.get("name") if fixture else None)
+            or clean_slug.replace("_", " ").title()
+        )
+        
+        # Determine owner_user_uuid
+        owner_user_uuid = None
+        if prof and prof.get("owner_user_id"):
+            owner_user_uuid = str(prof["owner_user_id"])
+        if not owner_user_uuid:
+            owner_user_uuid = to_uuid(f"user_{clean_slug}")
+
+        # Ensure backing user in public.users if live database is active
+        if self.is_live:
+            try:
+                u_res = self.get_table("users").select("id").eq("id", owner_user_uuid).limit(1).execute()
+                if not u_res.data or len(u_res.data) == 0:
+                    user_row = {
+                        "id": owner_user_uuid,
+                        "display_name": creator_name,
+                        "role": "creator",
+                        "region_code": fixture.get("country", "ZA") if fixture else "ZA",
+                        "preferred_language": language or "isiZulu",
+                        "is_verified": True
+                    }
+                    self.get_table("users").upsert(user_row).execute()
+                    logger.info(f"[SeriesRepository] Provisioned backing user in PostgreSQL for {creator_id}: {owner_user_uuid}")
+            except Exception as e:
+                logger.error(f"[SeriesRepository] Failed to ensure backing user in database for {creator_id}: {e}")
+                if settings.IS_PRODUCTION_OR_STAGING:
+                    raise RuntimeError(f"Creator ownership provisioning failure: Unable to persist backing user '{owner_user_uuid}' for '{creator_id}': {e}")
+
+        # Also ensure in local store
+        local_users = self.local_get("users") or []
+        if not any(str(u.get("id")) in (owner_user_uuid, to_uuid(owner_user_uuid)) for u in local_users):
+            self.local_insert("users", {
+                "id": owner_user_uuid,
+                "display_name": creator_name,
+                "role": "creator"
+            })
+
+        # Provision canonical digital_ips
+        ip_uuid = str(uuid.uuid4())
+        clean_code = "".join(c for c in (title or creator_name).upper() if c.isalnum() or c == "_")[:20]
+        if not clean_code:
+            clean_code = "STUDIO"
+        franchise_code = f"IP-{clean_code}-{uuid.uuid4().hex[:6].upper()}"
+
+        now_ts = datetime.now(timezone.utc).isoformat()
+        ip_record = {
+            "id": ip_uuid,
+            "title": title or f"{creator_name} Franchise",
+            "franchise_code": franchise_code,
+            "logline": f"Original stories and franchise by {creator_name}.",
+            "synopsis": f"Original IP universe created and owned by {creator_name}.",
+            "genre": genre or "Drama",
+            "primary_language": language or "isiZulu",
+            "master_owner_id": owner_user_uuid,
+            "global_valuation_usd": 0.00,
+            "status": "active",
+            "created_at": now_ts,
+            "updated_at": now_ts
+        }
+        self.local_insert("digital_ips", ip_record)
+
+        if self.is_live:
+            try:
+                db_ip = {
+                    "id": to_uuid(ip_uuid),
+                    "title": ip_record["title"],
+                    "franchise_code": ip_record["franchise_code"],
+                    "logline": ip_record["logline"],
+                    "synopsis": ip_record["synopsis"],
+                    "genre": ip_record["genre"],
+                    "primary_language": ip_record["primary_language"],
+                    "master_owner_id": to_uuid(owner_user_uuid),
+                    "global_valuation_usd": 0.00,
+                    "status": "active"
+                }
+                self.get_table("digital_ips").upsert(db_ip).execute()
+                logger.info(f"[SeriesRepository] Provisioned canonical digital_ips in PostgreSQL for {creator_id}: {ip_uuid} ({franchise_code})")
+            except Exception as e:
+                logger.error(f"[SeriesRepository] Remote digital_ips provisioning failed: {e}")
+                if settings.IS_PRODUCTION_OR_STAGING:
+                    raise RuntimeError(f"Creator ownership provisioning failure: Unable to persist digital_ips in database for creator '{creator_id}': {e}")
+
+        return ip_uuid
+
+    def resolve_valid_ip_id(
+        self,
+        preferred_ip: Optional[str] = None,
+        creator_id: Optional[str] = None,
+        title: Optional[str] = None,
+        genre: Optional[str] = None,
+        language: Optional[str] = None
+    ) -> str:
+        """
+        Resolves or authoritatively provisions a valid UUID for digital_ips conforming to PostgreSQL schema.
+        1. If preferred_ip is a valid UUID and matches creator ownership (or creator_id is unspecified), returns it.
+        2. If creator_id is provided, queries for an active digital_ips owned by this creator.
+        3. If no digital_ips exists for the creator, provisions a dedicated canonical digital_ips record.
+        4. Fails closed where correct provisioning is impossible: NO arbitrary fallback to limit(1) or Blood Ties.
         """
         if preferred_ip:
             try:
                 uuid.UUID(str(preferred_ip))
-                return str(preferred_ip)
+                target_ip = str(preferred_ip)
+                if not creator_id:
+                    return target_ip
+
+                # Validate ownership of preferred_ip if creator_id is specified
+                target_ip_uuid = to_uuid(target_ip)
+                all_ips = self.local_get("digital_ips") or []
+                ip_match = next((i for i in all_ips if str(i.get("id")) in (target_ip, target_ip_uuid)), None)
+                if not ip_match and self.is_live:
+                    try:
+                        res = self.get_table("digital_ips").select("*").or_(f"id.eq.{target_ip},id.eq.{target_ip_uuid}").limit(1).execute()
+                        if res and res.data and len(res.data) > 0:
+                            ip_match = res.data[0]
+                    except Exception:
+                        pass
+                
+                if ip_match:
+                    owner = str(ip_match.get("master_owner_id", ""))
+                    clean_c = creator_id.replace("creator_", "")
+                    allowed_owners = {
+                        creator_id,
+                        to_uuid(creator_id),
+                        f"user_{clean_c}",
+                        to_uuid(f"user_{clean_c}"),
+                        f"user_{creator_id}",
+                        to_uuid(f"user_{creator_id}")
+                    }
+                    if owner in allowed_owners or to_uuid(owner) in allowed_owners:
+                        return target_ip
+                    logger.warning(f"[SeriesRepository] Rejecting preferred_ip {target_ip} because it belongs to {owner}, not {creator_id}")
+                else:
+                    return target_ip
             except Exception:
                 pass
 
         if creator_id:
-            target_creator_uuid = to_uuid(creator_id)
+            from services.creator_profile_service import creator_profile_service
+            prof = creator_profile_service.get_profile(creator_id)
+            prof_owner = str(prof["owner_user_id"]) if (prof and prof.get("owner_user_id")) else None
+
+            clean_c = creator_id.replace("creator_", "") if creator_id.startswith("creator_") else creator_id
+            user_slug = f"user_{clean_c}"
+            owner_user_uuid = to_uuid(user_slug)
+            creator_user_uuid = to_uuid(f"user_{creator_id}")
+            raw_creator_uuid = to_uuid(creator_id)
+
+            possible_owners = {
+                creator_id,
+                user_slug,
+                f"user_{creator_id}",
+                owner_user_uuid,
+                creator_user_uuid,
+                raw_creator_uuid
+            }
+            if prof_owner:
+                possible_owners.add(prof_owner)
+                possible_owners.add(to_uuid(prof_owner))
+
+            # 1. Query local store
             all_ips = self.local_get("digital_ips") or []
             for ip in all_ips:
                 owner = str(ip.get("master_owner_id", ""))
-                if owner and (
-                    owner == creator_id 
-                    or to_uuid(owner) == target_creator_uuid
-                    or (creator_id == "creator_zola" and owner in ("user_zola", to_uuid("user_zola")))
-                    or (creator_id == "creator_amaka" and owner in ("user_amaka", to_uuid("user_amaka")))
-                ):
-                    return to_uuid(str(ip.get("id")))
+                if owner in possible_owners or to_uuid(owner) in possible_owners:
+                    raw_id = ip.get("id")
+                    if raw_id:
+                        return to_uuid(str(raw_id))
 
+            # 2. Query authoritative PostgreSQL database
             if self.is_live:
                 try:
-                    res = self.get_table("digital_ips").select("id").or_(
-                        f"master_owner_id.eq.{creator_id},master_owner_id.eq.{target_creator_uuid}"
-                    ).limit(1).execute()
+                    or_conditions = ",".join([f"master_owner_id.eq.{uid}" for uid in possible_owners if uid])
+                    res = self.get_table("digital_ips").select("id").or_(or_conditions).limit(1).execute()
                     if res and res.data and len(res.data) > 0 and res.data[0].get("id"):
                         return str(res.data[0]["id"])
                 except Exception as e:
-                    logger.warning(f"[SeriesRepository] Query digital_ips by creator failed: {e}")
+                    logger.warning(f"[SeriesRepository] Query digital_ips by creator {creator_id} failed: {e}")
 
-        if self.is_live:
-            try:
-                res = self.get_table("digital_ips").select("id").limit(1).execute()
-                if res.data and len(res.data) > 0 and res.data[0].get("id"):
-                    return str(res.data[0]["id"])
-            except Exception as e:
-                logger.warning(f"[SeriesRepository] Could not fetch digital_ips from database: {e}")
+            # 3. Creator has no digital_ips: authoritatively PROVISION one!
+            return self.provision_creator_digital_ip(
+                creator_id=creator_id,
+                title=title,
+                genre=genre,
+                language=language
+            )
 
-        local_ips = self.local_get("digital_ips") or []
-        for ip in local_ips:
-            raw_id = ip.get("id")
-            if raw_id:
-                return to_uuid(str(raw_id))
-
-        return to_uuid("ip_blood_ties")
+        # 4. Fail closed: Arbitrary fallback to limit(1) or Blood Ties is strictly prohibited
+        raise RuntimeError(
+            "Creator ownership provisioning failure: Missing creator_id and no valid preferred_ip provided. "
+            "Arbitrary digital_ips fallback is strictly prohibited."
+        )
 
     def resolve_next_season_number(self, ip_id: str) -> int:
         """
@@ -1416,6 +1778,16 @@ class SeriesRepository(BaseRepository):
         Authoritatively creates a new Series across local store and PostgreSQL.
         Enforces fail-closed semantics in staging/production when live database is active.
         """
+        # Phase 6J-2R-B: Validate artwork persistence invariants
+        for field in ("vertical_poster", "cover_image"):
+            val = series_data.get(field)
+            if val:
+                val_str = str(val).strip()
+                if val_str.startswith("blob:"):
+                    raise ValueError(f"Invalid artwork reference for {field}: Ephemeral browser blob: URLs cannot be saved as authoritative artwork.")
+                if "X-Amz-Expires" in val_str or "X-Amz-Signature" in val_str or "Expires=" in val_str:
+                    raise ValueError(f"Invalid artwork reference for {field}: Presigned expiring URLs cannot be saved as permanent artwork.")
+
         raw_id = series_data.get("id")
         if raw_id:
             try:
@@ -1429,10 +1801,15 @@ class SeriesRepository(BaseRepository):
         now_ts = datetime.now(timezone.utc).isoformat()
 
         raw_ip = series_data.get("ip_id")
-        if not raw_ip or raw_ip == "ip_blood_ties":
-            ip_id = self.resolve_valid_ip_id(creator_id=series_data.get("creator_id"))
-        else:
-            ip_id = self.resolve_valid_ip_id(preferred_ip=str(raw_ip), creator_id=series_data.get("creator_id"))
+        creator_id = series_data.get("creator_id")
+        preferred_ip = str(raw_ip) if (raw_ip and raw_ip != "ip_blood_ties") else None
+        ip_id = self.resolve_valid_ip_id(
+            preferred_ip=preferred_ip,
+            creator_id=creator_id,
+            title=series_data.get("title"),
+            genre=series_data.get("genre"),
+            language=series_data.get("available_languages", ["isiZulu"])[0] if series_data.get("available_languages") else "isiZulu"
+        )
 
         season_number = series_data.get("season_number")
         if not season_number:
@@ -1442,6 +1819,22 @@ class SeriesRepository(BaseRepository):
                 season_number = int(season_number)
             except (ValueError, TypeError):
                 season_number = self.resolve_next_season_number(ip_id)
+
+        creator_name = series_data.get("creator_name")
+        creator_avatar = series_data.get("creator_avatar")
+        if creator_id:
+            from services.creator_profile_service import creator_profile_service
+            from data.fixtures.seed_fixtures import DEFAULT_CREATORS
+            prof = creator_profile_service.get_profile(creator_id)
+            fixture = next((c for c in DEFAULT_CREATORS if c.get("id") == creator_id), None)
+            if not creator_name or (creator_name == "Zola Dlamini" and creator_id != "creator_zola"):
+                creator_name = (prof.get("display_name") if prof else None) or (fixture.get("name") if fixture else None) or "Welele Creator"
+            if not creator_avatar:
+                creator_avatar = (fixture.get("avatar") if fixture else "")
+        else:
+            creator_id = "creator_zola"
+            if not creator_name:
+                creator_name = "Zola Dlamini"
 
         series_record = {
             "id": series_id,
@@ -1458,9 +1851,9 @@ class SeriesRepository(BaseRepository):
             "free_episodes": series_data.get("free_episodes", 2),
             "coin_price_per_episode": series_data.get("coin_price_per_episode", 5),
             "is_published": series_data.get("is_published", True),
-            "creator_id": series_data.get("creator_id", "creator_zola"),
-            "creator_name": series_data.get("creator_name", "Zola Dlamini"),
-            "creator_avatar": series_data.get("creator_avatar", ""),
+            "creator_id": creator_id,
+            "creator_name": creator_name,
+            "creator_avatar": creator_avatar or "",
             "available_languages": series_data.get("available_languages", ["isiZulu", "English"]),
             "tags": series_data.get("tags", []),
             "created_at": series_data.get("created_at", now_ts),
@@ -1497,6 +1890,241 @@ class SeriesRepository(BaseRepository):
                     raise RuntimeError(f"Database write failure: Unable to persist series '{series_id}' to authoritative database: {e}")
         return series_record
 
+    def update_series_artwork(
+        self,
+        series_id: str,
+        vertical_poster: Optional[str] = None,
+        cover_image: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Phase 6J-2R-B: Authoritative series artwork persistence.
+        Persists updated durable artwork references to in-memory store and live PostgreSQL.
+        Strictly enforces:
+        1. blob: URLs must never become authoritative artwork references.
+        2. Presigned expiring URLs must not masquerade as permanent artwork.
+        """
+        # Validate inputs
+        for field_name, url_val in [("vertical_poster", vertical_poster), ("cover_image", cover_image)]:
+            if url_val is not None:
+                cleaned = str(url_val).strip()
+                if cleaned.startswith("blob:"):
+                    raise ValueError(f"Invalid artwork reference for {field_name}: Ephemeral browser blob: URLs cannot be saved as authoritative artwork.")
+                if "X-Amz-Expires" in cleaned or "X-Amz-Signature" in cleaned or "Expires=" in cleaned:
+                    raise ValueError(f"Invalid artwork reference for {field_name}: Presigned expiring URLs cannot be saved as permanent artwork.")
+
+        # Find series
+        series = self.get_creator_series_detail(series_id) or self.get_series(series_id)
+        if not series:
+            all_series = self.local_get("series") or []
+            target_uuid = to_uuid(series_id)
+            series = next((s for s in all_series if s.get("id") == series_id or to_uuid(str(s.get("id", ""))) == target_uuid), None)
+
+        if not series and self.is_live:
+            try:
+                res = self.get_table("series").select("*").eq("id", to_uuid(series_id)).execute()
+                if res.data and len(res.data) > 0:
+                    series = res.data[0]
+            except Exception:
+                pass
+
+        if not series:
+            raise ValueError(f"Series '{series_id}' not found")
+
+        now_ts = datetime.now(timezone.utc).isoformat()
+        if vertical_poster is not None:
+            series["vertical_poster"] = vertical_poster.strip()
+        if cover_image is not None:
+            series["cover_image"] = cover_image.strip()
+        series["updated_at"] = now_ts
+
+        # Update in-memory / local store
+        all_series = self.local_get("series") or []
+        found_local = False
+        for idx, s in enumerate(all_series):
+            if s.get("id") == series.get("id") or to_uuid(str(s.get("id", ""))) == to_uuid(str(series.get("id", ""))):
+                all_series[idx] = series
+                found_local = True
+                break
+        if not found_local:
+            all_series.append(series)
+        self.local_set("series", all_series)
+
+        # Update live PostgreSQL Supabase
+        if self.is_live:
+            try:
+                update_payload = {"updated_at": now_ts}
+                if vertical_poster is not None:
+                    update_payload["vertical_poster"] = vertical_poster.strip()
+                if cover_image is not None:
+                    update_payload["cover_image"] = cover_image.strip()
+
+                db_id = to_uuid(series_id)
+                self.get_table("series").update(update_payload).eq("id", db_id).execute()
+                logger.info(f"[SeriesRepository:DB] Successfully updated artwork in PostgreSQL for series '{series_id}' (UUID: {db_id})")
+            except Exception as e:
+                logger.error(f"[SeriesRepository:DB] Series artwork remote persistence error: {e}")
+                if settings.IS_PRODUCTION_OR_STAGING:
+                    raise RuntimeError(f"Database write failure: Unable to persist series artwork to authoritative database: {e}")
+
+        return series
+
+    def update_series(
+        self,
+        series_id: str,
+        updates: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Phase 6J-2R-F: Authoritative series metadata update and persistence.
+        Allowlists strictly updatable fields and sanitizes payload to prevent PostgreSQL schema violations.
+        Persists changes to in-memory store and live Supabase PostgreSQL.
+        """
+        ALLOWED_FIELDS = {
+            "title",
+            "tagline",
+            "synopsis",
+            "genre",
+            "coin_price_per_episode",
+            "available_languages",
+            "tags",
+            "vertical_poster",
+            "cover_image"
+        }
+
+        # 1. Resolve existing series
+        series = self.get_creator_series_detail(series_id) or self.get_series(series_id)
+        if not series:
+            all_series = self.local_get("series") or []
+            target_uuid = to_uuid(series_id)
+            series = next((s for s in all_series if s.get("id") == series_id or to_uuid(str(s.get("id", ""))) == target_uuid), None)
+
+        if not series and self.is_live:
+            try:
+                res = self.get_table("series").select("*").eq("id", to_uuid(series_id)).execute()
+                if res.data and len(res.data) > 0:
+                    series = res.data[0]
+            except Exception:
+                pass
+
+        if not series:
+            raise ValueError(f"Series '{series_id}' not found")
+
+        # 2. Validate and sanitize updates
+        sanitized_db_updates = {}
+        now_ts = datetime.now(timezone.utc).isoformat()
+
+        for field, val in updates.items():
+            if field not in ALLOWED_FIELDS or val is None:
+                continue
+
+            if field in ("vertical_poster", "cover_image"):
+                cleaned = str(val).strip()
+                if cleaned.startswith("blob:"):
+                    raise ValueError(f"Invalid artwork reference for {field}: Ephemeral browser blob: URLs cannot be saved.")
+                if "X-Amz-Expires" in cleaned or "X-Amz-Signature" in cleaned or "Expires=" in cleaned:
+                    raise ValueError(f"Invalid artwork reference for {field}: Presigned expiring URLs cannot be saved as permanent artwork.")
+                series[field] = cleaned
+                sanitized_db_updates[field] = cleaned
+            elif field == "coin_price_per_episode":
+                price_val = max(0, int(val))
+                series[field] = price_val
+                sanitized_db_updates[field] = price_val
+            elif field == "available_languages":
+                langs = [str(l).strip() for l in val if str(l).strip()]
+                series[field] = langs
+                sanitized_db_updates[field] = langs
+            elif field == "tags":
+                tags = [str(t).strip() for t in val if str(t).strip()]
+                series[field] = tags
+                sanitized_db_updates[field] = tags
+            else:
+                str_val = str(val).strip()
+                series[field] = str_val
+                sanitized_db_updates[field] = str_val
+
+        series["updated_at"] = now_ts
+        sanitized_db_updates["updated_at"] = now_ts
+
+        # 3. Update in-memory / local store
+        all_series = self.local_get("series") or []
+        found_local = False
+        target_uuid = to_uuid(series_id)
+        for idx, s in enumerate(all_series):
+            if s.get("id") == series_id or to_uuid(str(s.get("id", ""))) in (series_id, target_uuid):
+                all_series[idx] = {**s, **series}
+                found_local = True
+                break
+        if not found_local:
+            all_series.append(series)
+        self.local_set("series", all_series)
+
+        # 4. Update live PostgreSQL Supabase (strictly sanitized allowed columns only)
+        if self.is_live and sanitized_db_updates:
+            try:
+                db_id = to_uuid(series_id)
+                self.get_table("series").update(sanitized_db_updates).eq("id", db_id).execute()
+                logger.info(f"[SeriesRepository:DB] Successfully updated series '{series_id}' (UUID: {db_id}) in PostgreSQL with {list(sanitized_db_updates.keys())}")
+            except Exception as e:
+                logger.error(f"[SeriesRepository:DB] Series metadata remote persistence error: {e}")
+                if settings.IS_PRODUCTION_OR_STAGING:
+                    raise RuntimeError(f"Database write failure: Unable to persist series updates to authoritative database: {e}")
+
+        return series
+
+    def delete_series(self, series_id: str) -> Dict[str, Any]:
+        """
+        Phase 6J-2R-F: Guarded deletion of a series and its owned episodes.
+        Strictly preserves:
+        - Master Digital IP franchise (public.digital_ips)
+        - Registered character bibles (public.character_bibles)
+        - Commercial rights ledger (public.rights_ledger)
+        - Story worlds and Story Forge packages
+        - Audit logs and financial ledger
+        """
+        series = self.get_creator_series_detail(series_id) or self.get_series(series_id)
+        target_uuid = to_uuid(series_id)
+        if not series:
+            all_series = self.local_get("series") or []
+            series = next((s for s in all_series if s.get("id") == series_id or to_uuid(str(s.get("id", ""))) == target_uuid), None)
+
+        if not series and self.is_live:
+            try:
+                res = self.get_table("series").select("*").eq("id", target_uuid).execute()
+                if res.data and len(res.data) > 0:
+                    series = res.data[0]
+            except Exception:
+                pass
+
+        if not series:
+            raise ValueError(f"Series '{series_id}' not found")
+
+        deleted_title = series.get("title", "Untitled Series")
+        deleted_ip_id = series.get("ip_id")
+
+        # 1. Local memory clean-up
+        all_series = self.local_get("series") or []
+        self.local_set("series", [s for s in all_series if s.get("id") != series_id and to_uuid(str(s.get("id", ""))) != target_uuid])
+
+        all_episodes = self.local_get("episodes") or []
+        self.local_set("episodes", [e for e in all_episodes if e.get("series_id") != series_id and to_uuid(str(e.get("series_id", ""))) != target_uuid])
+
+        # 2. Live PostgreSQL deletion (cascades to series-owned episodes; leaves digital_ips intact)
+        if self.is_live:
+            try:
+                self.get_table("series").delete().eq("id", target_uuid).execute()
+                logger.info(f"[SeriesRepository:DB] Successfully deleted series '{series_id}' (UUID: {target_uuid}) from PostgreSQL. Digital IP '{deleted_ip_id}' preserved.")
+            except Exception as e:
+                logger.error(f"[SeriesRepository:DB] Series remote deletion error: {e}")
+                if settings.IS_PRODUCTION_OR_STAGING:
+                    raise RuntimeError(f"Database write failure: Unable to delete series from authoritative database: {e}")
+
+        return {
+            "deleted": True,
+            "series_id": series_id,
+            "title": deleted_title,
+            "preserved_ip_id": deleted_ip_id
+        }
+
+
     def create_episode_draft(
         self,
         series_id: str,
@@ -1509,9 +2137,19 @@ class SeriesRepository(BaseRepository):
         ep_id = payload.get("id") or f"ep_{uuid.uuid4().hex[:8]}"
         now_ts = datetime.now(timezone.utc).isoformat()
 
+        ep_creator = payload.get("creator_id")
+        if not ep_creator:
+            parent_series = self.get_creator_series_detail(series_id) or next(
+                (s for s in (self.local_get("series") or []) if str(s.get("id")) in (series_id, to_uuid(series_id))),
+                None
+            )
+            if parent_series:
+                ep_creator = parent_series.get("creator_id") or self.resolve_series_creator_id(parent_series)
+
         ep_record = {
             "id": ep_id,
             "series_id": series_id,
+            "creator_id": ep_creator,
             "story_package_id": story_package_id,
             "episode_number": payload.get("episode_number", 1),
             "title": payload.get("title", f"Episode {payload.get('episode_number', 1)}"),

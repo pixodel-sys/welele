@@ -22,7 +22,11 @@ import {
   ShieldCheck,
   UserCheck,
   Sparkles,
-  FileText
+  FileText,
+  Edit3,
+  Trash2,
+  X,
+  AlertCircle
 } from 'lucide-react';
 
 interface SeriesCommandRoomProps {
@@ -46,6 +50,29 @@ export const SeriesCommandRoom: React.FC<SeriesCommandRoomProps> = ({
   const [loading, setLoading] = useState<boolean>(true);
   const [customPoster, setCustomPoster] = useState<string | null>(null);
   const [customBanner, setCustomBanner] = useState<string | null>(null);
+  const [isUploadingPoster, setIsUploadingPoster] = useState<boolean>(false);
+  const [isUploadingBanner, setIsUploadingBanner] = useState<boolean>(false);
+  const [isSavingArtwork, setIsSavingArtwork] = useState<boolean>(false);
+  const [artworkStatusMessage, setArtworkStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Phase 6J-2R-F: Show Metadata Edit & Persistence State
+  const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
+  const [editTitle, setEditTitle] = useState<string>('');
+  const [editTagline, setEditTagline] = useState<string>('');
+  const [editSynopsis, setEditSynopsis] = useState<string>('');
+  const [editGenre, setEditGenre] = useState<string>('');
+  const [editCoinPrice, setEditCoinPrice] = useState<number>(5);
+  const [editLanguages, setEditLanguages] = useState<string>('');
+  const [editTags, setEditTags] = useState<string>('');
+  const [isSavingDetails, setIsSavingDetails] = useState<boolean>(false);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [editSuccess, setEditSuccess] = useState<string | null>(null);
+
+  // Phase 6J-2R-F: Guarded Delete Show State
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
+  const [deleteConfirmTitle, setDeleteConfirmTitle] = useState<string>('');
+  const [isDeletingShow, setIsDeletingShow] = useState<boolean>(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const posterInputRef = useRef<HTMLInputElement | null>(null);
   const bannerInputRef = useRef<HTMLInputElement | null>(null);
@@ -96,26 +123,105 @@ export const SeriesCommandRoom: React.FC<SeriesCommandRoomProps> = ({
   }, [seriesId]);
 
   const handleUpdatePoster = async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      setArtworkStatusMessage({ type: 'error', text: 'Poster file must be an image (JPEG, PNG, WebP).' });
+      return;
+    }
+    setIsUploadingPoster(true);
+    setArtworkStatusMessage(null);
     try {
-      const res = await storageApi.uploadBinary(file, seriesId);
+      const res = await storageApi.uploadArtwork(file, seriesId, 'poster');
       const cdnUrl = res?.public_cdn_url;
       if (cdnUrl) {
+        if (cdnUrl.startsWith('blob:')) {
+          throw new Error('Storage returned an invalid ephemeral blob URL.');
+        }
+        if (cdnUrl.includes('X-Amz-Expires') || cdnUrl.includes('Expires=')) {
+          throw new Error('Storage returned an expiring presigned URL instead of a durable CDN URL.');
+        }
         setCustomPoster(cdnUrl);
+        setArtworkStatusMessage({ type: 'success', text: 'Poster uploaded to durable storage. Click "Save Artwork Changes" to persist.' });
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to upload series poster:', err);
+      const detail = err?.response?.data?.detail || err?.message || 'Failed to upload poster.';
+      setArtworkStatusMessage({ type: 'error', text: detail });
+    } finally {
+      setIsUploadingPoster(false);
     }
   };
 
   const handleUpdateBanner = async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      setArtworkStatusMessage({ type: 'error', text: 'Hero banner file must be an image (JPEG, PNG, WebP).' });
+      return;
+    }
+    setIsUploadingBanner(true);
+    setArtworkStatusMessage(null);
     try {
-      const res = await storageApi.uploadBinary(file, seriesId);
+      const res = await storageApi.uploadArtwork(file, seriesId, 'banner');
       const cdnUrl = res?.public_cdn_url;
       if (cdnUrl) {
+        if (cdnUrl.startsWith('blob:')) {
+          throw new Error('Storage returned an invalid ephemeral blob URL.');
+        }
+        if (cdnUrl.includes('X-Amz-Expires') || cdnUrl.includes('Expires=')) {
+          throw new Error('Storage returned an expiring presigned URL instead of a durable CDN URL.');
+        }
         setCustomBanner(cdnUrl);
+        setArtworkStatusMessage({ type: 'success', text: 'Hero banner uploaded to durable storage. Click "Save Artwork Changes" to persist.' });
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to upload series banner:', err);
+      const detail = err?.response?.data?.detail || err?.message || 'Failed to upload banner.';
+      setArtworkStatusMessage({ type: 'error', text: detail });
+    } finally {
+      setIsUploadingBanner(false);
+    }
+  };
+
+  const handleSaveArtwork = async () => {
+    setIsSavingArtwork(true);
+    setArtworkStatusMessage(null);
+    try {
+      const posterToSave = customPoster || series?.vertical_poster;
+      const bannerToSave = customBanner || series?.cover_image;
+
+      if (!posterToSave && !bannerToSave) {
+        throw new Error('No artwork selected to save.');
+      }
+
+      if (posterToSave?.startsWith('blob:') || bannerToSave?.startsWith('blob:')) {
+        throw new Error('Invalid artwork: Ephemeral browser blob: URLs cannot be saved to database.');
+      }
+
+      const res = await creatorApi.updateSeriesArtwork(seriesId, {
+        vertical_poster: posterToSave,
+        cover_image: bannerToSave
+      });
+
+      if (res && res.series) {
+        setWorkspaceData((prev: any) => ({
+          ...prev,
+          series: {
+            ...prev?.series,
+            ...res.series,
+            vertical_poster: res.series.vertical_poster,
+            cover_image: res.series.cover_image
+          }
+        }));
+        setCustomPoster(null);
+        setCustomBanner(null);
+        setArtworkStatusMessage({ type: 'success', text: 'Artwork successfully saved to database & verified.' });
+      } else {
+        throw new Error('Server did not confirm artwork update.');
+      }
+    } catch (err: any) {
+      console.error('Failed to save series artwork:', err);
+      const detail = err?.response?.data?.detail || err?.message || 'Failed to save artwork changes.';
+      setArtworkStatusMessage({ type: 'error', text: detail });
+    } finally {
+      setIsSavingArtwork(false);
     }
   };
 
@@ -159,6 +265,90 @@ export const SeriesCommandRoom: React.FC<SeriesCommandRoomProps> = ({
   const displayPoster = customPoster || series.vertical_poster;
   const displayBanner = customBanner || series.cover_image || series.vertical_poster;
   const franchiseCode = series.franchise_code || `IP-WEL-${series.id.replace(/[^a-zA-Z0-9]/g, '').slice(-4).toUpperCase()}`;
+
+  // Phase 6J-2R-F: Show Metadata Edit & Guarded Deletion Handlers
+  const handleOpenEditModal = () => {
+    if (!series) return;
+    setEditTitle(series.title || '');
+    setEditTagline(series.tagline || '');
+    setEditSynopsis(series.synopsis || '');
+    setEditGenre(series.genre || '');
+    setEditCoinPrice(series.coin_price_per_episode ?? 5);
+    setEditLanguages(
+      Array.isArray(series.available_languages)
+        ? series.available_languages.join(', ')
+        : 'English, isiZulu'
+    );
+    setEditTags(Array.isArray(series.tags) ? series.tags.join(', ') : '');
+    setEditError(null);
+    setEditSuccess(null);
+    setIsEditModalOpen(true);
+  };
+
+  const handleSaveDetails = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editTitle.trim()) {
+      setEditError('Show title is required.');
+      return;
+    }
+    setIsSavingDetails(true);
+    setEditError(null);
+    setEditSuccess(null);
+    try {
+      const langArray = editLanguages
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const tagArray = editTags
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+
+      await creatorApi.updateSeries(series.id, {
+        title: editTitle.trim(),
+        tagline: editTagline.trim(),
+        synopsis: editSynopsis.trim(),
+        genre: editGenre.trim(),
+        coin_price_per_episode: Math.max(0, Number(editCoinPrice) || 0),
+        available_languages: langArray.length > 0 ? langArray : ['English'],
+        tags: tagArray
+      });
+
+      setEditSuccess('Show details saved and persisted to database!');
+      fetchWorkspace();
+      setTimeout(() => {
+        setIsEditModalOpen(false);
+        setEditSuccess(null);
+      }, 1000);
+    } catch (err: any) {
+      console.error('Failed to update show details:', err);
+      const detail = err?.response?.data?.detail || err?.message || 'Failed to persist show details.';
+      setEditError(detail);
+    } finally {
+      setIsSavingDetails(false);
+    }
+  };
+
+  const handleDeleteSeries = async () => {
+    if (!series) return;
+    if (deleteConfirmTitle.trim().toLowerCase() !== series.title.trim().toLowerCase()) {
+      setDeleteError(`Please type "${series.title}" exactly to confirm deletion.`);
+      return;
+    }
+    setIsDeletingShow(true);
+    setDeleteError(null);
+    try {
+      await creatorApi.deleteSeries(series.id);
+      setIsDeleteModalOpen(false);
+      onBack();
+    } catch (err: any) {
+      console.error('Failed to delete series:', err);
+      const detail = err?.response?.data?.detail || err?.message || 'Failed to delete series.';
+      setDeleteError(detail);
+    } finally {
+      setIsDeletingShow(false);
+    }
+  };
 
   const getEpisodeReadiness = (ep: Episode): 'READY' | 'READY_WITH_WARNINGS' | 'NEEDS_INPUT' | 'BLOCKED' => {
     if (ep.status === 'published' || ep.status === 'approved') return 'READY';
@@ -260,13 +450,24 @@ export const SeriesCommandRoom: React.FC<SeriesCommandRoomProps> = ({
             </div>
           </div>
 
-          <button
-            onClick={() => onOpenEpisodePipeline(series.id, episodes.length + 1)}
-            className="px-4 py-2 rounded-[7px] bg-gradient-to-r from-[#E6007A] to-[#FF2A6D] text-white font-bold text-xs shadow-md shadow-pink-500/20 flex items-center gap-1.5 hover:opacity-95 transition-all cursor-pointer shrink-0 self-end sm:self-center"
-          >
-            <PlusCircle className="w-4 h-4" />
-            <span>+ Add Episode</span>
-          </button>
+          <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+            <button
+              type="button"
+              onClick={handleOpenEditModal}
+              className="px-3.5 py-2 rounded-[7px] bg-white/10 hover:bg-white/15 text-white font-bold text-xs border border-white/15 flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+              title="Edit Show Details"
+            >
+              <Edit3 className="w-3.5 h-3.5 text-welele-gold" />
+              <span>Edit Details</span>
+            </button>
+            <button
+              onClick={() => onOpenEpisodePipeline(series.id, episodes.length + 1)}
+              className="px-4 py-2 rounded-[7px] bg-gradient-to-r from-[#E6007A] to-[#FF2A6D] text-white font-bold text-xs shadow-md shadow-pink-500/20 flex items-center gap-1.5 hover:opacity-95 transition-all cursor-pointer"
+            >
+              <PlusCircle className="w-4 h-4" />
+              <span>+ Add Episode</span>
+            </button>
+          </div>
         </div>
 
         {/* Working Navigation Tabs inside the Show Workspace (Layer 3) */}
@@ -393,8 +594,34 @@ export const SeriesCommandRoom: React.FC<SeriesCommandRoomProps> = ({
                 <BookOpen className="w-4 h-4 text-pink-400" />
                 Story World & Franchise Premise
               </h3>
-              <ProvenanceBadge tier="CREATOR_DECLARED" size="sm" />
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleOpenEditModal}
+                  className="px-2.5 py-1 rounded-[7px] bg-white/10 hover:bg-white/15 text-white font-bold text-[11px] border border-white/15 flex items-center gap-1.5 transition-all cursor-pointer"
+                >
+                  <Edit3 className="w-3 h-3 text-welele-gold" />
+                  <span>Edit Metadata</span>
+                </button>
+                <ProvenanceBadge tier="CREATOR_DECLARED" size="sm" />
+              </div>
             </div>
+
+            {series.digital_ip && (
+              <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-[7px] bg-black/40 border border-white/5 text-xs font-mono">
+                <div className="flex items-center gap-2">
+                  <span className="text-welele-muted">Digital IP Franchise:</span>
+                  <span className="text-welele-gold font-bold">{series.digital_ip.franchise_code || series.franchise_code}</span>
+                  <span className="text-white">({series.digital_ip.title})</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-welele-muted">Status:</span>
+                  <span className="px-2 py-0.5 rounded-[7px] text-[10px] font-bold uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                    {series.digital_ip.status || 'Active'}
+                  </span>
+                </div>
+              </div>
+            )}
 
             <div className="space-y-1.5">
               <label className="text-xs text-welele-muted font-bold block">Series Synopsis</label>
@@ -402,6 +629,20 @@ export const SeriesCommandRoom: React.FC<SeriesCommandRoomProps> = ({
                 "{series.synopsis || series.tagline}"
               </p>
             </div>
+
+            {series.story_world && (
+              <div className="p-3 rounded-[7px] bg-black/40 border border-white/5 space-y-1.5 text-xs">
+                <span className="text-welele-muted font-bold block">World Setting & Mythology</span>
+                <p className="text-white">
+                  <strong>{series.story_world.world_name}</strong> — {series.story_world.geographical_setting} ({series.story_world.time_period || 'Contemporary'})
+                </p>
+                {series.story_world.mythology_and_rules && (
+                  <p className="text-[11px] text-welele-muted italic">
+                    {series.story_world.mythology_and_rules}
+                  </p>
+                )}
+              </div>
+            )}
 
             <div className="space-y-1.5">
               <label className="text-xs text-welele-muted font-bold block">Available Languages & Dialects</label>
@@ -426,54 +667,43 @@ export const SeriesCommandRoom: React.FC<SeriesCommandRoomProps> = ({
                 Character Roster & Digital IP Bibles
               </h3>
               <span className="text-[10px] text-welele-muted font-mono">
-                {series.characters?.length || 3} Registered IP Characters
+                {series.characters?.length || 0} Registered IP Characters
               </span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {(series.characters || [
-                {
-                  id: 'c_lead',
-                  name: 'Protagonist Lead',
-                  role: 'protagonist',
-                  archetype: 'The Rightful Heir',
-                  secret_motivation: 'Reclaim the family empire without shedding innocent blood.',
-                  signature_quote: 'Power is not given in Sandton; it is taken with courage.'
-                },
-                {
-                  id: 'c_antag',
-                  name: 'Corporate Rival',
-                  role: 'antagonist',
-                  archetype: 'The Ruthless Board Leader',
-                  secret_motivation: 'Maintain absolute monopoly over the taxi and transit routes.',
-                  signature_quote: 'Contracts are written in ink, but enforced in iron.'
-                },
-                {
-                  id: 'c_ally',
-                  name: 'Elder Confidant',
-                  role: 'confidant',
-                  archetype: 'The Keeper of Secrets',
-                  secret_motivation: 'Prevent an all-out turf war before the next election cycle.',
-                  signature_quote: 'The engine that runs loudest burns out first.'
-                }
-              ]).map((char: any, i: number) => (
-                <div key={char.id || i} className="p-4 rounded-[7px] bg-black/40 border border-white/10 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="px-2 py-0.5 rounded-[7px] text-[9px] font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                      {char.role || 'Character'}
-                    </span>
-                    <span className="text-[10px] text-welele-muted font-mono">{char.archetype}</span>
+            {series.characters && series.characters.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {series.characters.map((char: any, i: number) => (
+                  <div key={char.id || i} className="p-4 rounded-[7px] bg-black/40 border border-white/10 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="px-2 py-0.5 rounded-[7px] text-[9px] font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                        {char.role || 'Character'}
+                      </span>
+                      <span className="text-[10px] text-welele-muted font-mono">{char.archetype || 'Archetype'}</span>
+                    </div>
+                    <h4 className="text-sm font-bold text-white">{char.name}</h4>
+                    {char.secret_motivation && (
+                      <p className="text-[11px] text-welele-muted leading-relaxed">
+                        {char.secret_motivation}
+                      </p>
+                    )}
+                    {char.signature_quote && (
+                      <p className="text-[10px] text-welele-gold italic pt-1 border-t border-white/5">
+                        "{char.signature_quote}"
+                      </p>
+                    )}
                   </div>
-                  <h4 className="text-sm font-bold text-white">{char.name}</h4>
-                  <p className="text-[11px] text-welele-muted leading-relaxed">
-                    {char.secret_motivation}
-                  </p>
-                  <p className="text-[10px] text-welele-gold italic pt-1 border-t border-white/5">
-                    "{char.signature_quote}"
-                  </p>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-6 rounded-[7px] bg-black/20 border border-dashed border-white/10 text-center space-y-2">
+                <UserCheck className="w-6 h-6 text-welele-muted mx-auto opacity-40" />
+                <p className="text-xs font-bold text-white">No Character Bibles Registered</p>
+                <p className="text-[11px] text-welele-muted max-w-md mx-auto">
+                  Character rosters can be authored during story development or discovered through Story Forge™ narrative reasoning.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Commercial Rights Declarations & Story Lineage */}
@@ -485,21 +715,36 @@ export const SeriesCommandRoom: React.FC<SeriesCommandRoomProps> = ({
                   <ShieldCheck className="w-4 h-4 text-emerald-400" />
                   Commercial Rights Declarations
                 </h3>
-                <ProvenanceBadge tier="CREATOR_DECLARED" size="sm" />
+                <ProvenanceBadge tier={series.rights_ledger && series.rights_ledger.length > 0 ? "SYSTEM_DERIVED" : "CREATOR_DECLARED"} size="sm" />
               </div>
+
               <div className="space-y-2 text-xs">
-                <div className="flex items-center justify-between p-2.5 rounded-[7px] bg-black/40 border border-white/5">
-                  <span className="text-welele-muted">Digital Video On Demand:</span>
-                  <span className="text-white font-semibold">Worldwide Exclusive</span>
-                </div>
-                <div className="flex items-center justify-between p-2.5 rounded-[7px] bg-black/40 border border-white/5">
-                  <span className="text-welele-muted">Original IP Ownership:</span>
-                  <span className="text-emerald-400 font-semibold">100% Creator Owned</span>
-                </div>
-                <div className="flex items-center justify-between p-2.5 rounded-[7px] bg-black/40 border border-white/5">
-                  <span className="text-welele-muted">Linear & Broadcast Sync:</span>
-                  <span className="text-white font-semibold">Retained by Showrunner</span>
-                </div>
+                {series.rights_declarations && series.rights_declarations.length > 0 ? (
+                  series.rights_declarations.map((r: any, idx: number) => (
+                    <div key={idx} className="flex items-center justify-between p-2.5 rounded-[7px] bg-black/40 border border-white/5">
+                      <div>
+                        <span className="text-white font-semibold block">{r.stakeholder_role}</span>
+                        <span className="text-[10px] text-welele-muted">{r.medium} • {r.territory}</span>
+                      </div>
+                      <span className="text-emerald-400 font-mono font-bold">{r.royalty_split_pct}%</span>
+                    </div>
+                  ))
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between p-2.5 rounded-[7px] bg-black/40 border border-white/5">
+                      <span className="text-welele-muted">Digital Video On Demand:</span>
+                      <span className="text-white font-semibold">Worldwide Platform Distribution</span>
+                    </div>
+                    <div className="flex items-center justify-between p-2.5 rounded-[7px] bg-black/40 border border-white/5">
+                      <span className="text-welele-muted">Original IP Ownership:</span>
+                      <span className="text-emerald-400 font-semibold">100% Creator Owned ({series.creator_name || 'Showrunner'})</span>
+                    </div>
+                    <div className="flex items-center justify-between p-2.5 rounded-[7px] bg-black/40 border border-white/5">
+                      <span className="text-welele-muted">Linear & Ancillary Rights:</span>
+                      <span className="text-white font-semibold">Retained by Showrunner</span>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
@@ -510,21 +755,32 @@ export const SeriesCommandRoom: React.FC<SeriesCommandRoomProps> = ({
                   <Sparkles className="w-4 h-4 text-pink-400" />
                   Narrative Lineage & Origin
                 </h3>
-                <ProvenanceBadge tier="AI_ASSIST" size="sm" />
+                <ProvenanceBadge tier={series.narrative_lineage?.origin === 'STORY_FORGE' ? "AI_ASSIST" : "CREATOR_DECLARED"} size="sm" />
               </div>
               <div className="space-y-2 text-xs">
                 <div className="p-2.5 rounded-[7px] bg-black/40 border border-white/5 space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-welele-muted">Source Engine:</span>
-                    <span className="text-white font-mono font-bold">Story Forge™ AI v2</span>
+                    <span className="text-welele-muted">Origin Classification:</span>
+                    <span className="text-white font-bold">
+                      {series.narrative_lineage?.origin === 'STORY_FORGE' ? 'Story Forge™ Assisted' : 'Creator Original Treatment'}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-welele-muted">Human Verification:</span>
-                    <span className="text-emerald-400 font-bold">Confirmed by Showrunner</span>
+                    <span className="text-welele-muted">Creative Authority:</span>
+                    <span className="text-emerald-400 font-bold">
+                      {series.narrative_lineage?.creative_authority || `Showrunner (${series.creator_name || 'Creator'})`}
+                    </span>
                   </div>
+                  {series.narrative_lineage?.source_engine && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-welele-muted">Source Engine:</span>
+                      <span className="text-white font-mono text-[11px]">{series.narrative_lineage.source_engine}</span>
+                    </div>
+                  )}
                 </div>
                 <p className="text-[11px] text-welele-muted leading-relaxed">
-                  Narrative hooks and character bibles were originated with Story Forge assistance and accepted into the canonical franchise spine.
+                  {series.narrative_lineage?.description ||
+                    "Original story world and premise originated directly by the showrunner. No generative narrative synthesis utilized."}
                 </p>
               </div>
             </div>
@@ -540,6 +796,26 @@ export const SeriesCommandRoom: React.FC<SeriesCommandRoomProps> = ({
               <ProvenanceBadge tier="MEDIA_OBSERVED" size="sm" />
             </div>
 
+            {/* Artwork Status Banner */}
+            {artworkStatusMessage && (
+              <div
+                className={`p-3 rounded-[7px] text-xs font-semibold flex items-center justify-between border ${
+                  artworkStatusMessage.type === 'success'
+                    ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
+                    : 'bg-rose-500/10 text-rose-300 border-rose-500/30'
+                }`}
+              >
+                <span>{artworkStatusMessage.text}</span>
+                <button
+                  type="button"
+                  onClick={() => setArtworkStatusMessage(null)}
+                  className="text-white/60 hover:text-white text-xs ml-2"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               {/* Vertical Poster Box */}
               <div className="space-y-2">
@@ -547,14 +823,16 @@ export const SeriesCommandRoom: React.FC<SeriesCommandRoomProps> = ({
                   <span className="text-xs font-bold text-white">Poster (Cover)</span>
                   <button
                     type="button"
+                    disabled={isUploadingPoster || isSavingArtwork}
                     onClick={() => posterInputRef.current?.click()}
-                    className="text-xs text-pink-400 hover:text-pink-300 font-bold cursor-pointer"
+                    className="text-xs text-pink-400 hover:text-pink-300 font-bold cursor-pointer disabled:opacity-50"
                   >
-                    Replace Poster
+                    {isUploadingPoster ? 'Uploading to R2...' : 'Replace Poster'}
                   </button>
                   <input
                     type="file"
                     ref={posterInputRef}
+                    disabled={isUploadingPoster || isSavingArtwork}
                     onChange={(e) => {
                       if (e.target.files && e.target.files[0]) {
                         handleUpdatePoster(e.target.files[0]);
@@ -566,6 +844,12 @@ export const SeriesCommandRoom: React.FC<SeriesCommandRoomProps> = ({
                 </div>
 
                 <div className="w-36 aspect-[9/16] rounded-[7px] overflow-hidden border border-white/20 bg-black relative shadow-lg">
+                  {isUploadingPoster ? (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 space-y-2">
+                      <div className="w-6 h-6 border-2 border-pink-500 border-t-transparent rounded-full animate-spin" />
+                      <span className="text-[10px] text-pink-300 font-bold">Uploading...</span>
+                    </div>
+                  ) : null}
                   <img src={displayPoster} alt="Poster" className="w-full h-full object-cover" />
                 </div>
               </div>
@@ -576,14 +860,16 @@ export const SeriesCommandRoom: React.FC<SeriesCommandRoomProps> = ({
                   <span className="text-xs font-bold text-white">16:9 Hero Banner</span>
                   <button
                     type="button"
+                    disabled={isUploadingBanner || isSavingArtwork}
                     onClick={() => bannerInputRef.current?.click()}
-                    className="text-xs text-welele-gold hover:text-yellow-300 font-bold cursor-pointer"
+                    className="text-xs text-welele-gold hover:text-yellow-300 font-bold cursor-pointer disabled:opacity-50"
                   >
-                    Replace Banner
+                    {isUploadingBanner ? 'Uploading to R2...' : 'Replace Banner'}
                   </button>
                   <input
                     type="file"
                     ref={bannerInputRef}
+                    disabled={isUploadingBanner || isSavingArtwork}
                     onChange={(e) => {
                       if (e.target.files && e.target.files[0]) {
                         handleUpdateBanner(e.target.files[0]);
@@ -595,12 +881,99 @@ export const SeriesCommandRoom: React.FC<SeriesCommandRoomProps> = ({
                 </div>
 
                 <div className="w-full aspect-video rounded-[7px] overflow-hidden border border-white/20 bg-black relative shadow-lg">
+                  {isUploadingBanner ? (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 space-y-2">
+                      <div className="w-6 h-6 border-2 border-welele-gold border-t-transparent rounded-full animate-spin" />
+                      <span className="text-[10px] text-yellow-300 font-bold">Uploading...</span>
+                    </div>
+                  ) : null}
                   <img src={displayBanner} alt="Hero Banner" className="w-full h-full object-cover" />
                 </div>
               </div>
             </div>
+
+            {/* Persistent Save Control */}
+            {(() => {
+              const hasUnsavedArtwork =
+                (customPoster !== null && customPoster !== series?.vertical_poster) ||
+                (customBanner !== null && customBanner !== series?.cover_image);
+
+              return (
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-4 border-t border-white/10">
+                  <div className="text-xs text-welele-muted">
+                    {hasUnsavedArtwork ? (
+                      <span className="text-yellow-400 font-semibold flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
+                        Unsaved artwork changes ready to persist to database.
+                      </span>
+                    ) : (
+                      <span className="text-white/60">
+                        Authoritative artwork is stored in Cloudflare R2 and synced to PostgreSQL.
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    disabled={!hasUnsavedArtwork || isSavingArtwork || isUploadingPoster || isUploadingBanner}
+                    onClick={handleSaveArtwork}
+                    className={`px-4 py-2 rounded-[7px] text-xs font-bold transition-all flex items-center gap-2 ${
+                      hasUnsavedArtwork && !isSavingArtwork
+                        ? 'bg-gradient-to-r from-pink-500 to-welele-gold text-white shadow-lg hover:brightness-110 cursor-pointer'
+                        : 'bg-white/10 text-white/40 cursor-not-allowed'
+                    }`}
+                  >
+                    {isSavingArtwork ? (
+                      <>
+                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Saving to Database...
+                      </>
+                    ) : (
+                      <>
+                        <Check className="w-3.5 h-3.5" />
+                        Save Artwork Changes
+                      </>
+                    )}
+                  </button>
+                </div>
+              );
+            })()}
           </div>
-        </div>
+
+          {/* Danger Zone: Guarded Series Deletion */}
+          <div className="p-5 rounded-[7px] bg-[#1a1114] border border-red-500/20 space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-bold text-red-400 uppercase tracking-wider flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-red-400" />
+                  Danger Zone: Series Lifecycle Management
+                </h3>
+                <span className="px-2 py-0.5 rounded-[7px] text-[10px] font-bold bg-red-500/10 text-red-400 border border-red-500/20">
+                  Guarded Operation
+                </span>
+              </div>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="text-xs text-welele-muted space-y-1">
+                  <p className="text-white/80 font-medium">
+                    Permanently delete this series catalog entry and its {episodes.length} owned episode(s).
+                  </p>
+                  <p className="text-[11px] text-welele-muted">
+                    Protected Boundary: Digital IP franchise ({franchiseCode}), character bibles, commercial rights declarations, and audit records remain 100% intact and preserved in PostgreSQL.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDeleteConfirmTitle('');
+                    setDeleteError(null);
+                    setIsDeleteModalOpen(true);
+                  }}
+                  className="px-3.5 py-2 rounded-[7px] bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/40 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Delete Show</span>
+                </button>
+              </div>
+            </div>
+          </div>
       )}
 
       {/* TAB CONTENT: INSIGHTS */}
@@ -656,6 +1029,261 @@ export const SeriesCommandRoom: React.FC<SeriesCommandRoomProps> = ({
                       : 'R0.00')}
               </div>
               <p className="text-[11px] text-welele-muted">Authoritative double-entry ledger balance</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Phase 6J-2R-F: Edit Show Details Modal */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-2xl bg-[#14151B] border border-white/15 rounded-[10px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="p-5 border-b border-white/10 flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <Edit3 className="w-4 h-4 text-welele-gold" />
+                  Edit Show Details
+                </h3>
+                <p className="text-xs text-welele-muted mt-0.5">
+                  Update allowlisted metadata for {franchiseCode} ({series.title}).
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsEditModalOpen(false)}
+                className="w-8 h-8 rounded-[7px] bg-white/5 hover:bg-white/10 text-white/60 hover:text-white flex items-center justify-center transition-all cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveDetails} className="p-5 space-y-4 overflow-y-auto">
+              {editError && (
+                <div className="p-3 rounded-[7px] bg-red-500/10 border border-red-500/30 text-red-300 text-xs font-medium flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{editError}</span>
+                </div>
+              )}
+              {editSuccess && (
+                <div className="p-3 rounded-[7px] bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-medium flex items-center gap-2">
+                  <Check className="w-4 h-4 shrink-0" />
+                  <span>{editSuccess}</span>
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-white block">
+                  Show Title <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  placeholder="e.g. Blood Ties"
+                  required
+                  className="w-full px-3 py-2 rounded-[7px] bg-black/50 border border-white/15 text-white text-xs focus:outline-none focus:border-welele-gold transition-colors"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-white block">
+                  Tagline / Catchphrase
+                </label>
+                <input
+                  type="text"
+                  value={editTagline}
+                  onChange={(e) => setEditTagline(e.target.value)}
+                  placeholder="e.g. Two powerful families tied by blood, torn apart by greed."
+                  className="w-full px-3 py-2 rounded-[7px] bg-black/50 border border-white/15 text-white text-xs focus:outline-none focus:border-welele-gold transition-colors"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-white block">
+                  Synopsis
+                </label>
+                <textarea
+                  value={editSynopsis}
+                  onChange={(e) => setEditSynopsis(e.target.value)}
+                  placeholder="Comprehensive narrative synopsis..."
+                  rows={4}
+                  className="w-full px-3 py-2 rounded-[7px] bg-black/50 border border-white/15 text-white text-xs focus:outline-none focus:border-welele-gold transition-colors leading-relaxed"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-white block">
+                    Genre(s)
+                  </label>
+                  <input
+                    type="text"
+                    value={editGenre}
+                    onChange={(e) => setEditGenre(e.target.value)}
+                    placeholder="e.g. Drama • Family • Betrayal"
+                    className="w-full px-3 py-2 rounded-[7px] bg-black/50 border border-white/15 text-white text-xs focus:outline-none focus:border-welele-gold transition-colors"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-white block">
+                    Coin Price Per Episode (🪙)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={editCoinPrice}
+                    onChange={(e) => setEditCoinPrice(Number(e.target.value))}
+                    className="w-full px-3 py-2 rounded-[7px] bg-black/50 border border-white/15 text-white text-xs focus:outline-none focus:border-welele-gold transition-colors font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-white block">
+                  Available Languages (comma separated)
+                </label>
+                <input
+                  type="text"
+                  value={editLanguages}
+                  onChange={(e) => setEditLanguages(e.target.value)}
+                  placeholder="e.g. English, isiZulu, isiXhosa"
+                  className="w-full px-3 py-2 rounded-[7px] bg-black/50 border border-white/15 text-white text-xs focus:outline-none focus:border-welele-gold transition-colors"
+                />
+                <p className="text-[10px] text-welele-muted">
+                  Comma-separated list of languages audio or subtitles are available in.
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-white block">
+                  Tags (comma separated)
+                </label>
+                <input
+                  type="text"
+                  value={editTags}
+                  onChange={(e) => setEditTags(e.target.value)}
+                  placeholder="e.g. #MzansiDrama, #SandtonDynasty, #Billionaire"
+                  className="w-full px-3 py-2 rounded-[7px] bg-black/50 border border-white/15 text-white text-xs focus:outline-none focus:border-welele-gold transition-colors"
+                />
+              </div>
+
+              <div className="p-3 rounded-[7px] bg-black/30 border border-white/5 text-[11px] text-welele-muted">
+                🛡️ <strong className="text-white/80">Allowlisted Persistence:</strong> Only allowlisted show metadata fields are sent to PostgreSQL. Franchise IP, ownership, rights ledger, and creator identity remain strictly protected.
+              </div>
+
+              <div className="pt-3 border-t border-white/10 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(false)}
+                  disabled={isSavingDetails}
+                  className="px-4 py-2 rounded-[7px] bg-white/5 hover:bg-white/10 text-white text-xs font-bold transition-all cursor-pointer disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingDetails}
+                  className="px-5 py-2 rounded-[7px] bg-gradient-to-r from-pink-500 to-welele-gold text-white text-xs font-bold transition-all shadow-md hover:brightness-110 flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {isSavingDetails ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Saving to Database...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-3.5 h-3.5" />
+                      <span>Save Show Details</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Phase 6J-2R-F: Guarded Delete Confirmation Modal */}
+      {isDeleteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-lg bg-[#14151B] border border-red-500/40 rounded-[10px] shadow-2xl overflow-hidden p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-red-500/20 border border-red-500/30 flex items-center justify-center text-red-400 shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white">Confirm Show Deletion</h3>
+                <p className="text-xs text-red-400/90 font-medium">This action cannot be undone.</p>
+              </div>
+            </div>
+
+            <div className="space-y-2 text-xs text-welele-muted">
+              <p className="text-white/90">
+                You are about to delete <strong className="text-white">"{series.title}"</strong> and its <strong className="text-white">{episodes.length}</strong> associated episode(s).
+              </p>
+              <div className="p-3 rounded-[7px] bg-black/40 border border-emerald-500/20 text-[11px] text-emerald-300 space-y-1">
+                <div className="font-bold flex items-center gap-1.5 text-emerald-400">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  Protected Boundaries Preserved
+                </div>
+                <p className="text-emerald-300/80">
+                  Your master Digital IP franchise ({franchiseCode}), character bibles, commercial rights declarations, and audit logs will remain safe and intact in PostgreSQL.
+                </p>
+              </div>
+            </div>
+
+            {deleteError && (
+              <div className="p-3 rounded-[7px] bg-red-500/10 border border-red-500/30 text-red-300 text-xs font-medium flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{deleteError}</span>
+              </div>
+            )}
+
+            <div className="space-y-1.5 pt-1">
+              <label className="text-xs text-white/90 font-medium block">
+                To confirm, type <strong className="text-red-400 select-all">{series.title}</strong> below:
+              </label>
+              <input
+                type="text"
+                value={deleteConfirmTitle}
+                onChange={(e) => setDeleteConfirmTitle(e.target.value)}
+                placeholder={series.title}
+                className="w-full px-3 py-2 rounded-[7px] bg-black/60 border border-red-500/30 text-white text-xs focus:outline-none focus:border-red-500 transition-colors"
+              />
+            </div>
+
+            <div className="pt-3 border-t border-white/10 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setIsDeleteModalOpen(false)}
+                disabled={isDeletingShow}
+                className="px-4 py-2 rounded-[7px] bg-white/5 hover:bg-white/10 text-white text-xs font-bold transition-all cursor-pointer disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteSeries}
+                disabled={
+                  isDeletingShow ||
+                  deleteConfirmTitle.trim().toLowerCase() !== series.title.trim().toLowerCase()
+                }
+                className="px-4 py-2 rounded-[7px] bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-all flex items-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {isDeletingShow ? (
+                  <>
+                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Deleting Show...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Delete This Show</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>
