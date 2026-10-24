@@ -18,6 +18,7 @@ from unittest.mock import MagicMock, patch
 from fastapi.testclient import TestClient
 from main import app
 from repositories.series_repository import SeriesRepository, to_uuid
+from repositories.forge_configuration_repository import ForgeConfigurationRepository
 from config import settings
 
 client = TestClient(app)
@@ -529,3 +530,35 @@ def test_process_reinitialization_lifecycle_invariant():
             assert ghost_id not in roster_ids, "LIFECYCLE VIOLATION: Ghost record resurrected in creator roster!"
             assert canonical_id in roster_ids
 
+
+
+# -----------------------------------------------------------------------------
+# 6J-2R-C STARTUP REGRESSIONS — LIVE ENVIRONMENTS MUST NOT SEED FIXTURES
+# -----------------------------------------------------------------------------
+
+def test_live_series_repository_constructor_does_not_seed_fixture_catalogue():
+    """A cold local cache must not be mistaken for an empty canonical PostgreSQL catalogue."""
+    with patch.object(settings, "IS_PRODUCTION_OR_STAGING", True):
+        with patch.object(SeriesRepository, "seed_if_missing") as seed:
+            SeriesRepository()
+            seed.assert_not_called()
+
+
+def test_live_series_fixture_seed_entrypoint_is_a_noop():
+    """Explicit fixture seed helpers must not insert synthetic catalogue rows into live PostgreSQL."""
+    with patch.object(settings, "IS_PRODUCTION_OR_STAGING", True):
+        repo = SeriesRepository()
+        with patch.object(repo, "local_insert") as insert:
+            repo.seed_if_missing()
+            insert.assert_not_called()
+
+
+def test_live_forge_repository_does_not_seed_missing_registry_at_startup():
+    """A missing Forge schema must not trigger an implicit startup write."""
+    with patch.object(settings, "IS_PRODUCTION_OR_STAGING", True):
+        with patch.object(ForgeConfigurationRepository, "local_insert") as insert:
+            repo = ForgeConfigurationRepository()
+            insert.assert_not_called()
+            with pytest.raises(RuntimeError, match="No persisted Forge configuration"):
+                repo.get_active_configuration()
+            insert.assert_not_called()
