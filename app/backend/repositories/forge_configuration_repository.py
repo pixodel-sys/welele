@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
 
 from .base_repository import BaseRepository
+from config import settings
 
 
 class ForgeConfigurationRepository(BaseRepository):
@@ -34,6 +35,13 @@ class ForgeConfigurationRepository(BaseRepository):
         return hashlib.sha256(canonical_json.encode('utf-8')).hexdigest()
 
     def _seed_default_configuration(self):
+        # Forge configuration is a persisted registry, not startup fixture state.
+        # The live database currently reports that its table is unavailable in the
+        # PostgREST schema cache. Do not attempt a write during module import/startup,
+        # and do not synthesize a local-only configuration in staging/production.
+        if settings.IS_PRODUCTION_OR_STAGING:
+            return
+
         existing = self.local_get("forge_configurations")
         if not existing:
             default_skills = {
@@ -76,7 +84,14 @@ class ForgeConfigurationRepository(BaseRepository):
             active = configs[0]
         if not active:
             self._seed_default_configuration()
-            active = self.local_get("forge_configurations")[0]
+            configs = self.local_get("forge_configurations")
+            if configs:
+                active = next((c for c in configs if c.get("is_active") is True), configs[0])
+        if not active:
+            raise RuntimeError(
+                "No persisted Forge configuration is available. Verify the "
+                "forge_configurations table and PostgREST schema cache before using Forge."
+            )
         return active
 
     def register_configuration(
