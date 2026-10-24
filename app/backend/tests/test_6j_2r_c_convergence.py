@@ -19,6 +19,7 @@ from fastapi.testclient import TestClient
 from main import app
 from repositories.series_repository import SeriesRepository, to_uuid
 from repositories.forge_configuration_repository import ForgeConfigurationRepository
+from repositories.ip_repository import IPRepository
 from config import settings
 
 client = TestClient(app)
@@ -563,3 +564,20 @@ def test_live_forge_repository_does_not_seed_missing_registry_at_startup():
                 with pytest.raises(RuntimeError, match="No persisted Forge configuration"):
                     repo.get_active_configuration()
                 insert.assert_not_called()
+
+
+def test_live_ip_repository_constructor_does_not_seed_string_id_fixtures():
+    """Live Digital IP startup must not write legacy string IDs into UUID columns."""
+    with patch.object(settings, "IS_PRODUCTION_OR_STAGING", True):
+        with patch.object(IPRepository, "_seed_default_ips") as seed:
+            IPRepository()
+            seed.assert_not_called()
+
+
+def test_live_ip_fixture_seed_entrypoint_is_a_noop():
+    """Calling the legacy fixture helper explicitly cannot write live Digital IP records."""
+    with patch.object(settings, "IS_PRODUCTION_OR_STAGING", True):
+        repo = IPRepository()
+        with patch.object(repo, "local_insert") as insert:
+            repo._seed_default_ips()
+            insert.assert_not_called()
