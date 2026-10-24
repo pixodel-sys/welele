@@ -7,14 +7,23 @@ import uuid
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
 from .base_repository import BaseRepository
+from config import settings
 from schemas.ip_schemas import CreateIPRequest, StoryForgePackageCreateRequest
 
 class IPRepository(BaseRepository):
     def __init__(self):
         super().__init__()
-        self._seed_default_ips()
+        # Live Digital IPs must come from the canonical PostgreSQL registry.
+        # A cold process-local cache is not evidence that the database is empty.
+        if not settings.IS_PRODUCTION_OR_STAGING:
+            self._seed_default_ips()
 
     def _seed_default_ips(self):
+        # These legacy fixtures use string IDs, while live digital_ips.ip_id foreign
+        # keys are UUIDs. Never attempt this fixture write in staging/production.
+        if settings.IS_PRODUCTION_OR_STAGING:
+            return
+
         existing = self.local_get("digital_ips")
         if not existing:
             # Seed canonical Digital IPs
