@@ -556,9 +556,10 @@ def test_live_series_fixture_seed_entrypoint_is_a_noop():
 def test_live_forge_repository_does_not_seed_missing_registry_at_startup():
     """A missing Forge schema must not trigger an implicit startup write."""
     with patch.object(settings, "IS_PRODUCTION_OR_STAGING", True):
-        with patch.object(ForgeConfigurationRepository, "local_insert") as insert:
-            repo = ForgeConfigurationRepository()
-            insert.assert_not_called()
-            with pytest.raises(RuntimeError, match="No persisted Forge configuration"):
-                repo.get_active_configuration()
-            insert.assert_not_called()
+        with patch.object(ForgeConfigurationRepository, "local_get", return_value=[]):
+            with patch.object(ForgeConfigurationRepository, "local_insert") as insert:
+                repo = ForgeConfigurationRepository()
+                insert.assert_not_called()
+                with pytest.raises(RuntimeError, match="No persisted Forge configuration"):
+                    repo.get_active_configuration()
+                insert.assert_not_called()
