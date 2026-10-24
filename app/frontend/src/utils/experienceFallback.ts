@@ -26,18 +26,22 @@ export const DEFAULT_BRAND_IDENT_CONFIG: BrandIdentConfig = {
  */
 export function hydrateManifest(
   rawManifest: ExperienceManifest,
-  storiesCatalog: Story[] = DEFAULT_STORIES
+  storiesCatalog: Story[] = [],
+  isCatalogLoaded = false
 ): ExperienceManifest {
-  const catalog = storiesCatalog && storiesCatalog.length > 0 ? storiesCatalog : DEFAULT_STORIES;
+  const hasAuthoritativeCatalog = isCatalogLoaded || (Boolean(storiesCatalog) && storiesCatalog.length > 0);
+  const catalog = hasAuthoritativeCatalog ? storiesCatalog : DEFAULT_STORIES;
   const storyMap = new Map<string, Story>();
   catalog.forEach((s) => {
     storyMap.set(s.id, s);
     if (s.slug) storyMap.set(s.slug, s);
   });
-  DEFAULT_STORIES.forEach((s) => {
-    if (!storyMap.has(s.id)) storyMap.set(s.id, s);
-    if (s.slug && !storyMap.has(s.slug)) storyMap.set(s.slug, s);
-  });
+  if (!hasAuthoritativeCatalog) {
+    DEFAULT_STORIES.forEach((s) => {
+      if (!storyMap.has(s.id)) storyMap.set(s.id, s);
+      if (s.slug && !storyMap.has(s.slug)) storyMap.set(s.slug, s);
+    });
+  }
 
   const hydratedSections: ExperienceSection[] = rawManifest.sections.map((section) => {
     let items: SlotItem[] = [...(section.items || [])];
@@ -107,18 +111,41 @@ export function hydrateManifest(
  */
 export function getDefaultExperienceManifest(
   pageId: string,
-  storiesCatalog: Story[] = DEFAULT_STORIES
+  storiesCatalog: Story[] = [],
+  isCatalogLoaded = false
 ): ExperienceManifest {
-  const catalog = storiesCatalog && storiesCatalog.length > 0 ? storiesCatalog : DEFAULT_STORIES;
+  const hasAuthoritativeCatalog = isCatalogLoaded || (Boolean(storiesCatalog) && storiesCatalog.length > 0);
+  const catalog = hasAuthoritativeCatalog ? storiesCatalog : DEFAULT_STORIES;
+
+  if (hasAuthoritativeCatalog && catalog.length === 0) {
+    // Invariant: An authoritative empty catalogue remains empty and healthy
+    return {
+      page_id: pageId,
+      version: '1.0.0',
+      status: 'published',
+      published_at: '2026-08-01T00:00:00Z',
+      updated_at: '2026-09-08T10:00:00Z',
+      meta: {
+        title: pageId === 'discover' ? 'Discover | Welele™' : 'Welele™ | African Cinema',
+        theme: 'dark_gold_glow',
+        description: 'Authoritative Welele Catalogue',
+      },
+      brand_config: DEFAULT_BRAND_IDENT_CONFIG,
+      sections: [],
+    };
+  }
+
   const storyMap = new Map<string, Story>();
   catalog.forEach((s) => {
     storyMap.set(s.id, s);
     if (s.slug) storyMap.set(s.slug, s);
   });
-  DEFAULT_STORIES.forEach((s) => {
-    if (!storyMap.has(s.id)) storyMap.set(s.id, s);
-    if (s.slug && !storyMap.has(s.slug)) storyMap.set(s.slug, s);
-  });
+  if (!hasAuthoritativeCatalog) {
+    DEFAULT_STORIES.forEach((s) => {
+      if (!storyMap.has(s.id)) storyMap.set(s.id, s);
+      if (s.slug && !storyMap.has(s.slug)) storyMap.set(s.slug, s);
+    });
+  }
 
   const getStory = (id: string, _fallbackIdx?: number): Story => {
     const found = storyMap.get(id);

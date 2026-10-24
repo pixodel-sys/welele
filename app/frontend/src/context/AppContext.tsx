@@ -58,6 +58,9 @@ interface AppContextType {
   topupAirtimeBalance: (amountZar: number) => void;
   stories: Story[];
   loadingStories: boolean;
+  isCatalogDegraded: boolean;
+  catalogDegradedReason: string | null;
+  isCatalogLoaded: boolean;
   refreshStories: () => Promise<void>;
   currentStory: Story | null;
   setCurrentStory: (s: Story | null) => void;
@@ -150,9 +153,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return saved ? new Set(JSON.parse(saved)) : new Set<string>();
   });
 
-  // Stories
+  // Stories & Catalogue Authority
   const [stories, setStories] = useState<Story[]>(DEFAULT_STORIES);
   const [loadingStories, setLoadingStories] = useState<boolean>(false);
+  const [isCatalogDegraded, setIsCatalogDegraded] = useState<boolean>(false);
+  const [catalogDegradedReason, setCatalogDegradedReason] = useState<string | null>(null);
+  const [isCatalogLoaded, setIsCatalogLoaded] = useState<boolean>(false);
   const [currentStory, setCurrentStory] = useState<Story | null>(DEFAULT_STORIES[0] || null);
   const [currentEpisode, setCurrentEpisode] = useState<Episode | null>(DEFAULT_STORIES[0]?.episodes?.[0] || null);
 
@@ -357,36 +363,51 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const refreshStories = async () => {
     try {
       const data = await storyApi.getFeed();
-      if (data && data.stories && data.stories.length > 0) {
+      if (data?.is_degraded) {
+        setIsCatalogDegraded(true);
+        setCatalogDegradedReason(data.degraded_reason || 'Catalog operating in degraded mode');
+        setIsCatalogLoaded(false);
+      } else if (data && Array.isArray(data.stories)) {
+        setIsCatalogDegraded(false);
+        setCatalogDegradedReason(null);
+        setIsCatalogLoaded(true);
         setStories(data.stories);
         
-        setCurrentStory((prev) => {
-          if (!prev) return data.stories[0];
-          const updated = data.stories.find((s) => s.id === prev.id) || data.stories[0];
-          return updated;
-        });
+        if (data.stories.length === 0) {
+          setCurrentStory(null);
+          setCurrentEpisode(null);
+        } else {
+          setCurrentStory((prev) => {
+            if (!prev) return data.stories[0];
+            const updated = data.stories.find((s) => s.id === prev.id) || data.stories[0];
+            return updated;
+          });
 
-        setCurrentEpisode((prevEp) => {
-          if (!prevEp) {
-            return data.stories[0]?.episodes?.[0] || null;
-          }
-          for (const s of data.stories) {
-            const found = s.episodes?.find((e) => e.id === prevEp.id || (e.series_id === prevEp.series_id && e.episode_number === prevEp.episode_number));
-            if (found) {
-              // Preserve active local media reference if available, while updating server metadata
-              return {
-                ...found,
-                video_url: prevEp.video_url && !prevEp.video_url.includes('welele_placeholder')
-                  ? prevEp.video_url
-                  : found.video_url,
-              };
+          setCurrentEpisode((prevEp) => {
+            if (!prevEp) {
+              return data.stories[0]?.episodes?.[0] || null;
             }
-          }
-          return data.stories[0]?.episodes?.[0] || prevEp;
-        });
+            for (const s of data.stories) {
+              const found = s.episodes?.find((e) => e.id === prevEp.id || (e.series_id === prevEp.series_id && e.episode_number === prevEp.episode_number));
+              if (found) {
+                // Preserve active local media reference if available, while updating server metadata
+                return {
+                  ...found,
+                  video_url: prevEp.video_url && !prevEp.video_url.includes('welele_placeholder')
+                    ? prevEp.video_url
+                    : found.video_url,
+                };
+              }
+            }
+            return data.stories[0]?.episodes?.[0] || prevEp;
+          });
+        }
       }
     } catch (err) {
-      console.warn('Using authentic embedded catalog:', err);
+      setIsCatalogDegraded(true);
+      setCatalogDegradedReason('Authoritative backend catalogue unavailable');
+      setIsCatalogLoaded(false);
+      console.warn('[AppContext] Authoritative catalogue unavailable; displaying initial fallback UI in degraded state:', err);
     } finally {
       setLoadingStories(false);
     }
@@ -489,6 +510,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         topupAirtimeBalance,
         stories,
         loadingStories,
+        isCatalogDegraded,
+        catalogDegradedReason,
+        isCatalogLoaded,
         refreshStories,
         currentStory,
         setCurrentStory,

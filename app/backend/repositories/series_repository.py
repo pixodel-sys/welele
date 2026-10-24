@@ -52,6 +52,8 @@ EPISODE_UUID_TO_SLUG = {to_uuid(ep_slug): ep_slug for ep_slug in KNOWN_EPISODE_S
 class SeriesRepository(BaseRepository):
     def __init__(self):
         super().__init__()
+        self._is_degraded = False
+        self._degraded_reason = None
         if not self.local_get("series"):
             self.seed_if_missing()
 
@@ -845,7 +847,7 @@ class SeriesRepository(BaseRepository):
     @property
     def catalog_source(self) -> str:
         if self.is_degraded:
-            return "local_fallback (DEGRADED)"
+            return "postgresql_unavailable (degraded - no catalogue substituted)"
         if self.is_live:
             return "supabase_postgres"
         return "offline_fixtures"
@@ -856,12 +858,13 @@ class SeriesRepository(BaseRepository):
             return None
         try:
             s_res = self.get_table("series").select("*").execute()
-            if not s_res or not s_res.data:
-                if settings.IS_PRODUCTION_OR_STAGING:
-                    logger.warning("[SeriesRepository:DEGRADED] Database connected but public.series table has 0 rows. Serving fallback.")
-                    self._is_degraded = True
-                    self._degraded_reason = "Empty database table: public.series has 0 rows"
-                return None
+            series_data = s_res.data if s_res and s_res.data else []
+
+            # Invariant: An empty PostgreSQL series table is healthy and authoritative; it is NOT degraded.
+            if not series_data:
+                self._is_degraded = False
+                self._degraded_reason = None
+                return ([], [], [])
             
             ep_res = self.get_table("episodes").select("*").execute()
             episodes = ep_res.data if ep_res and ep_res.data else []
@@ -871,18 +874,22 @@ class SeriesRepository(BaseRepository):
 
             self._is_degraded = False
             self._degraded_reason = None
-            return (s_res.data, episodes, media)
+            return (series_data, episodes, media)
         except Exception as e:
-            logger.error(f"[SeriesRepository:DEGRADED] Remote Supabase catalogue query failed: {e}. Serving fallback.")
-            if settings.IS_PRODUCTION_OR_STAGING:
-                self._is_degraded = True
-                self._degraded_reason = f"Database read exception: {str(e)}"
+            logger.error(f"[SeriesRepository:DEGRADED] Remote Supabase catalogue query failed: {e}.")
+            self._is_degraded = True
+            self._degraded_reason = f"Database read exception: {str(e)}"
             return None
 
     def list_feed(self, genre: Optional[str] = None, language: Optional[str] = None) -> List[Dict[str, Any]]:
-        live_data = self._fetch_live_catalog()
-        if live_data:
-            all_series, all_episodes, all_media = live_data
+        if self.is_live:
+            live_data = self._fetch_live_catalog()
+            if live_data is not None:
+                all_series, all_episodes, all_media = live_data
+            else:
+                # Live mode error / unavailable: do NOT silently fallback to local storage
+                # PostgreSQL is the sole authoritative persisted catalogue
+                return []
         else:
             all_series = self.local_get("series") or []
             all_episodes = self.local_get("episodes") or []
@@ -1001,13 +1008,14 @@ class SeriesRepository(BaseRepository):
             if s_id == series_id or s_slug == series_id or s_id == target_uuid or to_uuid(s_id) == target_uuid:
                 return s
         
-        # Check local store if not found in list_feed (e.g., drafts or offline)
-        raw_series = self.local_get("series") or []
-        for s in raw_series:
-            s_id = str(s.get("id", ""))
-            s_slug = str(s.get("slug", ""))
-            if s_id == series_id or s_slug == series_id or s_id == target_uuid or to_uuid(s_id) == target_uuid:
-                return s
+        # In live mode, PostgreSQL is authoritative: do NOT resurrect unpersisted local records
+        if not self.is_live:
+            raw_series = self.local_get("series") or []
+            for s in raw_series:
+                s_id = str(s.get("id", ""))
+                s_slug = str(s.get("slug", ""))
+                if s_id == series_id or s_slug == series_id or s_id == target_uuid or to_uuid(s_id) == target_uuid:
+                    return s
         return None
 
     def get_series(self, series_id: str) -> Optional[Dict[str, Any]]:
@@ -1021,6 +1029,8 @@ class SeriesRepository(BaseRepository):
                     return row
             except Exception as e:
                 logger.warning(f"[SeriesRepository] get_series remote lookup failed: {e}")
+            # In live mode, PostgreSQL is the sole authority; do not fall back to local store
+            return None
         all_series = self.local_get("series") or []
         for s in all_series:
             s_id = str(s.get("id", ""))
@@ -1045,6 +1055,8 @@ class SeriesRepository(BaseRepository):
                     return row
             except Exception as e:
                 logger.warning(f"[SeriesRepository] get_episode remote lookup failed: {e}")
+            # In live mode, PostgreSQL is authoritative; do not fall back to local store
+            return None
         all_episodes = self.local_get("episodes") or []
         for ep in all_episodes:
             ep_id = str(ep.get("id", ""))
@@ -1064,6 +1076,7 @@ class SeriesRepository(BaseRepository):
                     return res.data
             except Exception as e:
                 logger.warning(f"[SeriesRepository] get_episodes_for_series remote lookup failed: {e}")
+            return []
         all_episodes = self.local_get("episodes") or []
         eps = [e for e in all_episodes if e.get("series_id") in [series_id, target_uuid] or to_uuid(str(e.get("series_id", ""))) == target_uuid]
         eps.sort(key=lambda x: x.get("episode_number", 0))
@@ -1084,6 +1097,7 @@ class SeriesRepository(BaseRepository):
                     return res.data[0]
             except Exception as e:
                 logger.warning(f"[SeriesRepository:DB] get_media_asset_for_episode remote lookup failed: {e}")
+            return None
         all_media = self.local_get("media_assets") or []
         return next((m for m in all_media if str(m.get("episode_id")) in [episode_id, target_uuid]), None)
 
@@ -1181,9 +1195,12 @@ class SeriesRepository(BaseRepository):
         Creator-facing Series roster returning ALL episodes across all lifecycle states
         (draft, under_review, changes_requested, approved, published) with full media hydration.
         """
-        live_data = self._fetch_live_catalog()
-        if live_data:
-            all_series, all_episodes, all_media = live_data
+        if self.is_live:
+            live_data = self._fetch_live_catalog()
+            if live_data is not None:
+                all_series, all_episodes, all_media = live_data
+            else:
+                return []
         else:
             all_series = self.local_get("series") or []
             all_episodes = self.local_get("episodes") or []
@@ -1298,23 +1315,24 @@ class SeriesRepository(BaseRepository):
             s_copy["archived_episodes_count"] = archived_cnt
             result.append(s_copy)
 
-        # Include any newly created local series not yet returned by remote catalog query
-        existing_result_ids = {str(r.get("id")) for r in result}
-        existing_result_ids.update({to_uuid(str(r.get("id"))) for r in result if r.get("id")})
-        for ls in local_series:
-            ls_id = str(ls.get("id", ""))
-            if ls_id not in existing_result_ids and to_uuid(ls_id) not in existing_result_ids:
-                ls_creator = ls.get("creator_id") or "creator_zola"
-                if creator_id and ls_creator != creator_id and to_uuid(ls_creator) != to_uuid(creator_id):
-                    continue
-                ls_copy = dict(ls)
-                ls_copy.setdefault("episodes", [])
-                ls_copy.setdefault("total_episodes", len(ls_copy.get("episodes", [])))
-                ls_copy.setdefault("published_episodes_count", 0)
-                ls_copy.setdefault("under_review_episodes_count", 0)
-                ls_copy.setdefault("draft_episodes_count", 0)
-                ls_copy.setdefault("archived_episodes_count", 0)
-                result.append(ls_copy)
+        # In offline/test mode ONLY, include any newly created local series
+        if not self.is_live:
+            existing_result_ids = {str(r.get("id")) for r in result}
+            existing_result_ids.update({to_uuid(str(r.get("id"))) for r in result if r.get("id")})
+            for ls in local_series:
+                ls_id = str(ls.get("id", ""))
+                if ls_id not in existing_result_ids and to_uuid(ls_id) not in existing_result_ids:
+                    ls_creator = ls.get("creator_id") or "creator_zola"
+                    if creator_id and ls_creator != creator_id and to_uuid(ls_creator) != to_uuid(creator_id):
+                        continue
+                    ls_copy = dict(ls)
+                    ls_copy.setdefault("episodes", [])
+                    ls_copy.setdefault("total_episodes", len(ls_copy.get("episodes", [])))
+                    ls_copy.setdefault("published_episodes_count", 0)
+                    ls_copy.setdefault("under_review_episodes_count", 0)
+                    ls_copy.setdefault("draft_episodes_count", 0)
+                    ls_copy.setdefault("archived_episodes_count", 0)
+                    result.append(ls_copy)
 
         return result
 
@@ -1332,14 +1350,6 @@ class SeriesRepository(BaseRepository):
                 s_copy["creator_id"] = self.resolve_series_creator_id(s_copy)
             return s_copy
 
-        # Fallback to local series
-        raw_series = self.local_get("series") or []
-        series = next((s for s in raw_series if s.get("id") == series_id or str(s.get("id")) == series_id or to_uuid(str(s.get("id", ""))) == target_uuid), None)
-        if series:
-            s_copy = dict(series)
-            s_copy["creator_id"] = s_copy.get("creator_id") or self.resolve_series_creator_id(s_copy)
-            return s_copy
-
         if self.is_live:
             try:
                 res = self.get_table("series").select("*").or_(f"id.eq.{series_id},id.eq.{target_uuid}").execute()
@@ -1349,6 +1359,16 @@ class SeriesRepository(BaseRepository):
                     return s_row
             except Exception as e:
                 logger.warning(f"[SeriesRepository] get_creator_series_detail remote lookup failed: {e}")
+            # In live mode, PostgreSQL is sole authority: do NOT resurrect unpersisted local records
+            return None
+
+        # Fallback to local series in offline/test mode only
+        raw_series = self.local_get("series") or []
+        series = next((s for s in raw_series if s.get("id") == series_id or str(s.get("id")) == series_id or to_uuid(str(s.get("id", ""))) == target_uuid), None)
+        if series:
+            s_copy = dict(series)
+            s_copy["creator_id"] = s_copy.get("creator_id") or self.resolve_series_creator_id(s_copy)
+            return s_copy
 
         return None
 
@@ -1436,26 +1456,27 @@ class SeriesRepository(BaseRepository):
             except Exception as e:
                 logger.warning(f"[SeriesRepository] Failed querying story_forge_packages for {ip_id}: {e}")
 
-        # 2. Local fallback if live query returned empty
-        if not digital_ip:
-            all_ips = self.local_get("digital_ips") or []
-            digital_ip = next((i for i in all_ips if str(i.get("id")) in (ip_id, target_uuid) or i.get("franchise_code") == ip_id), None)
+        # 2. Local fallback if live query returned empty (offline/test mode only)
+        if not self.is_live:
+            if not digital_ip:
+                all_ips = self.local_get("digital_ips") or []
+                digital_ip = next((i for i in all_ips if str(i.get("id")) in (ip_id, target_uuid) or i.get("franchise_code") == ip_id), None)
 
-        if not characters:
-            all_cb = self.local_get("character_bibles") or []
-            characters = [c for c in all_cb if str(c.get("ip_id")) in (ip_id, target_uuid)]
+            if not characters:
+                all_cb = self.local_get("character_bibles") or []
+                characters = [c for c in all_cb if str(c.get("ip_id")) in (ip_id, target_uuid)]
 
-        if not rights_ledger:
-            all_rl = self.local_get("rights_ledger") or []
-            rights_ledger = [r for r in all_rl if str(r.get("ip_id")) in (ip_id, target_uuid)]
+            if not rights_ledger:
+                all_rl = self.local_get("rights_ledger") or []
+                rights_ledger = [r for r in all_rl if str(r.get("ip_id")) in (ip_id, target_uuid)]
 
-        if not story_world:
-            all_sw = self.local_get("story_worlds") or []
-            story_world = next((w for w in all_sw if str(w.get("ip_id")) in (ip_id, target_uuid)), None)
+            if not story_world:
+                all_sw = self.local_get("story_worlds") or []
+                story_world = next((w for w in all_sw if str(w.get("ip_id")) in (ip_id, target_uuid)), None)
 
-        if not story_forge_package:
-            all_sfp = self.local_get("story_forge_packages") or []
-            story_forge_package = next((p for p in all_sfp if str(p.get("ip_id")) in (ip_id, target_uuid)), None)
+            if not story_forge_package:
+                all_sfp = self.local_get("story_forge_packages") or []
+                story_forge_package = next((p for p in all_sfp if str(p.get("ip_id")) in (ip_id, target_uuid)), None)
 
         # 3. Derive rights declarations
         if rights_ledger:
@@ -1605,8 +1626,6 @@ class SeriesRepository(BaseRepository):
             "created_at": now_ts,
             "updated_at": now_ts
         }
-        self.local_insert("digital_ips", ip_record)
-
         if self.is_live:
             try:
                 db_ip = {
@@ -1625,8 +1644,10 @@ class SeriesRepository(BaseRepository):
                 logger.info(f"[SeriesRepository] Provisioned canonical digital_ips in PostgreSQL for {creator_id}: {ip_uuid} ({franchise_code})")
             except Exception as e:
                 logger.error(f"[SeriesRepository] Remote digital_ips provisioning failed: {e}")
-                if settings.IS_PRODUCTION_OR_STAGING:
-                    raise RuntimeError(f"Creator ownership provisioning failure: Unable to persist digital_ips in database for creator '{creator_id}': {e}")
+                raise RuntimeError(f"Creator ownership provisioning failure: Unable to persist digital_ips in database for creator '{creator_id}': {e}")
+            self.local_insert("digital_ips", ip_record)
+        else:
+            self.local_insert("digital_ips", ip_record)
 
         return ip_uuid
 
@@ -1859,8 +1880,6 @@ class SeriesRepository(BaseRepository):
             "created_at": series_data.get("created_at", now_ts),
             "updated_at": series_data.get("updated_at", now_ts)
         }
-        self.local_insert("series", series_record)
-        
         if self.is_live:
             try:
                 db_record = {
@@ -1886,8 +1905,14 @@ class SeriesRepository(BaseRepository):
                 self.get_table("series").upsert(db_record).execute()
             except Exception as e:
                 logger.error(f"[SeriesRepository:DB] Series remote persistence error: {e}")
-                if settings.IS_PRODUCTION_OR_STAGING:
-                    raise RuntimeError(f"Database write failure: Unable to persist series '{series_id}' to authoritative database: {e}")
+                raise RuntimeError(f"Database write failure: Unable to persist series '{series_id}' to authoritative database: {e}")
+            
+            # Synchronize local compatibility store ONLY AFTER successful PostgreSQL persistence
+            self.local_insert("series", series_record)
+        else:
+            # Offline / local development environment
+            self.local_insert("series", series_record)
+
         return series_record
 
     def update_series_artwork(
@@ -1937,19 +1962,7 @@ class SeriesRepository(BaseRepository):
             series["cover_image"] = cover_image.strip()
         series["updated_at"] = now_ts
 
-        # Update in-memory / local store
-        all_series = self.local_get("series") or []
-        found_local = False
-        for idx, s in enumerate(all_series):
-            if s.get("id") == series.get("id") or to_uuid(str(s.get("id", ""))) == to_uuid(str(series.get("id", ""))):
-                all_series[idx] = series
-                found_local = True
-                break
-        if not found_local:
-            all_series.append(series)
-        self.local_set("series", all_series)
-
-        # Update live PostgreSQL Supabase
+        # 1. Update live PostgreSQL Supabase first if live
         if self.is_live:
             try:
                 update_payload = {"updated_at": now_ts}
@@ -1963,8 +1976,19 @@ class SeriesRepository(BaseRepository):
                 logger.info(f"[SeriesRepository:DB] Successfully updated artwork in PostgreSQL for series '{series_id}' (UUID: {db_id})")
             except Exception as e:
                 logger.error(f"[SeriesRepository:DB] Series artwork remote persistence error: {e}")
-                if settings.IS_PRODUCTION_OR_STAGING:
-                    raise RuntimeError(f"Database write failure: Unable to persist series artwork to authoritative database: {e}")
+                raise RuntimeError(f"Database write failure: Unable to persist series artwork to authoritative database: {e}")
+
+        # 2. Synchronize in-memory / local store strictly after PostgreSQL update (or if offline)
+        all_series = self.local_get("series") or []
+        found_local = False
+        for idx, s in enumerate(all_series):
+            if s.get("id") == series.get("id") or to_uuid(str(s.get("id", ""))) == to_uuid(str(series.get("id", ""))):
+                all_series[idx] = series
+                found_local = True
+                break
+        if not found_local:
+            all_series.append(series)
+        self.local_set("series", all_series)
 
         return series
 
@@ -2044,7 +2068,17 @@ class SeriesRepository(BaseRepository):
         series["updated_at"] = now_ts
         sanitized_db_updates["updated_at"] = now_ts
 
-        # 3. Update in-memory / local store
+        # 3. Update live PostgreSQL Supabase first if live (strictly sanitized allowed columns only)
+        if self.is_live and sanitized_db_updates:
+            try:
+                db_id = to_uuid(series_id)
+                self.get_table("series").update(sanitized_db_updates).eq("id", db_id).execute()
+                logger.info(f"[SeriesRepository:DB] Successfully updated series '{series_id}' (UUID: {db_id}) in PostgreSQL with {list(sanitized_db_updates.keys())}")
+            except Exception as e:
+                logger.error(f"[SeriesRepository:DB] Series metadata remote persistence error: {e}")
+                raise RuntimeError(f"Database write failure: Unable to persist series updates to authoritative database: {e}")
+
+        # 4. Synchronize in-memory / local store strictly after successful PostgreSQL update (or if offline)
         all_series = self.local_get("series") or []
         found_local = False
         target_uuid = to_uuid(series_id)
@@ -2056,17 +2090,6 @@ class SeriesRepository(BaseRepository):
         if not found_local:
             all_series.append(series)
         self.local_set("series", all_series)
-
-        # 4. Update live PostgreSQL Supabase (strictly sanitized allowed columns only)
-        if self.is_live and sanitized_db_updates:
-            try:
-                db_id = to_uuid(series_id)
-                self.get_table("series").update(sanitized_db_updates).eq("id", db_id).execute()
-                logger.info(f"[SeriesRepository:DB] Successfully updated series '{series_id}' (UUID: {db_id}) in PostgreSQL with {list(sanitized_db_updates.keys())}")
-            except Exception as e:
-                logger.error(f"[SeriesRepository:DB] Series metadata remote persistence error: {e}")
-                if settings.IS_PRODUCTION_OR_STAGING:
-                    raise RuntimeError(f"Database write failure: Unable to persist series updates to authoritative database: {e}")
 
         return series
 
@@ -2100,22 +2123,21 @@ class SeriesRepository(BaseRepository):
         deleted_title = series.get("title", "Untitled Series")
         deleted_ip_id = series.get("ip_id")
 
-        # 1. Local memory clean-up
-        all_series = self.local_get("series") or []
-        self.local_set("series", [s for s in all_series if s.get("id") != series_id and to_uuid(str(s.get("id", ""))) != target_uuid])
-
-        all_episodes = self.local_get("episodes") or []
-        self.local_set("episodes", [e for e in all_episodes if e.get("series_id") != series_id and to_uuid(str(e.get("series_id", ""))) != target_uuid])
-
-        # 2. Live PostgreSQL deletion (cascades to series-owned episodes; leaves digital_ips intact)
+        # 1. Live PostgreSQL deletion first if live (cascades to series-owned episodes; leaves digital_ips intact)
         if self.is_live:
             try:
                 self.get_table("series").delete().eq("id", target_uuid).execute()
                 logger.info(f"[SeriesRepository:DB] Successfully deleted series '{series_id}' (UUID: {target_uuid}) from PostgreSQL. Digital IP '{deleted_ip_id}' preserved.")
             except Exception as e:
                 logger.error(f"[SeriesRepository:DB] Series remote deletion error: {e}")
-                if settings.IS_PRODUCTION_OR_STAGING:
-                    raise RuntimeError(f"Database write failure: Unable to delete series from authoritative database: {e}")
+                raise RuntimeError(f"Database write failure: Unable to delete series from authoritative database: {e}")
+
+        # 2. Local memory clean-up strictly after remote deletion success (or if offline)
+        all_series = self.local_get("series") or []
+        self.local_set("series", [s for s in all_series if s.get("id") != series_id and to_uuid(str(s.get("id", ""))) != target_uuid])
+
+        all_episodes = self.local_get("episodes") or []
+        self.local_set("episodes", [e for e in all_episodes if e.get("series_id") != series_id and to_uuid(str(e.get("series_id", ""))) != target_uuid])
 
         return {
             "deleted": True,
@@ -2165,7 +2187,6 @@ class SeriesRepository(BaseRepository):
             "created_at": now_ts,
             "updated_at": now_ts
         }
-        self.local_insert("episodes", ep_record)
         if self.is_live:
             try:
                 db_record = {
@@ -2185,8 +2206,10 @@ class SeriesRepository(BaseRepository):
                 self.get_table("episodes").upsert(db_record).execute()
             except Exception as e:
                 logger.error(f"[SeriesRepository:DB] Episode draft remote persistence error: {e}")
-                if settings.IS_PRODUCTION_OR_STAGING:
-                    raise RuntimeError(f"Database write failure: Unable to persist episode draft '{ep_id}' to authoritative database: {e}")
+                raise RuntimeError(f"Database write failure: Unable to persist episode draft '{ep_id}' to authoritative database: {e}")
+            self.local_insert("episodes", ep_record)
+        else:
+            self.local_insert("episodes", ep_record)
         return ep_record
 
     def attach_media_asset(
@@ -2220,7 +2243,6 @@ class SeriesRepository(BaseRepository):
             "created_at": now_ts,
             "updated_at": now_ts
         }
-        self.local_insert("media_assets", media_record)
         if self.is_live:
             try:
                 db_media = {
@@ -2237,8 +2259,10 @@ class SeriesRepository(BaseRepository):
                 self.get_table("media_assets").upsert(db_media).execute()
             except Exception as e:
                 logger.error(f"[SeriesRepository:DB] Media asset remote persistence error: {e}")
-                if settings.IS_PRODUCTION_OR_STAGING:
-                    raise RuntimeError(f"Database write failure: Unable to persist media asset '{media_id}' to authoritative database: {e}")
+                raise RuntimeError(f"Database write failure: Unable to persist media asset '{media_id}' to authoritative database: {e}")
+            self.local_insert("media_assets", media_record)
+        else:
+            self.local_insert("media_assets", media_record)
         return media_record
 
     def register_media_asset(

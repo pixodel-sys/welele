@@ -78,7 +78,10 @@ export const authApi = {
 };
 
 export const seriesApi = {
-  getFeed: async (genre?: string, language?: string): Promise<{ series: Story[]; total: number }> => {
+  getFeed: async (
+    genre?: string,
+    language?: string
+  ): Promise<{ series: Story[]; total: number; is_degraded?: boolean; degraded_reason?: string | null; catalog_source?: string }> => {
     const res = await API.get('/series/feed', { params: { genre, language } });
     return res.data;
   },
@@ -213,7 +216,10 @@ export const storageApi = {
 // ============================================================================
 
 export const storyApi = {
-  getFeed: async (genre?: string, language?: string): Promise<{ stories: Story[]; total: number }> => {
+  getFeed: async (
+    genre?: string,
+    language?: string
+  ): Promise<{ stories: Story[]; total: number; is_degraded?: boolean; degraded_reason?: string | null; catalog_source?: string }> => {
     const res = await API.get('/stories/feed', { params: { genre, language } });
     return res.data;
   },
@@ -628,11 +634,24 @@ export const experienceApi = {
     return res.data;
   },
   saveDraft: async (pageId: string, payload: { meta?: any; sections: any[] }) => {
-    const res = await API.put(`/experience/page/${pageId}/draft`, payload);
+    const res = await API.put(`/experience/page/${pageId}/draft`, payload, {
+      timeout: 60000,
+    });
     return res.data;
   },
-  publish: async (pageId: string, scheduledFor?: string) => {
-    const res = await API.post(`/experience/page/${pageId}/publish`, { scheduled_for: scheduledFor });
+  publish: async (pageId: string, scheduledFor?: string, idempotencyKey?: string) => {
+    const headers: Record<string, string> = {};
+    if (idempotencyKey) {
+      headers['Idempotency-Key'] = idempotencyKey;
+    }
+    const res = await API.post(
+      `/experience/page/${pageId}/publish`,
+      { scheduled_for: scheduledFor },
+      {
+        headers,
+        timeout: 60000,
+      }
+    );
     return res.data;
   },
   resetDefault: async (pageId: string) => {

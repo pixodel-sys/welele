@@ -278,13 +278,14 @@ class Database:
                     if "series_id" in payload_to_sync:
                         payload_to_sync["series_id"] = self._to_uuid(str(payload_to_sync["series_id"]))
                 elif collection in (
+                    "media_assets",
                     "wallets", "coin_ledger", "unlocked_episodes",
                     "commercial_agreements", "commercial_agreement_versions",
                     "revenue_events", "revenue_deductions", "creator_ledger",
                     "creator_statements", "creator_statement_lines",
                     "creator_payouts", "creator_payout_allocations"
                 ):
-                    # Managed authoritatively by LedgerRepository and CommercialAccountingRepository with domain logic
+                    # Managed authoritatively by SeriesRepository, LedgerRepository, and CommercialAccountingRepository with domain logic
                     return item
 
                 if on_conflict:

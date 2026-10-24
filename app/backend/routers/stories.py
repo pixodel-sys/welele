@@ -13,7 +13,14 @@ router = APIRouter(prefix="/stories", tags=["Stories & Episodes (Legacy Alias)"]
 def get_feed(genre: Optional[str] = None, language: Optional[str] = None):
     series_list = series_repository.list_feed(genre=genre, language=language)
     ranked_series = recommendation_service.score_stories(series_list)
-    return {"stories": ranked_series, "series": ranked_series, "total": len(ranked_series)}
+    return {
+        "stories": ranked_series,
+        "series": ranked_series,
+        "total": len(ranked_series),
+        "is_degraded": series_repository.is_degraded,
+        "degraded_reason": series_repository.degraded_reason,
+        "catalog_source": series_repository.catalog_source
+    }
 
 @router.get("/trending")
 def get_trending():

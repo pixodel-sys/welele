@@ -330,8 +330,11 @@ export const WeleleAdminStudio: React.FC<WeleleAdminStudioProps> = ({ stories })
       showNotification('Draft layout saved successfully', 'success');
     } catch (err: any) {
       console.error('Failed to save draft:', err);
+      const isTimeout = err?.code === 'ECONNABORTED' || err?.message?.includes('timeout');
       const detail = err?.response?.data?.detail;
-      const message = typeof detail === 'string' ? detail : err?.message || 'Failed to save draft';
+      const message = isTimeout
+        ? 'Save draft request timed out after 60s. Please check your network and retry.'
+        : (typeof detail === 'string' ? detail : err?.message || 'Failed to save draft');
       showNotification(`Failed to save draft: ${message}`, 'error');
     } finally {
       setSaving(false);
@@ -341,19 +344,23 @@ export const WeleleAdminStudio: React.FC<WeleleAdminStudioProps> = ({ stories })
   // Publish to LIVE
   const handlePublish = async () => {
     setPublishing(true);
+    const idempotencyKey = `pub_${selectedPage}_${Date.now()}`;
     try {
       await experienceApi.saveDraft(selectedPage, {
         meta: manifest.meta,
         sections: prepareSectionsForSave(manifest.sections),
       });
-      const res = await experienceApi.publish(selectedPage);
+      const res = await experienceApi.publish(selectedPage, undefined, idempotencyKey);
       showNotification(`Published Live! Version: ${res.version}`, 'success');
       loadDraft(selectedPage);
       loadLive(selectedPage);
     } catch (err: any) {
       console.error('Failed to publish experience:', err);
+      const isTimeout = err?.code === 'ECONNABORTED' || err?.message?.includes('timeout');
       const detail = err?.response?.data?.detail;
-      const message = typeof detail === 'string' ? detail : err?.message || 'Failed to publish experience';
+      const message = isTimeout
+        ? 'Publish request timed out after 60s. The operation may still complete on the server. Please refresh to verify.'
+        : (typeof detail === 'string' ? detail : err?.message || 'Failed to publish experience');
       showNotification(`Failed to publish experience: ${message}`, 'error');
     } finally {
       setPublishing(false);

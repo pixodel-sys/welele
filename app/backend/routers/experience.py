@@ -4,8 +4,9 @@ Public client layout delivery, draft authoring, and simulated time-travel previe
 with strict Admin RBAC protection and EXPERIENCE domain audit logging.
 """
 
-from fastapi import APIRouter, HTTPException, Query, Depends
-from typing import Dict, Any, Optional
+import logging
+from fastapi import APIRouter, HTTPException, Query, Depends, Header
+from typing import Dict, Any, Optional, List
 from datetime import datetime, timezone
 from services.experience_engine import ExperienceEngine
 from services.rbac_service import require_role, get_current_user
@@ -141,19 +142,63 @@ def save_page_draft(page_id: str, request: SaveDraftRequest, auth_user: dict = D
 
     return {"status": "saved", "page_id": page_id, "updated_at": current_draft["updated_at"]}
 
+_PUBLISH_CACHE: Dict[str, Dict[str, Any]] = {}
+
 @router.post("/page/{page_id}/publish", dependencies=[Depends(require_role(["admin"]))])
-def publish_page_experience(page_id: str, request: Optional[PublishRequest] = None, auth_user: dict = Depends(get_current_user)):
+def publish_page_experience(
+    page_id: str,
+    request: Optional[PublishRequest] = None,
+    idempotency_key: Optional[str] = Header(None, alias="Idempotency-Key"),
+    auth_user: dict = Depends(get_current_user)
+):
     """
     Promotes draft layout to LIVE production status.
-    Increments layout version string, records timestamp, and emits EXPERIENCE audit event.
+    Idempotent: If current live layout already matches draft, returns current version without duplicate promotion.
     """
+    # 1. Header-based Idempotency Check
+    if idempotency_key and idempotency_key in _PUBLISH_CACHE:
+        cached = _PUBLISH_CACHE[idempotency_key]
+        if cached.get("page_id") == page_id:
+            return cached
+
     draft = ExperienceEngine.get_stored_manifest(page_id, state="draft")
+    current_live = ExperienceEngine.get_stored_manifest(page_id, state="published")
+
+    def _extract_comparable(manifest: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+        if not manifest or not isinstance(manifest, dict):
+            return {}
+        return {
+            "meta": manifest.get("meta", {}),
+            "sections": [
+                {k: v for k, v in s.items() if k not in ("created_at", "updated_at", "status", "version")}
+                for s in manifest.get("sections", [])
+            ]
+        }
+
+    # 2. Content-based Idempotency Check:
+    # If draft content is identical to currently live published layout, return existing version cleanly
+    if current_live and current_live.get("version"):
+        draft_content = _extract_comparable(draft)
+        live_content = _extract_comparable(current_live)
+        if draft_content == live_content:
+            resp = {
+                "status": "published",
+                "page_id": page_id,
+                "version": current_live["version"],
+                "published_at": current_live.get("published_at"),
+                "is_idempotent": True
+            }
+            if idempotency_key:
+                _PUBLISH_CACHE[idempotency_key] = resp
+            return resp
+
     now_ts = datetime.now(timezone.utc).isoformat()
-    
-    # Generate new version tag
     now_dt = datetime.now(timezone.utc)
     now_str = now_dt.strftime("%Y.%m.%d")
-    version = f"{now_str}.v{int(now_dt.timestamp()) % 1000}"
+    v_num = int(now_dt.timestamp() * 1000) % 1000000
+    version = f"{now_str}.v{v_num:06d}"
+    if current_live and version == current_live.get("version"):
+        version = f"{now_str}.v{(v_num + 1) % 1000000:06d}"
 
     live_manifest = {
         **draft,
@@ -179,12 +224,16 @@ def publish_page_experience(page_id: str, request: Optional[PublishRequest] = No
         metadata={"published_at": now_ts}
     )
 
-    return {
+    resp = {
         "status": "published",
         "page_id": page_id,
         "version": version,
-        "published_at": live_manifest["published_at"]
+        "published_at": live_manifest["published_at"],
+        "is_idempotent": False
     }
+    if idempotency_key:
+        _PUBLISH_CACHE[idempotency_key] = resp
+    return resp
 
 @router.post("/page/{page_id}/reset-default", dependencies=[Depends(require_role(["admin"]))])
 def reset_page_to_default(page_id: str, auth_user: dict = Depends(get_current_user)):
