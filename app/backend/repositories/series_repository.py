@@ -54,10 +54,23 @@ class SeriesRepository(BaseRepository):
         super().__init__()
         self._is_degraded = False
         self._degraded_reason = None
-        if not self.local_get("series"):
+        # A fresh process has an empty local compatibility cache even when PostgreSQL
+        # already contains the canonical catalogue. Never infer that PostgreSQL is empty
+        # from this cache and never seed fixture records into staging/production.
+        if not settings.IS_PRODUCTION_OR_STAGING and not self.local_get("series"):
             self.seed_if_missing()
 
     def seed_if_missing(self):
+        # Staging/production catalogue records must be created through the explicit,
+        # dependency-aware canonical data workflow, not application startup fixtures.
+        # In particular, fixture series reference Digital IP rows that may not exist.
+        if settings.IS_PRODUCTION_OR_STAGING:
+            logger.warning(
+                "Fixture catalogue seeding skipped in %s; PostgreSQL remains authoritative.",
+                settings.ENVIRONMENT,
+            )
+            return
+
         # Canonical catalog with all 14 series synchronized across Creator, Admin, and Viewer
         canonical_series = [
             # 1. Blood Ties
